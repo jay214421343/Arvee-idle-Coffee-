@@ -29,6 +29,8 @@ jobs:
         with:
           node-version: "22"
       - run: npm install --no-audit --no-fund
+      - name: Export dependency lock for review
+        run: node -e "const fs=require('node:fs'); console.log('COFFEE_LOCK_B64_START:' + fs.readFileSync('package-lock.json').toString('base64') + ':COFFEE_LOCK_B64_END')"
       - run: npm run check
       - run: npm run db:migrate
       - run: npm test
