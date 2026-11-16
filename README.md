@@ -22,7 +22,7 @@ Original game created by Daniel Tran (MIT). This fork is a fresh-season rewrite:
 
 ## Start a private test instance
 
-1. Clone this repository, then run **npm install**.
+1. Clone this repository, then run **npm ci** (reproducible installation from the committed lockfile).
 2. Copy .env.example to .env. Set DISCORD_TOKEN, DISCORD_CLIENT_ID, DISCORD_GUILD_ID (private server) and DATABASE_URL.
 3. Create a new, empty PostgreSQL database; restrict access to the Coffee role.
 4. Run **npm run db:migrate**. The migration is additive and safe to rerun.
