@@ -2,7 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { MessageFlags } = require("discord.js");
-const { coffee } = require("../src/commands");
+const { coffee, handleComponent } = require("../src/commands");
 const { dec } = require("../src/economy");
 const { perks } = require("../src/catalog");
 const ui = require("../src/ui");
@@ -46,6 +46,8 @@ test("all game dashboard views serialize as native Components V2", () => {
     ui.pickaxe(owner, sample),
     ui.perks(owner, sample, perks),
     ui.leaderboard(owner, [{ user_id: owner, total_earned: "10", prestige: 0 }]),
+    ui.stats(owner, { ...sample, counts: { mine: 4, daily: 1 }, achievements: [{ name: "Coffee Lover", achieved: true, goal: "Claim a reward" }] }),
+    ui.perkRespec(owner),
     ui.help(owner),
     ui.message("Test", "Hello", owner)
   ];
@@ -58,4 +60,32 @@ test("all game dashboard views serialize as native Components V2", () => {
     assert.equal(payload.components.length, 1);
     assert.ok(JSON.stringify(obj).length < 30000);
   }
+});
+
+test("unauthorized component clicks are rejected before updating any shared message", async () => {
+  let denial = null;
+  let updated = false;
+  const interaction = {
+    customId: ui.custom(owner, "shop", "2"),
+    user: { id: "999999999999999999" },
+    isButton: () => true, isStringSelectMenu: () => false,
+    reply: async (payload) => { denial = payload; },
+    deferUpdate: async () => { updated = true; }
+  };
+  assert.equal(await handleComponent(interaction), true);
+  assert.equal(updated, false);
+  assert.equal(denial.flags, MessageFlags.Ephemeral);
+});
+test("authorized paging updates a Components V2 message without using a database", async () => {
+  let deferred = false, payload = null;
+  const interaction = {
+    customId: ui.custom(owner, "shop", "2"),
+    user: { id: owner },
+    isButton: () => true, isStringSelectMenu: () => false,
+    deferUpdate: async () => { deferred = true; },
+    editReply: async (result) => { payload = result; }
+  };
+  assert.equal(await handleComponent(interaction), true);
+  assert.equal(deferred, true);
+  assert.equal(payload.components[0].toJSON().type, 17);
 });
