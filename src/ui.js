@@ -68,6 +68,7 @@ function home(owner, user, p) {
     button(owner, "market", "💱 Market"),
     button(owner, "pickaxe", "⛏ Pickaxe"),
     button(owner, "craft", "🛠 Craft"),
+    button(owner, "stats", "🏅 Stats"),
     button(owner, "profile", "↻ Refresh")
   ]));
   return c;
@@ -228,7 +229,35 @@ function perks(owner, p, defs) {
   c.addActionRowComponents(new ActionRowBuilder().addComponents(new StringSelectMenuBuilder()
     .setCustomId(custom(owner, "perk_select")).setPlaceholder("Upgrade a perk (costs 1 token)")
     .addOptions(Object.entries(defs).map(([id, d]) => ({ label: d.name, value: id, description: d.description.slice(0, 100) })))));
-  c.addActionRowComponents(row([button(owner, "pickaxe", "Back to pickaxe"), button(owner, "profile", "Dashboard")]));
+  c.addActionRowComponents(row([
+    button(owner, "pickaxe", "Back to pickaxe"),
+    button(owner, "perk_respec", "Respec perks", "", ButtonStyle.Danger, !p.perks?.length),
+    button(owner, "profile", "Dashboard")
+  ]));
+  return c;
+}
+function perkRespec(owner) {
+  const c = container("⚠ Respec pickaxe perks", "Remove every unlocked perk. Levels and consumed tokens are not refunded.", WARN);
+  divider(c);
+  foot(c, "**Cost**  5× Strange Matter. Your pickaxe tier and XP are preserved.");
+  c.addActionRowComponents(row([
+    button(owner, "perk_respec_confirm", "Confirm respec", "", ButtonStyle.Danger),
+    button(owner, "perks", "Keep my perks")
+  ]));
+  return c;
+}
+function stats(owner, p) {
+  const c = container("🏅 Coffee Achievements", "Player achievements and lifetime activity in the current season.");
+  divider(c);
+  foot(c, p.achievements.map((a) => (a.achieved ? "✅" : "▫") + " **" + a.name + "** · " + a.goal).join("\n"));
+  divider(c);
+  const n = (type) => p.counts[type] || 0;
+  foot(c, "**Mines**  " + n("mine") + "   ·   **Crafts**  " + n("craft") + "   ·   **Purchases**  " + n("generator_purchase") +
+    "\n**Marketplace sales**  " + n("market_sell") + "   ·   **Prestiges**  " + p.prestige);
+  c.addActionRowComponents(row([
+    button(owner, "stats", "↻ Refresh", "", ButtonStyle.Primary),
+    button(owner, "profile", "Dashboard")
+  ]));
   return c;
 }
 function leaderboard(owner, rows) {
@@ -255,5 +284,5 @@ function payload(view) {
 }
 module.exports = {
   custom, button, message, home, shop, generator, inventory, item, crafting, recipe, market, listing,
-  prestige, pickaxe, perks, leaderboard, help, payload, SUCCESS, WARN, ERROR
+  prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, SUCCESS, WARN, ERROR
 };
