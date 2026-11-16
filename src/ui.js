@@ -1,7 +1,7 @@
 "use strict";
 const {
   ContainerBuilder, TextDisplayBuilder, SectionBuilder, ThumbnailBuilder, SeparatorBuilder,
-  ActionRowBuilder, ButtonBuilder, StringSelectMenuBuilder, ButtonStyle, MessageFlags
+  ActionRowBuilder, ButtonBuilder, StringSelectMenuBuilder, ButtonStyle, MessageFlags, escapeMarkdown
 } = require("discord.js");
 const { generators, byId, items, recipes } = require("./catalog");
 const { pretty, dec, purchaseCost, PRESTIGE_REQUIREMENT } = require("./economy");
@@ -52,7 +52,7 @@ function home(owner, user, p) {
   const c = container("☕ Coffee  /  Player Dashboard", "Your idle empire, all in one place.");
   divider(c);
   const s = new SectionBuilder().addTextDisplayComponents(
-    text("### " + user.username + "\n**" + pretty(p.balance) + " BP**  ·  +" + pretty(p.rate) + " BP/s"),
+    text("### " + escapeMarkdown(user.username).slice(0, 80) + "\n**" + pretty(p.balance) + " BP**  ·  +" + pretty(p.rate) + " BP/s"),
     text("**Prestige**  " + p.prestige + "   ·   **Mining XP**  " + p.mineXp + "\n**Lifetime BP**  " + pretty(p.totalEarned) + "   ·   **Generators**  " + p.generators.reduce((n, g) => n + g.quantity, 0))
   );
   s.setThumbnailAccessory(new ThumbnailBuilder().setURL(user.displayAvatarURL({ extension: "png", size: 128 })).setDescription("Player avatar"));
