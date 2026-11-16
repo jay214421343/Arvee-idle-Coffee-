@@ -88,7 +88,7 @@ function shop(owner, page = 1) {
     button(owner, "profile", "Dashboard"),
     button(owner, "shop", "Next ▶", String(page + 1), ButtonStyle.Secondary, page === total)
   ]));
-  foot(c, "Page " + page + " / " + total + "  ·  56 original Coffee generators");
+  foot(c, "Page " + page + " / " + total + "  ·  " + generators.length + " original Coffee generators");
   return c;
 }
 function generator(owner, id, page, p, note = "") {
@@ -136,7 +136,9 @@ function item(owner, id, quantity, page = 1) {
     "\n" + (entry.use ? "**Use:** " + entry.use : "") +
     (recipes[id] ? "\n**Recipe:** " + Object.entries(recipes[id]).map(([part, q]) => q + "× " + items[part].name).join(", ") : ""));
   c.addActionRowComponents(row([
-    button(owner, "use_item", "Use item", id, ButtonStyle.Primary, !entry.use || quantity < 1),
+    button(owner, ["lootbox", "rare_lootbox", "legendary_lootbox"].includes(id) ? "open_one" : "use_item",
+      ["lootbox", "rare_lootbox", "legendary_lootbox"].includes(id) ? "Open 1" : "Use item",
+      id, ButtonStyle.Primary, (!entry.effect && !["lootbox", "rare_lootbox", "legendary_lootbox"].includes(id)) || quantity < 1),
     button(owner, "inventory", "Back", String(page)),
     button(owner, "profile", "Dashboard")
   ]));
