@@ -75,8 +75,8 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.COFFEE_T
     assert.equal(reset.perks.find((p) => p.perk_id === "miner").level, 1);
   } finally {
     await store.pool.query("DELETE FROM market_listings WHERE seller_id=ANY($1::text[]) OR buyer_id=ANY($1::text[])", [[a,b,c]]);
-    await store.pool.query("DELETE FROM economy_events WHERE user_id=ANY($1::text[])", [[a,b]]);
-    await store.pool.query("DELETE FROM players WHERE user_id=ANY($1::text[])", [[a,b]]);
+    await store.pool.query("DELETE FROM economy_events WHERE user_id=ANY($1::text[])", [[a,b,c]]);
+    await store.pool.query("DELETE FROM players WHERE user_id=ANY($1::text[])", [[a,b,c]]);
     await store.pool.end();
   }
 });
