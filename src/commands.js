@@ -31,6 +31,7 @@ coffee.addSubcommand((c) => c.setName("give").setDescription("Give another playe
 coffee.addSubcommand((c) => c.setName("leaderboard").setDescription("Top players by earned BP"));
 coffee.addSubcommand((c) => c.setName("pickaxe").setDescription("Upgrade your pickaxe and view mining stats"));
 coffee.addSubcommand((c) => c.setName("perks").setDescription("View and upgrade permanent pickaxe perks"));
+coffee.addSubcommand((c) => c.setName("stats").setDescription("View unlocked achievements and game activity"));
 coffee.addSubcommand((c) => c.setName("use").setDescription("Consume an item from your inventory")
   .addStringOption((o) => o.setName("item").setDescription("Item to consume").setRequired(true)
     .addChoices(...Object.entries(items).filter(([, i]) => !!i.effect).map(([value, i]) => ({ name: i.name, value })))));
@@ -164,6 +165,8 @@ async function respond(interaction) {
       view = ui.pickaxe(id, await store.profile(id));
     } else if (command === "perks") {
       view = ui.perks(id, await store.profile(id), require("./catalog").perks);
+    } else if (command === "stats") {
+      view = ui.stats(id, await store.getStats(id));
     } else if (command === "use") {
       const used = await store.useItem(id, opts.getString("item", true));
       content = "Used **" + labelItem(used.itemId) + "**. " + used.message;
@@ -264,6 +267,13 @@ async function handleComponent(interaction) {
       view = ui.message("⛏ Pickaxe upgraded", "Tier **" + result.tier + "** unlocked!", owner, { color: ui.SUCCESS });
     } else if (action === "perks") {
       view = ui.perks(owner, await store.profile(owner), require("./catalog").perks);
+    } else if (action === "stats") {
+      view = ui.stats(owner, await store.getStats(owner));
+    } else if (action === "perk_respec") {
+      view = ui.perkRespec(owner);
+    } else if (action === "perk_respec_confirm") {
+      result = await store.respecPerks(owner);
+      view = ui.message("✨ Perks reset", "Removed " + result.removed + " perk(s). You can unlock new ones.", owner, { color: ui.SUCCESS });
     } else if (action === "perk_select") {
       result = await store.upgradePerk(owner, selected);
       view = ui.message("✨ Perk upgraded", require("./catalog").perks[result.perkId].name + " is now level **" + result.level + "**.", owner, { color: ui.SUCCESS });
