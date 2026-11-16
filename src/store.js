@@ -87,7 +87,7 @@ async function buyGenerator(userId, generatorId, quantity) {
     const state = stateOf(states, userId);
     const current = (await db.query("SELECT quantity FROM player_generators WHERE user_id=$1 AND generator_id=$2", [userId, entry.id])).rows[0];
     const owned = current ? current.quantity : 0;
-    if (owned + quantity > 10000000) throw new Error("Generator ownership limit reached.");
+    if (owned + quantity > 10000) throw new Error("Generator ownership limit reached (10,000 per type).");
     const cost = purchaseCost(entry.cost, owned, quantity);
     if (state.balance.lt(cost)) throw new Error("Not enough BP. Need " + cost.toSignificantDigits(5).toString() + " BP.");
     state.balance = state.balance.minus(cost);
