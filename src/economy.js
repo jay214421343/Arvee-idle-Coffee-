@@ -49,6 +49,6 @@ function pretty(value) {
   const exponent = abs.e;
   const group = Math.floor(exponent / 3);
   if (group <= suffixes.length) return n.div(new Decimal(1000).pow(group)).toDecimalPlaces(2).toString() + suffixes[group - 1];
-  return n.toSignificantDigits(4).toString();
+  return n.toExponential(3);
 }
 module.exports = { Decimal, dec, asInteger, prestigeMultiplier, generatorRate, purchaseCost, settle, pretty, PRESTIGE_REQUIREMENT };
