@@ -1,8 +1,0 @@
-0xfec31b Skin
-0xff6666 Deny/invalid
-0x666666 Neutral
-0x66ff66 Success/available
-
-⭐ Rank
-✨ BP
-🌟 Glowing Star
