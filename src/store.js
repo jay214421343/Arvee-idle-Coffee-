@@ -1,6 +1,6 @@
 "use strict";
 const { Pool } = require("pg");
-const { items, recipes, byId } = require("./catalog");
+const { items, recipes, byId, perks } = require("./catalog");
 const { Decimal, dec, generatorRate, purchaseCost, settle, PRESTIGE_REQUIREMENT, prestigeMultiplier } = require("./economy");
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 10, connectionTimeoutMillis: 10000, idleTimeoutMillis: 30000 });
@@ -26,21 +26,25 @@ async function transact(ids, action) {
       await client.query("INSERT INTO players(user_id) VALUES($1) ON CONFLICT DO NOTHING", [id]);
       const player = (await client.query("SELECT * FROM players WHERE user_id = $1 FOR UPDATE", [id])).rows[0];
       const generators = (await client.query("SELECT generator_id, quantity FROM player_generators WHERE user_id = $1", [id])).rows;
-      const rate = generatorRate(generators, player.prestige);
+      const playerPerks = (await client.query("SELECT perk_id, level FROM player_perks WHERE user_id=$1", [id])).rows;
+      const investor = playerPerks.find((p) => p.perk_id === "investor")?.level || 0;
+      const rate = generatorRate(generators, player.prestige, player.orb_count, investor);
       const passive = settle(player.balance, player.total_earned, rate, player.last_settled_at, time);
       states.set(id, {
         id, balance: passive.balance, totalEarned: passive.totalEarned,
         prestige: player.prestige, rate, generators,
         mineXp: player.mine_xp, lastMine: player.last_mine_at,
-        lastDaily: player.last_daily_at, lastSettledAt: passive.settledAt
+        lastDaily: player.last_daily_at, lastSettledAt: passive.settledAt,
+        pickaxeTier: player.pickaxe_tier, mineBonus: dec(player.next_mine_multiplier), orbs: player.orb_count, perks: playerPerks
       });
     }
     const result = await action(client, states);
     for (const state of states.values()) {
       await client.query(
-        "UPDATE players SET balance=$2, total_earned=$3, prestige=$4, mine_xp=$5, last_mine_at=$6, last_daily_at=$7, last_settled_at=$8, updated_at=now() WHERE user_id=$1",
+        "UPDATE players SET balance=$2, total_earned=$3, prestige=$4, mine_xp=$5, last_mine_at=$6, last_daily_at=$7, last_settled_at=$8, pickaxe_tier=$9, next_mine_multiplier=$10, orb_count=$11, updated_at=now() WHERE user_id=$1",
         [state.id, state.balance.toFixed(0), state.totalEarned.toFixed(0), state.prestige,
-          state.mineXp, state.lastMine, state.lastDaily, state.lastSettledAt]
+          state.mineXp, state.lastMine, state.lastDaily, state.lastSettledAt,
+          state.pickaxeTier, state.mineBonus.toString(), state.orbs]
       );
     }
     await client.query("COMMIT");
@@ -71,6 +75,7 @@ async function removeItem(db, userId, itemId, quantity) {
   if (!result.rowCount) throw new Error("Not enough " + items[itemId].name + ".");
 }
 function stateOf(states, id) { return states.get(String(id)); }
+function perkLevel(state, id) { return state.perks.find((row) => row.perk_id === id)?.level || 0; }
 async function profile(userId) {
   return transact([userId], async (db, states) => {
     const player = stateOf(states, userId);
@@ -95,7 +100,10 @@ async function buyGenerator(userId, generatorId, quantity) {
       "INSERT INTO player_generators(user_id,generator_id,quantity) VALUES($1,$2,$3) ON CONFLICT(user_id,generator_id) DO UPDATE SET quantity=player_generators.quantity + EXCLUDED.quantity",
       [userId, entry.id, quantity]
     );
-    state.rate = state.rate.plus(dec(entry.income).times(quantity).times(prestigeMultiplier(state.prestige))).floor();
+    const existing = state.generators.find((g) => g.generator_id === entry.id);
+    if (existing) existing.quantity += quantity;
+    else state.generators.push({ generator_id: entry.id, quantity });
+    state.rate = generatorRate(state.generators, state.prestige, state.orbs, perkLevel(state, "investor"));
     await event(db, userId, "generator_purchase", cost.neg(), { generator: entry.id, quantity });
     return { generator: entry, quantity, cost, owned: owned + quantity, balance: state.balance, rate: state.rate };
   });
@@ -104,19 +112,29 @@ async function mine(userId) {
   return transact([userId], async (db, states) => {
     const state = stateOf(states, userId);
     const now = Date.now();
-    const cooldown = 5 * 60 * 1000;
+    const cooldown = Math.max(45000, (300 - 15 * perkLevel(state, "sprinter")) * 1000);
     const remaining = state.lastMine ? cooldown - (now - new Date(state.lastMine).getTime()) : 0;
     if (remaining > 0) return { cooldown: Math.ceil(remaining / 1000) };
-    const reward = Decimal.max(25, state.rate.times(15)).floor();
+    const reward = Decimal.max(25, state.rate.times(15))
+      .times(dec(1).plus(dec(state.pickaxeTier).times("0.25")))
+      .times(dec(1).plus(dec(perkLevel(state, "miner")).times("0.10")))
+      .times(state.mineBonus).floor();
+    state.mineBonus = dec(1);
     state.balance = state.balance.plus(reward);
     state.totalEarned = state.totalEarned.plus(reward);
     state.lastMine = new Date(now);
     state.mineXp += 1;
-    const drop = Math.random() < 0.05 ? "gold" : Math.random() < 0.30 ? "silver" : "ore";
+    const fortune = perkLevel(state, "fortune");
+    const roll = Math.random();
+    const drop = roll < 0.01 + fortune * 0.005 ? "gem" :
+      roll < 0.05 + fortune * 0.012 ? "gold" :
+      roll < 0.08 + fortune * 0.017 ? "strange_matter" :
+      roll < 0.35 + fortune * 0.025 ? "silver" : "ore";
     await addItem(db, userId, drop, 1);
-    if (Math.random() < 0.04) await addItem(db, userId, "lootbox", 1);
+    const box = Math.random() < 0.04 + 0.03 * perkLevel(state, "scavenger");
+    if (box) await addItem(db, userId, "lootbox", 1);
     await event(db, userId, "mine", reward, { drop });
-    return { reward, drop, mineXp: state.mineXp };
+    return { reward, drop, mineXp: state.mineXp, box };
   });
 }
 async function daily(userId) {
@@ -143,18 +161,23 @@ async function craft(userId, itemId, quantity) {
     return { itemId, quantity };
   });
 }
-async function openLootbox(userId, quantity) {
+async function openLootbox(userId, quantity, boxType = "lootbox") {
   assertQuantity(quantity, 20);
+  if (!["lootbox", "rare_lootbox", "legendary_lootbox"].includes(boxType)) throw new Error("Unknown lootbox type.");
   return transact([userId], async (db) => {
-    await removeItem(db, userId, "lootbox", quantity);
+    await removeItem(db, userId, boxType, quantity);
     const drops = {};
     for (let i = 0; i < quantity; i++) {
       const roll = Math.random();
-      const item = roll < 0.05 ? "gold" : roll < 0.25 ? "silver" : roll < 0.5 ? "cookie" : "ore";
+      const item = boxType === "legendary_lootbox" ?
+        (roll < 0.10 ? "orb_of_almanac" : roll < 0.23 ? "gem" : roll < 0.43 ? "pickperk" : roll < 0.65 ? "tinkers_gizmo" : "strange_matter") :
+        boxType === "rare_lootbox" ?
+        (roll < 0.04 ? "gem" : roll < 0.18 ? "pickperk" : roll < 0.40 ? "gold" : roll < 0.60 ? "starfruit" : "strange_matter") :
+        (roll < 0.01 ? "pickperk" : roll < 0.04 ? "gold" : roll < 0.16 ? "silver" : roll < 0.25 ? "apple" : roll < 0.36 ? "bread" : roll < 0.45 ? "cola" : roll < 0.55 ? "cookie" : "ore");
       drops[item] = (drops[item] || 0) + 1;
     }
     for (const [item, amount] of Object.entries(drops)) await addItem(db, userId, item, amount);
-    await event(db, userId, "open_lootbox", 0, { quantity, drops });
+    await event(db, userId, "open_lootbox", 0, { quantity, drops, boxType });
     return drops;
   });
 }
@@ -177,6 +200,7 @@ async function prestige(userId) {
     state.balance = dec(10);
     state.totalEarned = dec(10);
     state.rate = dec(0);
+    state.generators = [];
     await db.query("DELETE FROM player_generators WHERE user_id=$1", [userId]);
     await event(db, userId, "prestige", 0, { newLevel: state.prestige });
     return { prestige: state.prestige, multiplier: prestigeMultiplier(state.prestige) };
@@ -236,4 +260,84 @@ async function cancelListing(userId, rawId) {
     return { item: listing.item_id, quantity: listing.quantity };
   });
 }
-module.exports = { pool, transact, profile, buyGenerator, mine, daily, craft, openLootbox, giveItem, prestige, leaderboard, browseMarket, sellItem, buyListing, cancelListing };
+async function getListing(id) {
+  const result = await pool.query("SELECT id,seller_id,item_id,quantity,price,status FROM market_listings WHERE id=$1", [listingId(id)]);
+  const row = result.rows[0];
+  if (!row || row.status !== "active") throw new Error("That listing is no longer active.");
+  return row;
+}
+async function useItem(userId, itemId) {
+  const item = items[itemId];
+  if (!item || !item.effect) throw new Error("This item cannot be consumed.");
+  return transact([userId], async (db, states) => {
+    const state = stateOf(states, userId);
+    const e = item.effect;
+    if (e.orb && state.orbs >= 20) throw new Error("Orb limit reached (20).");
+    if (e.nextMine && state.mineBonus.times(e.nextMine).gt(20)) throw new Error("You already have the maximum next-mine boost.");
+    if (e.xp && state.mineXp + e.xp > 100000000) throw new Error("Mining XP cap reached.");
+    await removeItem(db, userId, itemId, 1);
+    let message = "";
+    if (e.bp) {
+      state.balance = state.balance.plus(e.bp);
+      state.totalEarned = state.totalEarned.plus(e.bp);
+      message = "Gained " + e.bp + " BP.";
+    }
+    if (e.nextMine) {
+      state.mineBonus = state.mineBonus.times(e.nextMine);
+      message = "Next mining multiplier: " + state.mineBonus.toString() + "×.";
+    }
+    if (e.xp) {
+      state.mineXp += e.xp;
+      message = "Gained " + e.xp + " mining XP.";
+    }
+    if (e.orb) {
+      state.orbs += e.orb;
+      state.rate = generatorRate(state.generators, state.prestige, state.orbs, perkLevel(state, "investor"));
+      message = "Permanent +10% generator income. Total orbs: " + state.orbs + ".";
+    }
+    if (e.grant) {
+      await addItem(db, userId, e.grant, e.grantAmount || 1);
+      message = "Received " + (e.grantAmount || 1) + "× " + items[e.grant].name + ".";
+    }
+    await event(db, userId, "use_item", 0, { itemId });
+    return { itemId, message };
+  });
+}
+async function upgradePickaxe(userId) {
+  return transact([userId], async (db, states) => {
+    const state = stateOf(states, userId);
+    if (state.pickaxeTier >= 10) throw new Error("Your pickaxe is already maximum tier.");
+    const costOre = 20 * (state.pickaxeTier + 1);
+    const costSilver = 5 * (state.pickaxeTier + 1);
+    const costGold = state.pickaxeTier >= 2 ? state.pickaxeTier : 0;
+    await removeItem(db, userId, "ore", costOre);
+    await removeItem(db, userId, "silver", costSilver);
+    if (costGold) await removeItem(db, userId, "gold", costGold);
+    state.pickaxeTier++;
+    await event(db, userId, "pickaxe_upgrade", 0, { tier: state.pickaxeTier });
+    return { tier: state.pickaxeTier };
+  });
+}
+async function upgradePerk(userId, perkId) {
+  if (!Object.hasOwn(perks, perkId)) throw new Error("Unknown perk.");
+  return transact([userId], async (db, states) => {
+    const state = stateOf(states, userId);
+    const current = perkLevel(state, perkId);
+    if (current >= perks[perkId].max) throw new Error("Perk has reached max level.");
+    if (state.perks.length >= 3 && current === 0) throw new Error("Maximum 3 equipped perks.");
+    await removeItem(db, userId, "pickperk", 1);
+    const result = await db.query(
+      "INSERT INTO player_perks(user_id,perk_id,level) VALUES($1,$2,1) ON CONFLICT(user_id,perk_id) DO UPDATE SET level=player_perks.level+1 RETURNING level",
+      [userId, perkId]
+    );
+    const level = result.rows[0].level;
+    const prior = state.perks.find((p) => p.perk_id === perkId);
+    if (prior) prior.level = level;
+    else state.perks.push({ perk_id: perkId, level });
+    if (perkId === "investor") state.rate = generatorRate(state.generators, state.prestige, state.orbs, level);
+    await event(db, userId, "perk_upgrade", 0, { perkId, level });
+    return { perkId, level };
+  });
+}
+module.exports = { pool, transact, profile, buyGenerator, mine, daily, craft, openLootbox, giveItem,
+  prestige, leaderboard, browseMarket, sellItem, buyListing, cancelListing, getListing, useItem, upgradePickaxe, upgradePerk };
