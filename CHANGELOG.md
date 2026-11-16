@@ -1,3 +1,14 @@
+# 1.1.0 — Components V2 and Coffee progression (unreleased)
+
+- Rebuilt Coffee screens with native Components V2: interactive player dashboard, avatar, paginated shop, inventory, crafting, pickaxe, market, and confirmation actions.
+- Added pickaxe upgrading, five perk tracks, new mining rewards, consumable boosts, and rare/legendary lootbox drops.
+- Expanded crafting and inventory to 25 item types and 11 recipes. Added user-bound interactive controls.
+- Added additive PostgreSQL schema changes, transaction-safe upgrades and item use.
+- Added layout serialization tests and extended PostgreSQL race tests.
+- Private-server Discord verification is required before production deployment.
+
+---
+
 # 0.2.3
 + Coffee is now available to be hosted locally
 

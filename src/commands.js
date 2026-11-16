@@ -3,6 +3,7 @@ const { SlashCommandBuilder, MessageFlags } = require("discord.js");
 const { generators, byId, items, recipes } = require("./catalog");
 const { dec, pretty, purchaseCost, PRESTIGE_REQUIREMENT } = require("./economy");
 const store = require("./store");
+const ui = require("./ui");
 
 const itemChoices = Object.entries(items).map(([value, info]) => ({ name: info.name, value }));
 const recipeChoices = Object.keys(recipes).map((id) => ({ name: items[id].name, value: id }));
@@ -17,15 +18,23 @@ coffee.addSubcommand((c) => c.setName("mine").setDescription("Mine BP and materi
 coffee.addSubcommand((c) => c.setName("daily").setDescription("Claim daily coffee and lootboxes"));
 coffee.addSubcommand((c) => c.setName("inventory").setDescription("Check collected items").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
 coffee.addSubcommand((c) => c.setName("craft").setDescription("Craft an item")
-  .addStringOption((o) => o.setName("item").setDescription("Item to craft").setRequired(true).addChoices(...recipeChoices))
+  .addStringOption((o) => o.setName("item").setDescription("Item to craft (omit to browse recipes)").addChoices(...recipeChoices))
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity (1-100)").setMinValue(1).setMaxValue(100)));
 coffee.addSubcommand((c) => c.setName("open").setDescription("Open lootboxes")
+  .addStringOption((o) => o.setName("type").setDescription("Type of lootbox").addChoices(
+    { name: "Lootbox", value: "lootbox" }, { name: "Rare Lootbox", value: "rare_lootbox" }, { name: "Legendary Lootbox", value: "legendary_lootbox" }))
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity (1-20)").setMinValue(1).setMaxValue(20)));
 coffee.addSubcommand((c) => c.setName("give").setDescription("Give another player an item")
   .addUserOption((o) => o.setName("user").setDescription("Recipient").setRequired(true))
   .addStringOption((o) => o.setName("item").setDescription("Item").setRequired(true).addChoices(...itemChoices))
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity").setMinValue(1).setMaxValue(1000)));
 coffee.addSubcommand((c) => c.setName("leaderboard").setDescription("Top players by earned BP"));
+coffee.addSubcommand((c) => c.setName("pickaxe").setDescription("Upgrade your pickaxe and view mining stats"));
+coffee.addSubcommand((c) => c.setName("perks").setDescription("View and upgrade permanent pickaxe perks"));
+coffee.addSubcommand((c) => c.setName("stats").setDescription("View unlocked achievements and game activity"));
+coffee.addSubcommand((c) => c.setName("use").setDescription("Consume an item from your inventory")
+  .addStringOption((o) => o.setName("item").setDescription("Item to consume").setRequired(true)
+    .addChoices(...Object.entries(items).filter(([, i]) => !!i.effect).map(([value, i]) => ({ name: i.name, value })))));
 coffee.addSubcommand((c) => c.setName("prestige").setDescription("Restart your generators with a permanent boost")
   .addBooleanOption((o) => o.setName("confirm").setDescription("Confirm resetting your generators and BP")));
 coffee.addSubcommandGroup((g) => g.setName("market").setDescription("Trade items for BP")
@@ -59,9 +68,11 @@ async function respond(interaction) {
     const group = opts.getSubcommandGroup(false);
     const command = opts.getSubcommand();
     let content = "";
+    let view = null;
     if (group === "market") {
       if (command === "browse") {
         const rows = await store.browseMarket();
+        view = ui.market(id, rows);
         content = rows.length ? "**Coffee Market**\n" + rows.map((r) =>
           "#" + r.id + " · " + r.quantity + " " + labelItem(r.item_id) + " · " + pretty(r.price) + " BP · Seller <@" + r.seller_id + ">"
         ).join("\n") : "The market is empty. List something with /coffee market sell!";
@@ -79,6 +90,7 @@ async function respond(interaction) {
         content = "Cancelled listing; returned " + result.quantity + " " + labelItem(result.item) + ".";
       }
     } else if (command === "help") {
+      view = ui.help(id);
       content = [
         "**☕ Coffee — Idle Game**",
         "Start with /coffee profile. Earn BP passively by buying generators.",
@@ -91,11 +103,13 @@ async function respond(interaction) {
     } else if (command === "profile") {
       const target = opts.getUser("user") || interaction.user;
       const p = await store.profile(target.id);
+      view = ui.home(id, target, p);
       const genTotal = p.generators.reduce((sum, g) => sum + g.quantity, 0);
       content = "**☕ " + target.username + "'s Coffee Profile**\nBP: **" + pretty(p.balance) +
         "**\nBP/s: **" + pretty(p.rate) + "**\nTotal earned: " + pretty(p.totalEarned) +
         "\nGenerators owned: " + genTotal + "\nPrestige: " + p.prestige + " · Mining XP: " + p.mineXp;
     } else if (command === "shop") {
+      view = ui.shop(id, opts.getInteger("page") || 1);
       content = shop(opts.getInteger("page") || 1);
     } else if (command === "buy") {
       const result = await store.buyGenerator(id, opts.getString("generator", true), opts.getInteger("amount") || 1);
@@ -112,15 +126,20 @@ async function respond(interaction) {
     } else if (command === "inventory") {
       const target = opts.getUser("user") || interaction.user;
       const p = await store.profile(target.id);
+      view = ui.inventory(id, p);
       content = "**" + target.username + "'s inventory**\n" +
         (p.inventory.length ? p.inventory.map((r) => labelItem(r.item_id) + " × " + r.quantity).join("\n") : "Empty. Try /coffee mine or /coffee daily.");
     } else if (command === "craft") {
-      const item = opts.getString("item", true);
-      const qty = opts.getInteger("amount") || 1;
-      await store.craft(id, item, qty);
-      content = "Crafted " + qty + " × **" + labelItem(item) + "**!";
+      const item = opts.getString("item");
+      if (!item) {
+        view = ui.crafting(id);
+      } else {
+        const qty = opts.getInteger("amount") || 1;
+        await store.craft(id, item, qty);
+        content = "Crafted " + qty + " × **" + labelItem(item) + "**!";
+      }
     } else if (command === "open") {
-      const drops = await store.openLootbox(id, opts.getInteger("amount") || 1);
+      const drops = await store.openLootbox(id, opts.getInteger("amount") || 1, opts.getString("type") || "lootbox");
       content = "📦 Opened lootboxes: " + Object.entries(drops).map(([item, n]) => n + " " + labelItem(item)).join(", ") + ".";
     } else if (command === "give") {
       const recipient = opts.getUser("user", true);
@@ -131,22 +150,139 @@ async function respond(interaction) {
       content = "Sent **" + amount + " " + labelItem(item) + "** to **" + recipient.username + "**.";
     } else if (command === "leaderboard") {
       const top = await store.leaderboard();
+      view = ui.leaderboard(id, top);
       content = "**☕ Coffee Leaderboard**\n" +
         (top.length ? top.map((p, n) => (n + 1) + ". <@" + p.user_id + "> — " + pretty(p.total_earned) + " BP · P" + p.prestige).join("\n") : "Nobody has started playing yet.");
     } else if (command === "prestige") {
       if (!opts.getBoolean("confirm")) {
+        view = ui.prestige(id, await store.profile(id));
         content = "Prestige costs **" + pretty(PRESTIGE_REQUIREMENT) + " BP**. It resets your BP and generators (not inventory) and adds +25% permanent production per prestige.\nRun /coffee prestige confirm:true when ready.";
       } else {
         const result = await store.prestige(id);
         content = "🌟 Prestige **" + result.prestige + "**! Permanent production multiplier: " + result.multiplier.toString() + "×.";
       }
+    } else if (command === "pickaxe") {
+      view = ui.pickaxe(id, await store.profile(id));
+    } else if (command === "perks") {
+      view = ui.perks(id, await store.profile(id), require("./catalog").perks);
+    } else if (command === "stats") {
+      view = ui.stats(id, await store.getStats(id));
+    } else if (command === "use") {
+      const used = await store.useItem(id, opts.getString("item", true));
+      content = "Used **" + labelItem(used.itemId) + "**. " + used.message;
     } else content = "Unknown command.";
-    await interaction.editReply({ content: content.slice(0, 1990), allowedMentions: { parse: [] } });
+    view ||= ui.message("☕ Coffee", content.slice(0, 2900), id);
+    await interaction.editReply({ content: null, embeds: [], ...ui.payload(view) });
   } catch (error) {
     console.error("[Coffee command]", error);
     const reply = error.message && !/SQL|relation|column|syntax|connect|pool|password|database/i.test(error.message)
       ? error.message : "An unexpected error occurred. Please try again.";
-    await interaction.editReply({ content: "☕ " + reply.slice(0, 1800), allowedMentions: { parse: [] } }).catch(console.error);
+    await interaction.editReply({ content: null, embeds: [], ...ui.payload(ui.message("Something went wrong", "☕ " + reply.slice(0, 1800), interaction.user.id, { color: ui.ERROR })) }).catch(console.error);
   }
 }
-module.exports = { coffee, respond, shop };
+function uiError(error) {
+  if (!error || !error.message) return "An unexpected error occurred.";
+  return /SQL|relation|column|syntax|connect|pool|password|database|duplicate key/i.test(error.message)
+    ? "A database operation failed. Please retry." : error.message;
+}
+async function handleComponent(interaction) {
+  if (!(interaction.isButton() || interaction.isStringSelectMenu())) return false;
+  const parts = interaction.customId.split(":");
+  if (parts.length !== 5 || parts[0] !== "cf" || parts[1] !== "1") return false;
+  const [, , owner, action, argument] = parts;
+  if (owner !== interaction.user.id) {
+    await interaction.reply({ content: "This menu belongs to another player. Use /coffee profile to open your own.", flags: MessageFlags.Ephemeral });
+    return true;
+  }
+  if (!/^[a-z_]+$/.test(action) || !/^[a-zA-Z0-9_]*$/.test(argument)) return false;
+  try {
+    await interaction.deferUpdate();
+    const selected = interaction.isStringSelectMenu() ? interaction.values[0] : "";
+    let view;
+    let result;
+    if (action === "profile") {
+      view = ui.home(owner, interaction.user, await store.profile(owner));
+    } else if (action === "shop") {
+      view = ui.shop(owner, Number(argument) || 1);
+    } else if (action === "generator_select") {
+      const player = await store.profile(owner);
+      view = ui.generator(owner, selected, Number(argument) || 1, player);
+    } else if (action === "buy_one" || action === "buy_ten") {
+      const amount = action === "buy_ten" ? 10 : 1;
+      result = await store.buyGenerator(owner, argument, amount);
+      const page = Math.floor(Math.max(0, generators.findIndex((g) => g.id === argument)) / 8) + 1;
+      view = ui.generator(owner, argument, page, await store.profile(owner), "Purchased " + amount + " for " + pretty(result.cost) + " BP.");
+    } else if (action === "mine") {
+      result = await store.mine(owner);
+      view = ui.message(result.cooldown ? "⏳ Pickaxe cooling down" : "⛏ Mining complete",
+        result.cooldown ? "You can mine again in " + result.cooldown + " seconds." :
+          "**+" + pretty(result.reward) + " BP** and **" + labelItem(result.drop) + "**" + (result.box ? " · Bonus lootbox!" : ""),
+        owner, { color: result.cooldown ? ui.WARN : ui.SUCCESS });
+    } else if (action === "daily") {
+      result = await store.daily(owner);
+      view = ui.message(result.cooldown ? "⏳ Daily claimed" : "🎁 Daily reward",
+        result.cooldown ? "Available again in " + Math.ceil(result.cooldown / 60) + " minutes." : result.received.join(" · "),
+        owner, { color: result.cooldown ? ui.WARN : ui.SUCCESS });
+    } else if (action === "inventory") {
+      view = ui.inventory(owner, await store.profile(owner), Number(argument) || 1);
+    } else if (action === "item_select") {
+      const p = await store.profile(owner);
+      const quantity = p.inventory.find((r) => r.item_id === selected)?.quantity || 0;
+      view = ui.item(owner, selected, quantity, Number(argument) || 1);
+    } else if (action === "use_item") {
+      result = await store.useItem(owner, argument);
+      view = ui.message("✨ Item used", "**" + labelItem(result.itemId) + "** · " + result.message, owner, { color: ui.SUCCESS });
+    } else if (action === "open_one") {
+      const drops = await store.openLootbox(owner, 1, argument);
+      view = ui.message("📦 Lootbox opened", Object.entries(drops).map(([id, n]) => n + "× " + labelItem(id)).join(" · "), owner, { color: ui.SUCCESS });
+    } else if (action === "craft") {
+      view = ui.crafting(owner);
+    } else if (action === "recipe_select") {
+      view = ui.recipe(owner, selected);
+    } else if (action === "craft_one" || action === "craft_five") {
+      const quantity = action === "craft_five" ? 5 : 1;
+      await store.craft(owner, argument, quantity);
+      view = ui.message("🛠 Crafted successfully", quantity + "× " + labelItem(argument), owner, { color: ui.SUCCESS });
+    } else if (action === "market") {
+      view = ui.market(owner, await store.browseMarket());
+    } else if (action === "listing_select") {
+      view = ui.listing(owner, await store.getListing(selected));
+    } else if (action === "listing_buy") {
+      result = await store.buyListing(owner, argument);
+      view = ui.message("✅ Purchase completed", result.quantity + "× " + labelItem(result.item) + " for " + pretty(result.price) + " BP.", owner, { color: ui.SUCCESS });
+    } else if (action === "listing_cancel") {
+      result = await store.cancelListing(owner, argument);
+      view = ui.message("✅ Listing cancelled", result.quantity + "× " + labelItem(result.item) + " returned.", owner, { color: ui.SUCCESS });
+    } else if (action === "leaderboard") {
+      view = ui.leaderboard(owner, await store.leaderboard());
+    } else if (action === "prestige") {
+      view = ui.prestige(owner, await store.profile(owner));
+    } else if (action === "prestige_confirm") {
+      result = await store.prestige(owner);
+      view = ui.message("🌟 Prestige complete", "You are now **Prestige " + result.prestige + "**!", owner, { color: ui.SUCCESS });
+    } else if (action === "pickaxe") {
+      view = ui.pickaxe(owner, await store.profile(owner));
+    } else if (action === "pickaxe_upgrade") {
+      result = await store.upgradePickaxe(owner);
+      view = ui.message("⛏ Pickaxe upgraded", "Tier **" + result.tier + "** unlocked!", owner, { color: ui.SUCCESS });
+    } else if (action === "perks") {
+      view = ui.perks(owner, await store.profile(owner), require("./catalog").perks);
+    } else if (action === "stats") {
+      view = ui.stats(owner, await store.getStats(owner));
+    } else if (action === "perk_respec") {
+      view = ui.perkRespec(owner);
+    } else if (action === "perk_respec_confirm") {
+      result = await store.respecPerks(owner);
+      view = ui.message("✨ Perks reset", "Removed " + result.removed + " perk(s). You can unlock new ones.", owner, { color: ui.SUCCESS });
+    } else if (action === "perk_select") {
+      result = await store.upgradePerk(owner, selected);
+      view = ui.message("✨ Perk upgraded", require("./catalog").perks[result.perkId].name + " is now level **" + result.level + "**.", owner, { color: ui.SUCCESS });
+    } else return true;
+    await interaction.editReply({ components: [view], allowedMentions: { parse: [] } });
+  } catch (error) {
+    console.error("[Coffee component]", error);
+    await interaction.followUp({ content: "☕ " + uiError(error).slice(0, 1800), flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } }).catch(console.error);
+  }
+  return true;
+}
+module.exports = { coffee, respond, handleComponent, shop };

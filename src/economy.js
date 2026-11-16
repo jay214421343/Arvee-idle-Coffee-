@@ -12,16 +12,17 @@ function dec(value) {
 function asInteger(value) {
   return dec(value).floor().toFixed(0);
 }
-function prestigeMultiplier(prestige) {
-  return new Decimal(1).plus(new Decimal(prestige).times("0.25"));
+function prestigeMultiplier(prestige, orbs = 0, investor = 0) {
+  return new Decimal(1).plus(new Decimal(prestige).times("0.25"))
+    .plus(new Decimal(orbs).times("0.10")).plus(new Decimal(investor).times("0.03"));
 }
-function generatorRate(rows, prestige = 0) {
+function generatorRate(rows, prestige = 0, orbs = 0, investor = 0) {
   let rate = ZERO;
   for (const row of rows) {
     const entry = byId.get(String(row.generator_id).toUpperCase());
     if (entry) rate = rate.plus(dec(entry.income).times(row.quantity));
   }
-  return rate.times(prestigeMultiplier(prestige)).floor();
+  return rate.times(prestigeMultiplier(prestige, orbs, investor)).floor();
 }
 function purchaseCost(baseCost, owned, amount) {
   if (!Number.isSafeInteger(owned) || owned < 0 || !Number.isSafeInteger(amount) || amount < 1 || amount > 1000) {

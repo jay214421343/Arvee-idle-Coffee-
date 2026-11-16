@@ -1,16 +1,18 @@
 {
   "name": "coffee-bot",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "Coffee: a Discord idle game powered by PostgreSQL",
+  "description": "Coffee: a modern Discord idle game with native Components V2 and PostgreSQL",
   "type": "commonjs",
-  "engines": { "node": ">=22.12.0" },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "start": "node src/index.js",
     "register": "node src/register.js",
     "db:migrate": "node src/migrate.js",
     "test": "node --test tests/*.test.js",
-    "check": "node --check src/index.js && node --check src/commands.js && node --check src/store.js && node --check src/economy.js"
+    "check": "node --check src/index.js && node --check src/commands.js && node --check src/store.js && node --check src/economy.js && node --check src/ui.js && node --check src/catalog.js && node --check src/register.js && node --check src/migrate.js"
   },
   "dependencies": {
     "decimal.js": "^10.6.0",
