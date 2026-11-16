@@ -339,5 +339,36 @@ async function upgradePerk(userId, perkId) {
     return { perkId, level };
   });
 }
+async function respecPerks(userId) {
+  return transact([userId], async (db, states) => {
+    const state = stateOf(states, userId);
+    if (!state.perks.length) throw new Error("No perks to reset.");
+    await removeItem(db, userId, "strange_matter", 5);
+    await db.query("DELETE FROM player_perks WHERE user_id=$1", [userId]);
+    const removed = state.perks.length;
+    state.perks = [];
+    state.rate = generatorRate(state.generators, state.prestige, state.orbs);
+    await event(db, userId, "perk_respec", 0, { removed });
+    return { removed };
+  });
+}
+async function getStats(userId) {
+  const player = await profile(userId);
+  const rows = (await pool.query(
+    "SELECT event_type, count(*)::integer AS count FROM economy_events WHERE user_id=$1 GROUP BY event_type",
+    [userId]
+  )).rows;
+  const counts = Object.fromEntries(rows.map((row) => [row.event_type, row.count]));
+  const achievements = [
+    { name: "Coffee Lover", achieved: (counts.daily || 0) >= 1, goal: "Claim a daily reward" },
+    { name: "Mine Apprentice", achieved: (counts.mine || 0) >= 25, goal: "Mine 25 times" },
+    { name: "Crafting Artisan", achieved: (counts.craft || 0) >= 10, goal: "Craft 10 times" },
+    { name: "Merchant", achieved: (counts.market_sell || 0) >= 1, goal: "List an item for sale" },
+    { name: "Shopping Spree", achieved: (counts.generator_purchase || 0) >= 20, goal: "Buy generators 20 times" },
+    { name: "Rising Star", achieved: player.prestige >= 1, goal: "Prestige once" }
+  ];
+  return { ...player, counts, achievements };
+}
 module.exports = { pool, transact, profile, buyGenerator, mine, daily, craft, openLootbox, giveItem,
-  prestige, leaderboard, browseMarket, sellItem, buyListing, cancelListing, getListing, useItem, upgradePickaxe, upgradePerk };
+  prestige, leaderboard, browseMarket, sellItem, buyListing, cancelListing, getListing, useItem, upgradePickaxe, upgradePerk,
+  respecPerks, getStats };
