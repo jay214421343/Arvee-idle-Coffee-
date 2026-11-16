@@ -73,6 +73,17 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.COFFEE_T
     assert.equal(reset.pickaxeTier, 1);
     assert.equal(reset.generators.length, 0);
     assert.equal(reset.perks.find((p) => p.perk_id === "miner").level, 1);
+    const stats = await store.getStats(a);
+    assert.ok(stats.achievements.find((x) => x.name === "Coffee Lover").achieved);
+    assert.ok(stats.achievements.find((x) => x.name === "Rising Star").achieved);
+    await store.pool.query(
+      "INSERT INTO inventory(user_id,item_id,quantity) VALUES($1,'strange_matter',5) ON CONFLICT(user_id,item_id) DO UPDATE SET quantity=inventory.quantity+EXCLUDED.quantity",
+      [a]
+    );
+    assert.equal((await store.upgradePerk(a, "investor")).level, 1);
+    assert.equal((await store.respecPerks(a)).removed, 2);
+    assert.equal((await store.profile(a)).perks.length, 0);
+    await assert.rejects(() => store.respecPerks(a), /No perks/);
   } finally {
     await store.pool.query("DELETE FROM market_listings WHERE seller_id=ANY($1::text[]) OR buyer_id=ANY($1::text[])", [[a,b,c]]);
     await store.pool.query("DELETE FROM economy_events WHERE user_id=ANY($1::text[])", [[a,b,c]]);
