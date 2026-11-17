@@ -225,3 +225,60 @@ CREATE TABLE IF NOT EXISTS idle_guild_boss_damage (
   PRIMARY KEY(guild_id,period_key,user_id)
 );
 CREATE INDEX IF NOT EXISTS idle_guild_boss_rankings ON idle_guild_boss_damage(period_key,guild_id);
+
+-- Guild Expeditions & Leagues: only real committed member activities progress contracts.
+CREATE TABLE IF NOT EXISTS idle_guild_league_season_members (
+  season_key TEXT NOT NULL CHECK(season_key ~ '^[0-9]{8}$'),
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  guild_id BIGINT NOT NULL REFERENCES idle_guilds(id) ON DELETE CASCADE,
+  joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(season_key,user_id)
+);
+CREATE INDEX IF NOT EXISTS idle_guild_league_members_guild_idx
+  ON idle_guild_league_season_members(guild_id,season_key);
+CREATE TABLE IF NOT EXISTS idle_guild_expedition_missions (
+  guild_id BIGINT NOT NULL REFERENCES idle_guilds(id) ON DELETE CASCADE,
+  period_key TEXT NOT NULL CHECK(period_key ~ '^[0-9]{8}$'),
+  mission_id TEXT NOT NULL CHECK(mission_id IN ('mining_run','frontier_survey','siege_support','supply_line')),
+  target INTEGER NOT NULL CHECK(target BETWEEN 1 AND 1000),
+  reward_ic INTEGER NOT NULL CHECK(reward_ic BETWEEN 1 AND 10000),
+  reward_item_id TEXT NOT NULL,
+  reward_quantity INTEGER NOT NULL CHECK(reward_quantity BETWEEN 1 AND 10),
+  renown_reward INTEGER NOT NULL CHECK(renown_reward BETWEEN 0 AND 1000),
+  league_points INTEGER NOT NULL CHECK(league_points BETWEEN 1 AND 1000),
+  progress INTEGER NOT NULL DEFAULT 0 CHECK(progress >= 0 AND progress <= target),
+  completed_at TIMESTAMPTZ,
+  PRIMARY KEY(guild_id,period_key,mission_id)
+);
+CREATE INDEX IF NOT EXISTS idle_guild_expedition_completed_idx
+  ON idle_guild_expedition_missions(period_key,completed_at) WHERE completed_at IS NOT NULL;
+CREATE TABLE IF NOT EXISTS idle_guild_expedition_contributions (
+  guild_id BIGINT NOT NULL,
+  period_key TEXT NOT NULL,
+  mission_id TEXT NOT NULL,
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  units INTEGER NOT NULL CHECK(units BETWEEN 1 AND 1000),
+  claimed_at TIMESTAMPTZ,
+  PRIMARY KEY(guild_id,period_key,mission_id,user_id),
+  FOREIGN KEY(guild_id,period_key,mission_id) REFERENCES idle_guild_expedition_missions(guild_id,period_key,mission_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idle_guild_expedition_claims_idx
+  ON idle_guild_expedition_contributions(user_id,claimed_at) WHERE claimed_at IS NULL;
+CREATE TABLE IF NOT EXISTS idle_guild_expedition_daily (
+  guild_id BIGINT NOT NULL,
+  period_key TEXT NOT NULL,
+  mission_id TEXT NOT NULL,
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  day DATE NOT NULL,
+  units INTEGER NOT NULL CHECK(units BETWEEN 1 AND 10),
+  PRIMARY KEY(guild_id,period_key,mission_id,user_id,day),
+  FOREIGN KEY(guild_id,period_key,mission_id) REFERENCES idle_guild_expedition_missions(guild_id,period_key,mission_id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS idle_guild_league_season_claims (
+  season_key TEXT NOT NULL,
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  guild_id BIGINT NOT NULL REFERENCES idle_guilds(id) ON DELETE CASCADE,
+  tier TEXT NOT NULL CHECK(tier IN ('Bronze','Silver','Gold','Diamond')),
+  claimed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(season_key,user_id)
+);

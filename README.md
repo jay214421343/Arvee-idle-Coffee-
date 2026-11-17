@@ -18,6 +18,43 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.7 — Guild Expeditions & Seasonal Guild Leagues
+
+Team expeditions are **global player-guild objectives** rather than Discord-server missions. Successful gameplay events from members of the same guild advance shared objectives regardless of which Discord server hosts the command. Data lives in the existing PostgreSQL database and the Discord UI uses compact, mostly emoji-free Components V2.
+
+### Weekly cooperative expeditions
+
+Open **/idle guild expeditions** or select **Expeditions** from the Guild overview. Each UTC week, a guild can complete:
+
+| Expedition | Successful activity | Goal | Per-player/day cap | Personal reward (2+ accepted actions) | Shared Renown |
+| --- | --- | ---: | ---: | --- | ---: |
+| Mining Run | Mine successfully | 10 | 5 | 300 IC + 3 Rune Ore | 50 |
+| Frontier Survey | Collect a timed expedition | 6 | 2 | 550 IC + 2 Moonsteel | 75 |
+| Siege Support | Strike a World Boss | 8 | 3 | 700 IC + 1 Gold | 90 |
+| Supply Line | Claim a Daily Reward | 5 | 1 | 450 IC + 1 Supply Cache | 65 |
+
+A team objective is complete only when its goal is reached **and at least two distinct guild members have contributed**. Progress cannot be granted for blocked cooldowns, duplicate expedition collections, failed actions or unlimited command spam. Per-player daily progress is capped for every objective, but real gameplay continues normally after the cap. Each completion grants the guild its fixed shared Renown (and guild XP) once, and **100 weekly league points**.
+
+**Personal rewards:** Any guildmate who accumulated at least two accepted actions before the team objective completed may claim its snapshotted IC/items once using the Guild Expeditions screen or `/idle guild claim`. Payouts remain claimable after the weekly reset or leaving the guild, as long as the guild still exists. Disbanding a guild permanently deletes its guild-specific history and outstanding rewards, as explicitly confirmed by the leader.
+
+### Four-week Guild Leagues
+
+Open **/idle guild league**. Every four UTC weeks, leagues tally 100 points per completed objective (maximum 400 per week, 1,600 per season) and display weekly and season top-five rankings. Ranking depends on completed cooperative objectives, **not raw participant count or unlimited mined/boss damage**, giving smaller active guilds a genuine chance. Tier titles are Explorer (1–399), Bronze (400+), Silver (800+), Gold (1,200+) and Diamond (1,600).
+
+At the end of a four-week season, a member who contributed **six or more accepted actions** to their locked season guild may claim one tier-based season prize. Bronze awards 750 IC + 2 Supply Caches, Silver 1,250 IC + 1 Rare Cache, Gold 2,000 IC + 2 Rare Caches, and Diamond 2,800 IC + 1 Legendary Cache. Unranked/Explorer have no season prize. Rewards depend on unlocked **season milestones**, not finishing first, and therefore remain accessible to smaller guilds.
+
+Season participation is locked to the **first guild where an accepted expedition action is recorded**. If a player switches guilds mid-season, they may continue their personal game and standard guild progression, but new expedition/league actions in the new guild are deferred until the next four-week season. This prevents moving contributions or hopping guilds for multiple rewards. Previous earned rewards and season claims remain accessible. A single season prize can be claimed per Discord user per season.
+
+### Reliability & operational details
+
+- UTC Monday weekly rotation and four-week league seasons are derived from database timestamps. No bot timer, manual reset, Discord guild ID, or third-party service is required.
+- PostgreSQL player locks and guild locks serialize concurrent progress, completion and payouts across bot shards. A unique membership-season lock prevents moving the same player's league contributions between guilds. Personal claims and historic season payouts use unique keys and single database transactions.
+- Mission target, IC, material, quantity, Renown and points are snapshotted when the first qualifying event creates each mission; future balance patches cannot rewrite completed rewards.
+- Daily caps, two distinct contributors, two accepted actions for weekly payout, six actions for season payout and fixed milestone standings are the primary anti-abuse protections. Discord account farming is still possible and should be reviewed before offering high-value prizes.
+- Migrations add tables/indexes only and preserve existing accounts, IC, guilds, pets, inventory, expeditions and World Boss records.
+
+**Deployment after review/merge:** In `/Users/gabberjay/Documents/arvee-idle`, run `git switch master && git pull --ff-only origin master`, `npm ci`, `npm run setup`, `npm run mac:restart`, and `npm run mac:status`. Setup must run **before** restart to apply additive schema and register new guild slash commands. Do a live two-account, two-server Guild Expedition and League UI smoke test. This PR must not be merged automatically.
+
 ## ARVEE Idle 2.6 — Global Player Guilds
 
 Global guilds are **persistent player groups**, not Discord server configuration. A Discord User ID may belong to one guild at a time, even if the player switches Discord servers. Every guild uses the same PostgreSQL database as the global ARVEE Idle economy.

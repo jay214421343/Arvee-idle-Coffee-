@@ -57,6 +57,11 @@ idle.addSubcommandGroup((g) => g.setName("market").setDescription("Trade items f
 idle.addSubcommandGroup((g) => g.setName("guild").setDescription("Manage global ARVEE Idle player guilds")
   .addSubcommand((c) => c.setName("view").setDescription("Open your guild and invitations"))
   .addSubcommand((c) => c.setName("rankings").setDescription("Weekly guild boss damage rankings"))
+  .addSubcommand((c) => c.setName("expeditions").setDescription("Team weekly expedition objectives and rewards"))
+  .addSubcommand((c) => c.setName("league").setDescription("Weekly and seasonal guild league standings"))
+  .addSubcommand((c) => c.setName("claim").setDescription("Claim your oldest completed Guild Expedition reward"))
+  .addSubcommand((c) => c.setName("season_claim").setDescription("Claim an earned reward from a finished guild league season")
+    .addStringOption((o) => o.setName("season").setDescription("Season start date (YYYYMMDD)").setRequired(true)))
   .addSubcommand((c) => c.setName("create").setDescription("Create a global player guild")
     .addStringOption((o) => o.setName("name").setDescription("Guild name (3-26 characters)").setRequired(true).setMinLength(3).setMaxLength(26))
     .addStringOption((o) => o.setName("tag").setDescription("Short tag (2-5 letters/numbers)").setRequired(true).setMinLength(2).setMaxLength(5)))
@@ -144,10 +149,24 @@ async function respond(interaction) {
         if (!opts.getBoolean("confirm",true)) throw new Error("Use confirm:true to permanently disband your guild.");
         const removed = await store.disbandGuild(id);
         note = "Guild " + removed.name + " disbanded. This cannot be undone.";
-      } else if (command !== "view" && command !== "rankings")
+      } else if (command === "claim") {
+        const earned=await store.claimGuildExpedition(id);
+        note="Claimed " + pretty(earned.ic) + " IC and " + earned.quantity +
+          "× " + labelItem(earned.itemId) + " from " + earned.name + ".";
+      } else if (command === "season_claim") {
+        const earned=await store.claimGuildLeagueSeason(id,opts.getString("season",true));
+        note="Claimed " + earned.tier + " league rewards: " + pretty(earned.ic) +
+          " IC and " + earned.quantity + "× " + labelItem(earned.itemId) + ".";
+      } else if (!["view","rankings","expeditions","league"].includes(command))
         throw new Error("Unknown guild action.");
-      const board = await store.getGuild(id);
-      view = command === "rankings" ? ui.guildRankings(id,board) : ui.guildOverview(id,board,note);
+      if (["expeditions","league","claim","season_claim"].includes(command)) {
+        const board=await store.getGuildExpeditions(id);
+        view=["league","season_claim"].includes(command)?
+          ui.guildLeagueBoard(id,board,note):ui.guildExpeditionBoard(id,board,note);
+      } else {
+        const board=await store.getGuild(id);
+        view=command==="rankings"?ui.guildRankings(id,board):ui.guildOverview(id,board,note);
+      }
     } else if (group === "market") {
       if (command === "browse") {
         const rows = await store.browseMarket();
@@ -179,6 +198,7 @@ async function respond(interaction) {
         "**World Map:** /idle explore to send crew on timed expeditions",
         "**World Boss:** /idle boss for a cross-server cooperative battle",
         "**Guilds:** /idle guild view for global groups, perks and weekly rankings",
+        "**Guild Expeditions:** /idle guild expeditions and /idle guild league",
         "**Companions:** /idle companions to choose a pet and hatch eggs",
         "**Equipment:** /idle equipment to boost expedition rewards",
         "**Preferences:** /idle settings to view and reset your saved filters",
@@ -388,6 +408,19 @@ async function handleComponent(interaction) {
       result = await store.upgradeGuild(owner);
       view = ui.guildOverview(owner,await store.getGuild(owner),
         "Guild Hall upgraded to tier " + result.tier + ".");
+    } else if (action === "gexp") {
+      view = ui.guildExpeditionBoard(owner,await store.getGuildExpeditions(owner));
+    } else if (action === "gexp_league") {
+      view = ui.guildLeagueBoard(owner,await store.getGuildExpeditions(owner));
+    } else if (action === "gexp_claim") {
+      result = await store.claimGuildExpedition(owner);
+      view = ui.guildExpeditionBoard(owner,await store.getGuildExpeditions(owner),
+        "Claimed " + pretty(result.ic) + " IC and " + result.quantity +
+        "× " + labelItem(result.itemId) + ".");
+    } else if (action === "gexp_season_claim") {
+      result = await store.claimGuildLeagueSeason(owner,argument);
+      view = ui.guildLeagueBoard(owner,await store.getGuildExpeditions(owner),
+        "Claimed " + result.tier + " season reward: " + pretty(result.ic) + " IC.");
     } else if (action === "boss") {
       view = ui.worldBoss(owner, await store.getWorldBoss(owner));
     } else if (action === "boss_attack") {
