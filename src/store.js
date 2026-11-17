@@ -3,6 +3,7 @@ const { Pool } = require("pg");
 const { items, recipes, byId, perks } = require("./catalog");
 const { Decimal, dec, generatorRate, purchaseCost, maxAffordable, settle, PRESTIGE_REQUIREMENT, prestigeMultiplier, pretty } = require("./economy");
 const season = require("./season");
+const { rollRebirthBonus } = require("./rebirth-loot");
 const challenges = require("./challenges");
 const exploration = require("./exploration");
 const activity = require("./activity");
@@ -426,17 +427,14 @@ async function prestige(userId) {
     state.rate = dec(0);
     state.generators = [];
     await db.query("DELETE FROM player_generators WHERE user_id=$1", [userId]);
-    // Cocktail and optional bonus are granted together under the same player row lock.
-    await addItem(db, userId, "rebirth_cocktail", 1);
-    const roll = Math.random();
-    const bonusItemId = roll < 0.05 ? "lunchbox" :
-      roll < 0.15 ? "rare_lootbox" : roll < 0.45 ? "lootbox" : null;
+    // A single optional lucky reward is committed under the same prestige row lock.
+    // There is no guaranteed cocktail, cache or item on prestige.
+    const bonusItemId = rollRebirthBonus(Math.random());
     if (bonusItemId) await addItem(db, userId, bonusItemId, 1);
     await event(db, userId, "prestige", 0, {
-      newLevel: state.prestige, reward: "rebirth_cocktail", bonusItemId
+      newLevel: state.prestige, bonusItemId
     });
-    return { prestige: state.prestige, multiplier: prestigeMultiplier(state.prestige),
-      itemId: "rebirth_cocktail", itemQuantity: 1, bonusItemId };
+    return { prestige: state.prestige, multiplier: prestigeMultiplier(state.prestige), bonusItemId };
   });
 }
 async function leaderboard(limit = 10) {

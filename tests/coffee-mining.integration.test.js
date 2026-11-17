@@ -70,16 +70,20 @@ test("Coffee mining charges, cooldown resets, cosmetics and prestige rewards are
     }
     await store.pool.query(
       "UPDATE players SET balance=1000000000,total_earned=1000000000 WHERE user_id=$1",[reborn]);
-    const attempts=await Promise.allSettled([store.prestige(reborn),store.prestige(reborn)]);
+    const oldRandom=Math.random;
+    Math.random=()=>0.99;
+    let attempts;
+    try { attempts=await Promise.allSettled([store.prestige(reborn),store.prestige(reborn)]); }
+    finally { Math.random=oldRandom; }
     assert.equal(attempts.filter(x=>x.status==="fulfilled").length,1);
     assert.equal(attempts.filter(x=>x.status==="rejected").length,1);
     const winner=attempts.find(x=>x.status==="fulfilled").value;
     assert.equal(winner.prestige,1);
-    assert.equal(winner.itemId,"rebirth_cocktail");
+    assert.equal(winner.bonusItemId,null);
     const saved=await store.profile(reborn);
     assert.equal(saved.prestige,1);
     assert.equal(saved.balance.toString(),"500");
-    assert.equal(saved.inventory.find(x=>x.item_id==="rebirth_cocktail").quantity,1);
+    assert.equal(saved.inventory.find(x=>x.item_id==="rebirth_cocktail"),undefined);
     const audit=await store.pool.query(
       "SELECT count(*)::integer AS n FROM economy_events WHERE user_id=$1 AND event_type='prestige'",[reborn]);
     assert.equal(audit.rows[0].n,1);

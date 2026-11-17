@@ -26,7 +26,7 @@ The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They on
 
 **Egg rarities:** ordinary Companion Eggs keep their original possible species; craft three ordinary eggs and materials into an Enchanted Egg, or combine three Enchanted Eggs with rare resources into an Astral Egg. The higher-rarity eggs use explicit rarity-weighted pools, not guaranteed Mythics. The compact Hatchery and Mastery screens sit one tap away from Companions, keeping the Command Center uncluttered.
 
-**Rebirth bonuses:** each successful prestige always grants one Rebirth Cocktail, then independently rolls for exactly one optional bonus: **30% Supply Cache**, **10% Rare Supply Cache**, **5% Adventurer's Lunchbox**, or **55% nothing extra**. Lunchboxes yield one ration and one tonic when opened from the Satchel or with `/idle open`. The bonus roll and rewards are committed in the same database transaction as the prestige reset: failed/replayed requests do not duplicate them.
+**Rebirth bonuses:** each successful prestige rolls for at most one optional reward: **5% Rebirth Cocktail**, **30% Supply Cache**, **10% Rare Supply Cache**, **5% Adventurer's Lunchbox**, or **50% no item**. **No cocktail or item is guaranteed.** Lunchboxes yield one ration and one tonic when opened from the Satchel or with `/idle open`. The bonus roll and rewards are committed in the same database transaction as the prestige reset: failed/replayed requests do not duplicate them.
 
 **Craft slash command:** as the Forge grows beyond Discord's 25-choice limit, `/idle craft item:` now uses autocomplete. Recipes remain accessible through the Forge menus.
 
@@ -52,7 +52,7 @@ Mining receipts now have a compact Coffee-style prospector narrative and **base 
 
 **Coffee mining mechanics:** Campfire Brew, Spark Tonic and Harvest Brew reset the mining cooldown; Starshard Fruit and Forest Tonic reduce it; Herbal Ration, Traveler Bread, Hunter's Feast, Golden Starfruit and Miner's Reward now grant nonstacking charged boosts for several successful digs. Existing ARVEE base income, cooldowns and the 20× combined boost ceiling are preserved. All boosts are persistent cross-server.
 
-**Rebirth Cocktail:** every successful prestige grants one cocktail in the same locked PostgreSQL transaction as the reset, preventing double awards on duplicate clicks. The cocktail resets cooldown and gives a 2× three-dig boost, and is shown in the prestige preview and receipt.
+**Rebirth Cocktail:** the cocktail is a rare 5% lucky reward when successfully prestiging; it is not guaranteed. Rewards use the same locked PostgreSQL transaction as prestige to prevent double awards on duplicate clicks. Using a cocktail resets mining cooldown and provides a 2× three-dig boost.
 
 **Discord application emoji artwork:** use the uploaded `silver` artwork for Moonsteel, `lootbox` for Supply Cache and the uploaded `i_skin`, `i_skin2` and `demon_skin` art for the new I Skin, I Skin II and Demon Skin cosmetic finishes. Existing Copper, Obsidian and Astral cosmetics remain valid. `unknown` is the **fallback artwork for any item or cosmetic without a dedicated uploaded asset yet**. All IDs are in `src/item-art.js`, separate from economy data, so replacing the fallback later won't change player records. The application must have access to the specified emoji IDs.
 
