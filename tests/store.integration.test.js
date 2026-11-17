@@ -60,6 +60,21 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
       assert.equal(starting.xp, 0);
       assert.deepEqual(starting.claimed, []);
     }
+    // Choosing a starter and equipping pets are persisted and serialized.
+    const initialPets = await store.getCompanions(a);
+    assert.equal(initialPets.starterClaimed, false);
+    assert.equal(initialPets.owned.length, 0);
+    const competingAdoptions = await Promise.allSettled([
+      store.adoptCompanion(a,"ember_fox"),store.adoptCompanion(a,"ember_fox")
+    ]);
+    assert.equal(competingAdoptions.filter(x=>x.status==="fulfilled").length,1);
+    assert.equal(competingAdoptions.filter(x=>x.status==="rejected").length,1);
+    assert.equal((await store.getCompanions(a)).activeId,"ember_fox");
+    await assert.rejects(()=>store.adoptCompanion(a,"moon_owl"),/already chose/);
+    await assert.rejects(()=>store.equipCompanion(a,"moon_owl"),/haven't discovered/);
+    await assert.rejects(()=>store.equipCompanion(a,"invalid"),/Unknown companion/);
+    assert.equal((await store.getCompanions(b)).starterClaimed,false);
+
     assert.equal((await store.getExploration(a)).crew,0);
     await assert.rejects(()=>store.startExpedition(a,"forest"),/Region locked/);
     await assert.rejects(()=>store.startExpedition(a,"unknown"),/Unknown region/);
@@ -71,7 +86,7 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
     await assert.rejects(()=>store.collectExpedition(a),/expedition returns/);
     await store.pool.query(
       "UPDATE expedition_missions SET started_at=now()-interval '10 minutes', " +
-      "finishes_at=now()-interval '1 second' WHERE id=$1",[firstExpedition.id]);
+      "finishes_at=now()-interval '1 second',companion_egg=TRUE WHERE id=$1",[firstExpedition.id]);
     const beforeExpedition = (await store.profile(a)).balance;
     const concurrentClaims = await Promise.allSettled([
       store.collectExpedition(a),store.collectExpedition(a)
@@ -79,6 +94,20 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
     assert.equal(concurrentClaims.filter(r=>r.status==="fulfilled").length,1);
     assert.equal(concurrentClaims.filter(r=>r.status==="rejected").length,1);
     assert.ok((await store.profile(a)).balance.gt(beforeExpedition));
+    assert.equal((await store.getCompanions(a)).eggs,1,"pre-rolled companion eggs should be awarded once");
+    const hatchAttempts = await Promise.allSettled([
+      store.hatchCompanion(a),store.hatchCompanion(a)
+    ]);
+    assert.equal(hatchAttempts.filter(x=>x.status==="fulfilled").length,1);
+    assert.equal(hatchAttempts.filter(x=>x.status==="rejected").length,1);
+    const hatched = hatchAttempts.find(x=>x.status==="fulfilled").value;
+    const ownedAfterHatching = await store.getCompanions(a);
+    assert.equal(ownedAfterHatching.eggs,0);
+    assert.ok(ownedAfterHatching.owned.some(p=>p.id===hatched.petId));
+    await store.equipCompanion(a,hatched.petId);
+    assert.equal((await store.getCompanions(a)).activeId,hatched.petId);
+    await store.equipCompanion(a,"ember_fox");
+    assert.equal((await store.getCompanions(a)).activeId,"ember_fox");
     assert.ok((await store.getExploration(a)).xp>=17 && (await store.getExploration(a)).xp<=35);
     assert.equal((await store.getExploration(a)).active,null);
     assert.equal((await store.getExploration(a)).regions.find(x=>x.id==="mines").unlocked,false);
@@ -103,7 +132,9 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
     assert.ok(after.balance.gte(0));
     const firstMine = await store.mine(a);
     const secondMine = await store.mine(a);
-    assert.ok(firstMine.reward.gt(0));
+    assert.ok(firstMine.reward.gte(157),"active Ember Fox should boost mine payouts");
+    assert.ok((await store.getCompanions(a)).owned.find(p=>p.id==="ember_fox").xp>=65,
+      "expeditions and mining should level the active pet");
     assert.ok(secondMine.cooldown > 0);
     const beforeDaily = (await store.profile(a)).balance;
     assert.ok((await store.daily(a)).received.includes("750 IC"));
@@ -200,6 +231,11 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
     assert.ok(afterPrestige.xp>=100);
     assert.equal(afterPrestige.regions.find(x=>x.id==="forest").unlocked,false);
     assert.equal(afterPrestige.active,null);
+    const petsAfterPrestige = await store.getCompanions(a);
+    assert.equal(petsAfterPrestige.activeId,"ember_fox");
+    assert.equal(petsAfterPrestige.starterClaimed,true);
+    assert.ok(petsAfterPrestige.owned.find(p=>p.id==="ember_fox").xp>=100,
+      "companion levels must survive prestige");
     assert.equal(reset.perks.find((p) => p.perk_id === "miner").level, 1);
     const stats = await store.getStats(a);
     assert.ok(stats.achievements.find((x) => x.name === "First Expedition").achieved);

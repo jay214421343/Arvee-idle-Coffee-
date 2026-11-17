@@ -33,6 +33,7 @@ const items = Object.freeze({
   orb_of_almanac: { name: "Astral Sigil", emoji: "🔮", rarity: "Legendary", description: "A permanent improvement to your idle empire.", use: "Permanently gain +10% generator output (max 20 orbs).", effect: { orb: 1 } },
   gem: { name: "Astral Gem", emoji: "💎", rarity: "Legendary", description: "A precious gemstone for advanced crafting." },
   pickperk: { name: "Rune Fragment", emoji: "🧩", rarity: "Rare", description: "Upgrade one of your permanent pickaxe perks with /idle perks." },
+  companion_egg: { name: "Companion Egg", emoji: "🥚", rarity: "Rare", description: "Hatch a companion through /idle companions. Earned from expeditions and challenges." },
   pumpkin_spice_latte: { name: "Harvest Brew", emoji: "🎃", rarity: "Rare", description: "A seasonal harvest potion brewed in the ARVEE realm.", use: "Boost your next mine by 75%.", effect: { nextMine: "1.75" } },
   bohemian_cocktail: { name: "Moonshadow Elixir", emoji: "🍹", rarity: "Epic", description: "Moonlit alchemy distilled by ARVEE artificers.", use: "Receive 1 Rare Supply Cache.", effect: { grant: "rare_lootbox", grantAmount: 1 } },
   jungle_juice: { name: "Forest Tonic", emoji: "🧃", rarity: "Rare", description: "A burst of concentrated energy.", use: "Gain 10 mining XP.", effect: { xp: 10 } },

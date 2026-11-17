@@ -130,3 +130,18 @@ CREATE TABLE IF NOT EXISTS expedition_missions (
 -- One unclaimed mission per player, including missions waiting for collection.
 CREATE UNIQUE INDEX IF NOT EXISTS expedition_missions_active ON expedition_missions(user_id) WHERE claimed_at IS NULL;
 CREATE INDEX IF NOT EXISTS expedition_missions_recent ON expedition_missions(user_id, id DESC);
+
+-- Companions are a separate collection and are not wiped by prestige.
+CREATE TABLE IF NOT EXISTS player_companions (
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  pet_id TEXT NOT NULL CHECK(pet_id IN ('ember_fox','moss_wisp','moon_owl')),
+  xp BIGINT NOT NULL DEFAULT 0 CHECK(xp BETWEEN 0 AND 43500),
+  discovered_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(user_id,pet_id)
+);
+CREATE TABLE IF NOT EXISTS companion_settings (
+  user_id TEXT PRIMARY KEY REFERENCES players(user_id) ON DELETE CASCADE,
+  starter_claimed BOOLEAN NOT NULL DEFAULT FALSE,
+  active_pet_id TEXT CHECK(active_pet_id IN ('ember_fox','moss_wisp','moon_owl'))
+);
+ALTER TABLE expedition_missions ADD COLUMN IF NOT EXISTS companion_egg BOOLEAN NOT NULL DEFAULT FALSE;

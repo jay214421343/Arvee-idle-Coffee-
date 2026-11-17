@@ -18,6 +18,22 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.4 — Companions
+
+Collect, level and equip a permanent adventure companion via **/idle companions** or the Command Center's navigation dropdown. All three companions can be earned through normal gameplay; none require payments, feeding or repetitive maintenance.
+
+- **Ember Fox:** increases IC earned from mining.
+- **Moss Wisp:** reduces duration of newly started timed expeditions.
+- **Moon Owl:** increases material quantity on successful expeditions.
+- **Free starter:** Choose one of three companions exactly once. Switch between collected pets at any time.
+- **Companion Eggs:** Successful timed expeditions may find an egg (12% Forest, 18% Mines, 25% Ruins), rolled and saved at mission start. Hatch to discover new companions; duplicates grant 150 companion XP.
+- **Challenges:** A new rotating weekly Companion Discovery contract awards an egg after completing its expedition objective. Existing Season Journey reward tiers/claims are not changed.
+- **Leveling and evolution:** Your active companion earns XP from mining, dailies, crafting, cache opening and collecting expeditions. Level 10 unlocks Awakened, and level 20 Evolved. Bonuses grow from 5% at level 1 to 19.5% at level 30.
+- **One active pet:** Companion bonuses are computed server-side and expedition modifiers are snapshotted at mission start; switching pets does not reroll a mission.
+- **Compact Discord UI:** One text dropdown for adopting/equipping, Hatch Egg when you have eggs, plus navigation; no emoji-heavy menus.
+- **Data safety:** PostgreSQL migrations are additive. Pets, levels, and active selection survive prestige, restarts and Discord reconnects. Player-row transactions prevent double-starter choices and duplicate egg spending.
+
+**Rollout:** After review and merge, pull master in the independent ARVEE Idle directory, run npm ci, npm run setup, then npm run mac:restart. Test starter selection, an egg hatch and a completed expedition in Discord before considering the release production verified.
 ## ARVEE Idle 2.3 — Expeditions 2.0
 
 **World Map:** `/idle explore` shows three regions with distinct requirements, timers, outcomes, and loot tables.
