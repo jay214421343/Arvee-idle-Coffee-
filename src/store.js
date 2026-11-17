@@ -79,11 +79,9 @@ async function grantCompanionXp(db, userId, type, metadata = {}) {
 }
 async function getCompanions(userId) {
   return transact([userId], async (db) => {
-    const [settings, owned, eggs] = await Promise.all([
-      db.query("SELECT starter_claimed,active_pet_id FROM companion_settings WHERE user_id=$1", [userId]),
-      db.query("SELECT pet_id,xp,discovered_at FROM player_companions WHERE user_id=$1 ORDER BY discovered_at,pet_id", [userId]),
-      db.query("SELECT quantity FROM inventory WHERE user_id=$1 AND item_id='companion_egg'", [userId])
-    ]);
+    const settings = await db.query("SELECT starter_claimed,active_pet_id FROM companion_settings WHERE user_id=$1", [userId]);
+    const owned = await db.query("SELECT pet_id,xp,discovered_at FROM player_companions WHERE user_id=$1 ORDER BY discovered_at,pet_id", [userId]);
+    const eggs = await db.query("SELECT quantity FROM inventory WHERE user_id=$1 AND item_id='companion_egg'", [userId]);
     const status = settings.rows[0];
     return {
       starterClaimed: status?.starter_claimed || false,
@@ -571,11 +569,9 @@ async function getChallenges(userId) {
     const result = {};
     for (const scope of ["daily", "weekly"]) {
       const c = challenges.cycle(scope, now);
-      const [activities, claims] = await Promise.all([
-        challengeActivities(db, userId, c),
-        db.query("SELECT challenge_id FROM challenge_claims WHERE user_id=$1 AND scope=$2 AND period_key=$3",
-          [userId, scope, c.key])
-      ]);
+      const activities = await challengeActivities(db, userId, c);
+      const claims = await db.query("SELECT challenge_id FROM challenge_claims WHERE user_id=$1 AND scope=$2 AND period_key=$3",
+        [userId, scope, c.key]);
       result[scope] = challenges.board(c, activities, claims.rows.map((r) => r.challenge_id));
     }
     return result;
@@ -615,14 +611,12 @@ async function claimChallenge(userId, scope, periodKey, challengeId) {
 
 
 async function readExploration(db, userId, state) {
-  const [progress, equipment, current, clock, inventory, activePet] = await Promise.all([
-    db.query("SELECT xp FROM exploration_progress WHERE user_id=$1", [userId]),
-    db.query("SELECT gear_id,level FROM expedition_equipment WHERE user_id=$1 ORDER BY gear_id", [userId]),
-    db.query("SELECT * FROM expedition_missions WHERE user_id=$1 AND claimed_at IS NULL ORDER BY id DESC LIMIT 1", [userId]),
-    db.query("SELECT clock_timestamp() AS now"),
-    db.query("SELECT item_id,quantity FROM inventory WHERE user_id=$1 AND quantity>0", [userId]),
-    activeCompanion(db,userId)
-  ]);
+  const progress = await db.query("SELECT xp FROM exploration_progress WHERE user_id=$1", [userId]);
+  const equipment = await db.query("SELECT gear_id,level FROM expedition_equipment WHERE user_id=$1 ORDER BY gear_id", [userId]);
+  const current = await db.query("SELECT * FROM expedition_missions WHERE user_id=$1 AND claimed_at IS NULL ORDER BY id DESC LIMIT 1", [userId]);
+  const clock = await db.query("SELECT clock_timestamp() AS now");
+  const inventory = await db.query("SELECT item_id,quantity FROM inventory WHERE user_id=$1 AND quantity>0", [userId]);
+  const activePet = await activeCompanion(db,userId);
   const xp = Number(progress.rows[0]?.xp || 0);
   const gear = exploration.levels(equipment.rows);
   const crew = state.generators.reduce((sum, g) => sum + g.quantity, 0);
