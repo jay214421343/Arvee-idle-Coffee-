@@ -73,6 +73,10 @@ test("new commands and navigation appear in slash registration and command cente
      totalEarned:require("../src/economy").dec(500),prestige:0,mineXp:0,generators:[]});
   const opts=home.toJSON().components.filter(x=>x.type===1).flatMap(x=>x.components)
     .filter(x=>x.type===3).flatMap(x=>x.options);
-  assert.ok(opts.some(x=>x.value==="challenges"));
-  assert.ok(opts.some(x=>x.value==="settings"));
+  assert.ok(opts.some(x=>x.value==="progress_menu"));
+  assert.ok(opts.some(x=>x.value==="more_menu"));
+  const progress=JSON.stringify(ui.sectionMenu(owner,"progress").toJSON());
+  const more=JSON.stringify(ui.sectionMenu(owner,"more").toJSON());
+  assert.match(progress,/"value":"challenges"/);
+  assert.match(more,/"value":"settings"/);
 });

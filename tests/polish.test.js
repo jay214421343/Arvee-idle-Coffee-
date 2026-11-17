@@ -51,7 +51,11 @@ test("home shows accurate prestige progress and distinct operation naming", () =
   const select = rendered.components.filter((c)=>c.type===1).flatMap((c)=>c.components)
     .find((c)=>c.type===3);
   assert.equal(select.options.find((o)=>o.value==="shop").label, "Operations");
-  assert.equal(select.options.find((o)=>o.value==="prestige").label, "Prestige");
+  assert.equal(select.options.find((o)=>o.value==="progress_menu").label, "Progress");
+  const progress=ui.sectionMenu(owner,"progress").toJSON();
+  const entries=progress.components.filter((c)=>c.type===1).flatMap((c)=>c.components)
+    .find((c)=>c.type===3).options;
+  assert.equal(entries.find((o)=>o.value==="prestige").label, "Prestige");
   assert.ok(buttons(ui.home(owner,viewer,player())).some((b)=>b.label==="Operations"));
   assert.doesNotMatch(JSON.stringify(ui.home(owner,viewer,player(),true).toJSON()), /NEXT STEP/);
 });

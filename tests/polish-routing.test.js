@@ -17,7 +17,7 @@ function slash(command, more = {}) {
     options: {
       getSubcommandGroup: () => null, getSubcommand: () => command,
       getString: () => "MSPS", getInteger: () => 10,
-      getBoolean: () => true
+      getBoolean: (name) => name === "confirm" ? true : null
     },
     deferReply: async () => { out.deferred = true; },
     editReply: async (payload) => { out.payload = payload; },

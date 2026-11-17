@@ -1,7 +1,7 @@
 "use strict";
 const { Pool } = require("pg");
 const { items, recipes, byId, perks } = require("./catalog");
-const { Decimal, dec, generatorRate, purchaseCost, settle, PRESTIGE_REQUIREMENT, prestigeMultiplier, pretty } = require("./economy");
+const { Decimal, dec, generatorRate, purchaseCost, maxAffordable, settle, PRESTIGE_REQUIREMENT, prestigeMultiplier, pretty } = require("./economy");
 const season = require("./season");
 const challenges = require("./challenges");
 const exploration = require("./exploration");
@@ -39,6 +39,8 @@ async function transact(ids, action) {
       const passive = settle(player.balance, player.total_earned, rate, player.last_settled_at, time);
       states.set(id, {
         id, balance: passive.balance, totalEarned: passive.totalEarned,
+        passiveEarned: passive.earned,
+        passiveSeconds: Math.max(0, Math.floor((time.getTime() - new Date(player.last_settled_at).getTime()) / 1000)) || 0,
         prestige: player.prestige, rate, generators,
         mineXp: player.mine_xp, lastMine: player.last_mine_at,
         lastDaily: player.last_daily_at, lastSettledAt: passive.settledAt,
@@ -213,27 +215,30 @@ async function profile(userId) {
   });
 }
 async function buyGenerator(userId, generatorId, quantity) {
-  assertQuantity(quantity);
+  if (quantity !== "max") assertQuantity(quantity);
   const entry = byId.get(String(generatorId).toUpperCase());
   if (!entry) throw new Error("Operation not found. Try /idle shop.");
   return transact([userId], async (db, states) => {
     const state = stateOf(states, userId);
     const current = (await db.query("SELECT quantity FROM player_generators WHERE user_id=$1 AND generator_id=$2", [userId, entry.id])).rows[0];
-    const owned = current ? current.quantity : 0;
-    if (owned + quantity > 10000) throw new Error("Generator ownership limit reached (10,000 per type).");
-    const cost = purchaseCost(entry.cost, owned, quantity);
+    const owned = current ? Number(current.quantity) : 0;
+    const amount = quantity === "max" ? maxAffordable(entry.cost, owned, state.balance) : quantity;
+    if (owned >= 10000 || owned + amount > 10000)
+      throw new Error("Operation ownership limit reached (10,000 per type).");
+    if (!amount) throw new Error("Not enough IC for another " + entry.name + ".");
+    const cost = purchaseCost(entry.cost, owned, amount);
     if (state.balance.lt(cost)) throw new Error("Not enough IC. Need " + pretty(cost) + " IC.");
     state.balance = state.balance.minus(cost);
     await db.query(
       "INSERT INTO player_generators(user_id,generator_id,quantity) VALUES($1,$2,$3) ON CONFLICT(user_id,generator_id) DO UPDATE SET quantity=player_generators.quantity + EXCLUDED.quantity",
-      [userId, entry.id, quantity]
+      [userId, entry.id, amount]
     );
     const existing = state.generators.find((g) => g.generator_id === entry.id);
-    if (existing) existing.quantity += quantity;
-    else state.generators.push({ generator_id: entry.id, quantity });
+    if (existing) existing.quantity = Number(existing.quantity) + amount;
+    else state.generators.push({ generator_id: entry.id, quantity: amount });
     state.rate = generatorRate(state.generators, state.prestige, state.orbs, perkLevel(state, "investor"));
-    await event(db, userId, "generator_purchase", cost.neg(), { generator: entry.id, quantity });
-    return { generator: entry, quantity, cost, owned: owned + quantity, balance: state.balance, rate: state.rate };
+    await event(db, userId, "generator_purchase", cost.neg(), { generator: entry.id, quantity: amount });
+    return { generator: entry, quantity: amount, cost, owned: owned + amount, balance: state.balance, rate: state.rate };
   });
 }
 async function mine(userId) {

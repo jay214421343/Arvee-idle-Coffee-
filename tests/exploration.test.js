@@ -104,9 +104,13 @@ test("slash commands and navigation expose World Map and Equipment", () => {
     prestige:0,mineXp:0,generators:[]}).toJSON();
   const options=home.components.filter(x=>x.type===1).flatMap(x=>x.components)
     .filter(x=>x.type===3).flatMap(x=>x.options);
-  assert.ok(options.some(x=>x.value==="explore"));
-  assert.ok(options.some(x=>x.value==="equipment"));
-  assert.equal(options.length,18);
+  assert.ok(options.some(x=>x.value==="adventure_menu"));
+  assert.equal(options.length,6);
+  const adventure=ui.sectionMenu(owner,"adventure").toJSON();
+  const options2=adventure.components.filter(x=>x.type===1).flatMap(x=>x.components)
+    .filter(x=>x.type===3).flatMap(x=>x.options);
+  assert.ok(options2.some(x=>x.value==="explore"));
+  assert.ok(options2.some(x=>x.value==="equipment"));
 });
 test("expedition completion advances the season and rotating contracts", () => {
   assert.equal(season.eventXp("expedition_complete"),60);

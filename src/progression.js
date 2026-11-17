@@ -21,4 +21,20 @@ function nextStep(player, readiness) {
   if (dec(player.rate).lte(0)) return "Expand your Operations to increase passive IC production.";
   return "Explore the World Map or complete Contracts while activities recharge.";
 }
-module.exports = { prestigeProgress, nextStep };
+function elapsedLabel(seconds) {
+  const n = Math.max(0, Math.floor(Number(seconds) || 0));
+  if (n >= 3600) return Math.floor(n / 3600) + "h " + Math.floor(n % 3600 / 60) + "m";
+  if (n >= 60) return Math.floor(n / 60) + "m";
+  return n + "s";
+}
+// Indicative only: assumes passive rate stays unchanged; does not alter balances.
+function affordabilityHint(cost, balance, rate) {
+  const missing = Decimal.max(0, dec(cost).minus(balance));
+  const speed = dec(rate);
+  if (missing.isZero()) return "Affordable now";
+  if (speed.lte(0)) return "Earn more IC first";
+  const seconds = missing.div(speed).ceil();
+  if (seconds.gt(86400 * 365)) return "Long-term goal";
+  return "About " + elapsedLabel(seconds.toNumber()) + " at your current IC/s";
+}
+module.exports = { prestigeProgress, nextStep, elapsedLabel, affordabilityHint };

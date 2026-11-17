@@ -4,7 +4,7 @@ const {
   ActionRowBuilder, ButtonBuilder, StringSelectMenuBuilder, ButtonStyle, MessageFlags, escapeMarkdown
 } = require("discord.js");
 const { generators, byId, items, recipes } = require("./catalog");
-const { pretty, dec, purchaseCost, PRESTIGE_REQUIREMENT, Decimal } = require("./economy");
+const { pretty, dec, purchaseCost, maxAffordable, PRESTIGE_REQUIREMENT, Decimal } = require("./economy");
 const brand = require("./brand");
 const challengeData = require("./challenges");
 const exploration = require("./exploration");
@@ -49,27 +49,48 @@ function rarityMark(rarity) {
   return ({ Common: "◇", Uncommon: "◆", Rare: "✦", Epic: "✧", Legendary: "★" })[rarity] || "◇";
 }
 
+const NAVIGATION = Object.freeze([
+  { label: "Operations", value: "shop", description: "Passive income and recruitment" },
+  { label: "Satchel", value: "inventory", description: "Items, materials and caches" },
+  { label: "Adventure", value: "adventure_menu", description: "World Map, boss, pets and gear" },
+  { label: "Guilds", value: "guild", description: "Your global guild and team goals" },
+  { label: "Progress", value: "progress_menu", description: "Season, contracts, prestige and stats" },
+  { label: "More", value: "more_menu", description: "Forge, exchange and settings" }
+]);
+const SECTION_OPTIONS = Object.freeze({
+  adventure: Object.freeze([
+    { label: "World Map", value: "explore", description: "Timed crew expeditions" },
+    { label: "World Boss", value: "boss", description: "Shared weekly encounter" },
+    { label: "Companions", value: "companions", description: "Equip and level your pet" },
+    { label: "Expedition Gear", value: "equipment", description: "Upgrade your exploration kit" },
+    { label: "Pickaxe & Runes", value: "pickaxe", description: "Mining upgrades and perks" }
+  ]),
+  progress: Object.freeze([
+    { label: "Season Journey", value: "season", description: "Claim season tiers" },
+    { label: "Contracts", value: "challenges", description: "Daily and weekly goals" },
+    { label: "Prestige", value: "prestige", description: "Permanent income multiplier" },
+    { label: "Milestones", value: "stats", description: "Achievements and records" },
+    { label: "Leaderboard", value: "leaderboard", description: "Top Idle players" }
+  ]),
+  more: Object.freeze([
+    { label: "Forge", value: "craft", description: "Craft with materials" },
+    { label: "Exchange", value: "market", description: "Trade with players" },
+    { label: "Preferences", value: "settings", description: "Saved browsing filters" },
+    { label: "Field Guide", value: "help", description: "How to play" }
+  ])
+});
 function navigation(owner) {
-  return selector(owner, "navigate", "", "✦ Navigate ARVEE Idle", [
-    { label: "Command Center", value: "profile", description: "Wallet, progression and quick actions" },
-    { label: "Operations", value: "shop", description: "Recruit passive IC-producing units" },
-    { label: "Satchel", value: "inventory", description: "Manage your loot and materials" },
-    { label: "The Forge", value: "craft", description: "Forge artifacts from gathered materials" },
-    { label: "Season Journey", value: "season", description: "Earn Season XP and unlock 20 free rewards" },
-    { label: "Adventurer Contracts", value: "challenges", description: "Daily and weekly challenges with claimable rewards" },
-    { label: "World Map", value: "explore", description: "Send a crew on timed missions to discover loot" },
-    { label: "World Boss", value: "boss", description: "Cooperate across servers in weekly battles" },
-    { label: "Guilds", value: "guild", description: "Global groups, Hall upgrades and boss rankings" },
-    { label: "Companions", value: "companions", description: "Collect, level and equip your pets" },
-    { label: "Expedition Gear", value: "equipment", description: "Upgrade your kit, compass and protective ward" },
-    { label: "Saved Preferences", value: "settings", description: "View or reset your personal filters" },
-    { label: "Pickaxe & Runes", value: "pickaxe", description: "Upgrade mining and permanent perks" },
-    { label: "Player Exchange", value: "market", description: "Trade with other adventurers" },
-    { label: "Hall of Fame", value: "leaderboard", description: "See top adventurers" },
-    { label: "Milestones", value: "stats", description: "Track achievements and records" },
-    { label: "Prestige", value: "prestige", description: "Earn a permanent production boost" },
-    { label: "Field Guide", value: "help", description: "Learn how to play" }
-  ]);
+  return selector(owner, "navigate", "", "Explore ARVEE Idle", NAVIGATION);
+}
+function sectionMenu(owner, key) {
+  const options = SECTION_OPTIONS[key];
+  if (!options) throw new Error("Unknown navigation section.");
+  const title = { adventure: "ADVENTURE", progress: "PROGRESS", more: "MORE" }[key];
+  const c = container("ARVEE IDLE  /  " + title,
+    "Choose an activity. Your progress is shared across all servers.");
+  c.addActionRowComponents(selector(owner, "navigate", "", "Choose a destination", options));
+  c.addActionRowComponents(row([button(owner, "profile", "Command Center", "", ButtonStyle.Primary)]));
+  return c;
 }
 function filterHeader(owner, action, title, status, state) {
   return new SectionBuilder()
@@ -298,6 +319,9 @@ function home(owner, user, p, readOnly = false) {
   const displayReady = (state) => state.ready ? "Ready" : "<t:" + state.readyAt + ":R>";
   c.addTextDisplayComponents(text("**ACTIVITIES**  Mine " + displayReady(ready.mine) +
     "  ·  Daily " + displayReady(ready.daily)));
+  if (Number(p.passiveSeconds) >= 300 && dec(p.passiveEarned || 0).gt(0))
+    c.addTextDisplayComponents(text("**PASSIVE INCOME SETTLED**  +" + pretty(p.passiveEarned) +
+      " IC since your last saved activity (" + progression.elapsedLabel(p.passiveSeconds) + ")."));
   c.addActionRowComponents(row([
     button(owner, "mine", "Mine", "", ButtonStyle.Primary),
     button(owner, "daily", "Daily Reward"),
@@ -356,20 +380,22 @@ function generator(owner, id, page, p, note = "") {
   const c = container(g.name, g.description || "An ARVEE Idle expedition.");
   const oneCost = purchaseCost(g.cost, owned, 1);
   const tenCost = purchaseCost(g.cost, owned, 10);
-  const hundredCost = purchaseCost(g.cost, owned, 100);
+  const max = maxAffordable(g.cost, owned, p.balance);
+  const maxCost = max ? purchaseCost(g.cost, owned, max) : null;
   divider(c);
   c.addTextDisplayComponents(text("**Owned**  " + owned + "  ·  **Income/unit**  +" + pretty(g.income) +
     " IC/s\n**Buy 1**  " + pretty(oneCost) + " IC" +
     "\n**Buy 10**  " + pretty(tenCost) + " IC" +
-    "\n**Buy 100**  " + pretty(hundredCost) + " IC" +
-    "\n**Wallet**  " + pretty(p.balance) + " IC"));
+    "\n**Buy Max**  " + (maxCost ? max + " for " + pretty(maxCost) + " IC" : "Not affordable") +
+    "\n**Wallet**  " + pretty(p.balance) + " IC" +
+    (p.balance.lt(oneCost) && dec(p.rate).gt(0) ?
+      "\n**NEXT OPERATION**  " + progression.affordabilityHint(oneCost, p.balance, p.rate) : "")));
   if (note) foot(c, note);
   c.addActionRowComponents(row([
     button(owner, "buy_one", "Buy 1", id, ButtonStyle.Primary, owned + 1 > 10000 || p.balance.lt(oneCost)),
     button(owner, "buy_ten", "Buy 10", id, ButtonStyle.Secondary, owned + 10 > 10000 || p.balance.lt(tenCost)),
-    button(owner, "buy_hundred", "Buy 100", id, ButtonStyle.Secondary, owned + 100 > 10000 || p.balance.lt(hundredCost)),
-    button(owner, "shop", "Operations", String(page)),
-    button(owner, "profile", "Command Center")
+    button(owner, "buy_max", "Buy Max" + (max ? " (" + max + ")" : ""), id, ButtonStyle.Secondary, !max),
+    button(owner, "shop", "Back", String(page))
   ]));
   return c;
 }
@@ -1118,6 +1144,6 @@ function payload(view) {
   return { components: [view], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 module.exports = {
-  custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, worldBoss, guildOverview, guildRankings, guildExpeditionBoard, guildLeagueBoard, preferences, challengeBoard, message, home, shop, generator, inventory, inventoryPreview, item, crafting, recipe, season, market, listing,
+  custom, button, sectionMenu, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, worldBoss, guildOverview, guildRankings, guildExpeditionBoard, guildLeagueBoard, preferences, challengeBoard, message, home, shop, generator, inventory, inventoryPreview, item, crafting, recipe, season, market, listing,
   prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, miningResult, dailyResult, craftingResult, cacheResult, purchaseResult, prestigeResult, SUCCESS, WARN, ERROR
 };

@@ -58,7 +58,11 @@ test("season navigation is in the slash command and command center menu", () => 
     {balance:dec(500),rate:dec(0),totalEarned:dec(500),prestige:0,mineXp:0,generators:[]});
   const opts=home.toJSON().components.flatMap(c=>c.type===1 ? c.components : [])
     .filter(c=>c.type===3).flatMap(c=>c.options);
-  assert.ok(opts.some(o=>o.value==="season"));
+  assert.ok(opts.some(o=>o.value==="progress_menu"));
+  const progress=ui.sectionMenu(owner,"progress").toJSON();
+  const paths=progress.components.filter(c=>c.type===1).flatMap(c=>c.components)
+    .filter(c=>c.type===3).flatMap(c=>c.options);
+  assert.ok(paths.some(o=>o.value==="season"));
 });
 test("no claim buttons remain enabled after a season ends", () => {
   const p={xp:5000,dailyXp:0,claimed:[],phase:"finished",activities:{}};

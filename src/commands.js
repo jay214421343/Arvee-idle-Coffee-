@@ -12,7 +12,8 @@ idle.addSubcommand((c) => c.setName("profile").setDescription("View a player pro
 idle.addSubcommand((c) => c.setName("shop").setDescription("Browse passive IC operations").addIntegerOption((o) => o.setName("page").setDescription("Page number").setMinValue(1)));
 idle.addSubcommand((c) => c.setName("buy").setDescription("Recruit passive operations with IC")
   .addStringOption((o) => o.setName("generator").setDescription("Operation to recruit").setRequired(true).setAutocomplete(true))
-  .addIntegerOption((o) => o.setName("amount").setDescription("How many (1-1000)").setMinValue(1).setMaxValue(1000)));
+  .addIntegerOption((o) => o.setName("amount").setDescription("How many (1-1000)").setMinValue(1).setMaxValue(1000))
+  .addBooleanOption((o) => o.setName("max").setDescription("Buy the maximum affordable batch (up to 1000)")));
 idle.addSubcommand((c) => c.setName("mine").setDescription("Mine Idle Credits and crafting materials (90-second cooldown)"));
 idle.addSubcommand((c) => c.setName("daily").setDescription("Claim your daily Idle Credits and supply caches"));
 idle.addSubcommand((c) => c.setName("season").setDescription("Season Journey: tiers, challenges and free rewards"));
@@ -229,7 +230,11 @@ async function respond(interaction) {
       view = await savedShop(id, opts.getInteger("page") || 1);
       content = shop(opts.getInteger("page") || 1);
     } else if (command === "buy") {
-      const result = await store.buyGenerator(id, opts.getString("generator", true), opts.getInteger("amount") || 1);
+      const max = opts.getBoolean("max") === true;
+      if (max && opts.getInteger("amount") !== null)
+        throw new Error("Choose amount or max, not both.");
+      const result = await store.buyGenerator(id, opts.getString("generator", true),
+        max ? "max" : opts.getInteger("amount") || 1);
       view = ui.purchaseResult(id, result);
     } else if (command === "mine") {
       const result = await store.mine(id);
@@ -353,6 +358,8 @@ async function handleComponent(interaction) {
       else if (selected === "leaderboard") view = ui.leaderboard(owner, await store.leaderboard());
       else if (selected === "prestige") view = ui.prestige(owner, await store.profile(owner));
       else if (selected === "help") view = ui.help(owner);
+      else if (["adventure_menu", "progress_menu", "more_menu"].includes(selected))
+        view = ui.sectionMenu(owner, selected.replace("_menu", ""));
       else throw new Error("Unknown navigation destination.");
     } else if (action === "season") {
       view = ui.season(owner, await store.seasonStatus(owner), Number(argument) || 1);
@@ -479,8 +486,8 @@ async function handleComponent(interaction) {
     } else if (action === "generator_select") {
       const player = await store.profile(owner);
       view = ui.generator(owner, selected, Number(argument) || 1, player);
-    } else if (action === "buy_one" || action === "buy_ten" || action === "buy_hundred") {
-      const amount = action === "buy_hundred" ? 100 : action === "buy_ten" ? 10 : 1;
+    } else if (["buy_one", "buy_ten", "buy_hundred", "buy_max"].includes(action)) {
+      const amount = action === "buy_max" ? "max" : action === "buy_hundred" ? 100 : action === "buy_ten" ? 10 : 1;
       result = await store.buyGenerator(owner, argument, amount);
       view = ui.purchaseResult(owner, result);
     } else if (action === "mine") {
