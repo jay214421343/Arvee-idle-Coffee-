@@ -7,8 +7,7 @@ const SEASON = Object.freeze({
   startsAt: "2026-11-17T00:00:00.000Z",
   endsAt: "2027-01-16T00:00:00.000Z",
   claimUntil: "2027-01-23T00:00:00.000Z",
-  xpPerTier: 250,
-  dailyXpCap: 500
+  xpPerTier: 250
 });
 const rewards = Object.freeze([
   { kind: "ic", amount: 200 },

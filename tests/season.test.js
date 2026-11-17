@@ -14,6 +14,7 @@ test("founders season dates and post-season claiming grace use UTC", () => {
 });
 test("season has 20 valid free rewards with predictable XP thresholds", () => {
   assert.equal(season.rewards.length, 20);
+  assert.equal(Object.hasOwn(season.SEASON, "dailyXpCap"), false);
   assert.equal(season.unlocked(0), 0);
   assert.equal(season.unlocked(249), 0);
   assert.equal(season.unlocked(250), 1);
@@ -48,6 +49,7 @@ test("season pass fits Discord Components V2 and has safe claim controls", () =>
   assert.equal(sections[2].accessory.disabled,true);
   assert.match(JSON.stringify(j),/DAILY CONTRACTS/);
   assert.match(JSON.stringify(j),/Founders/);
+  assert.doesNotMatch(JSON.stringify(j), /Today's XP|500 \/ 500/);
   assert.match(JSON.stringify(j),/Claim all/);
   assert.ok(j.components.filter(c=>c.type===1).some(c=>c.components.some(b=>b.custom_id===ui.custom(owner,"season_claim_all","1"))));
 });

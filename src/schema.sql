@@ -163,6 +163,12 @@ ALTER TABLE player_companions DROP CONSTRAINT IF EXISTS player_companions_pet_id
 ALTER TABLE player_companions ADD CONSTRAINT player_companions_pet_id_check CHECK(pet_id IN ('ember_fox','moss_wisp','moon_owl','cave_ferret','iron_cub','clockwork_sparrow','trail_sprite','zephyr_finch','ash_wolf','nest_fox','tempest_roc','gem_serpent','void_moth','rune_gecko','phoenix_drake','runebound_golem','star_stag','hatchling_drake'));
 ALTER TABLE companion_settings DROP CONSTRAINT IF EXISTS companion_settings_active_pet_id_check;
 ALTER TABLE companion_settings ADD CONSTRAINT companion_settings_active_pet_id_check CHECK(active_pet_id IS NULL OR active_pet_id IN ('ember_fox','moss_wisp','moon_owl','cave_ferret','iron_cub','clockwork_sparrow','trail_sprite','zephyr_finch','ash_wolf','nest_fox','tempest_roc','gem_serpent','void_moth','rune_gecko','phoenix_drake','runebound_golem','star_stag','hatchling_drake'));
+-- One persisted talent per species, unlocked at level 10 and empowered at level 20.
+ALTER TABLE player_companions ADD COLUMN IF NOT EXISTS talent_id TEXT
+  CHECK (talent_id IS NULL OR talent_id IN ('focus','tracker','vanguard'));
+-- A single equipped charm follows the active companion. Its effect requires ownership.
+ALTER TABLE companion_settings ADD COLUMN IF NOT EXISTS equipped_charm_id TEXT
+  CHECK (equipped_charm_id IS NULL OR equipped_charm_id IN ('prospector_charm','pathfinder_charm','warcaller_charm'));
 ALTER TABLE expedition_missions ADD COLUMN IF NOT EXISTS companion_egg BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- Global weekly bosses are keyed by UTC Monday; never by Discord guild/server.

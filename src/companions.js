@@ -23,6 +23,21 @@ const PETS = Object.freeze([
 const byId = new Map(PETS.map((pet) => [pet.id, pet]));
 const STARTERS = Object.freeze(PETS.filter((pet) => pet.starter));
 const RARITY_WEIGHTS = Object.freeze({ Common: 60, Uncommon: 40, Rare: 25, Epic: 12, Legendary: 5, Mythic: 2 });
+const TALENTS = Object.freeze({
+  focus: Object.freeze({name:"Focus",description:"Stronger natural companion ability"}),
+  tracker: Object.freeze({name:"Tracker",description:"Better Supply Cache and companion egg discovery"}),
+  vanguard: Object.freeze({name:"Vanguard",description:"Bonus World Boss attack power"})
+});
+const CHARMS = Object.freeze({
+  prospector_charm: Object.freeze({name:"Prospector Charm",effect:"mine_income",power:5}),
+  pathfinder_charm: Object.freeze({name:"Pathfinder Charm",effect:"expedition_speed",power:5}),
+  warcaller_charm: Object.freeze({name:"Warcaller Charm",effect:"boss_power",power:5})
+});
+const EGG_TIERS = Object.freeze({
+  companion_egg: Object.freeze({name:"Companion Egg",weights:{Common:1,Uncommon:1,Rare:1,Epic:1,Legendary:1,Mythic:1}}),
+  rare_companion_egg: Object.freeze({name:"Enchanted Egg",weights:{Common:0,Uncommon:0.2,Rare:1.5,Epic:3,Legendary:3,Mythic:2}}),
+  mythic_companion_egg: Object.freeze({name:"Astral Egg",weights:{Common:0,Uncommon:0,Rare:0.2,Epic:2,Legendary:5,Mythic:10}})
+});
 const MAX_LEVEL = 30;
 const MAX_XP = 50 * MAX_LEVEL * (MAX_LEVEL - 1);
 function xpFor(level) {
@@ -43,8 +58,17 @@ function boostPct(lvl) {
 }
 function effectPct(pet, effect) {
   const type = pet && byId.get(pet.id);
-  if (!type || type.effect !== effect) return 0;
-  const pct = boostPct(pet.level) * type.power;
+  if (!type) return 0;
+  let pct = type.effect === effect ? boostPct(pet.level) * type.power : 0;
+  const mastery = pet.level >= 20 ? 2 : pet.level >= 10 ? 1 : 0;
+  if (mastery && pet.talentId === "focus" && type.effect === effect)
+    pct *= mastery === 2 ? 1.35 : 1.2;
+  if (mastery && pet.talentId === "tracker" && (effect === "cache_luck" || effect === "egg_luck"))
+    pct += mastery === 2 ? 12 : 6;
+  if (mastery && pet.talentId === "vanguard" && effect === "boss_power")
+    pct += mastery === 2 ? 10 : 6;
+  const charm = CHARMS[pet.charmId];
+  if (charm && charm.effect === effect) pct += charm.power;
   return Math.round(Math.min(effect === "boss_haste" ? 20 : 25, pct) * 100) / 100;
 }
 function bonus(pet) {
@@ -61,7 +85,12 @@ function bonus(pet) {
     egg_luck: "+" + Math.round(pct / 2 * 100) / 100 + " percentage points egg discovery",
     cache_luck: "+" + Math.round(pct / 3 * 100) / 100 + " percentage points Supply Cache chance"
   };
-  return { role: type.role, percent: pct, description: desc[type.effect] };
+  const suffix = [
+    pet.level >= 10 && TALENTS[pet.talentId] ? "Talent: " + TALENTS[pet.talentId].name : "",
+    CHARMS[pet.charmId] ? "Charm: " + CHARMS[pet.charmId].name : ""
+  ].filter(Boolean).join(" · ");
+  return { role: type.role, percent: pct,
+    description: desc[type.effect] + (suffix ? " · " + suffix : "") };
 }
 function eventXp(type, metadata = {}) {
   if (type === "mine") return 10;
@@ -78,9 +107,13 @@ function eggDrop(regionId, success, rng = (limit) => crypto.randomInt(limit), pe
   const extra = effectPct(pet,"egg_luck") / 2;
   return success && rng(10000) < Math.round(Math.min(40,chance + extra) * 100);
 }
-function hatch(owned = [], rng = (limit) => crypto.randomInt(limit)) {
+function hatch(owned = [], rng = (limit) => crypto.randomInt(limit), eggType = "companion_egg") {
+  const tier = EGG_TIERS[eggType];
+  if (!tier) throw new Error("Unknown companion egg type.");
   const ids = new Set(owned);
-  const weights = PETS.map((pet) => [pet, RARITY_WEIGHTS[pet.rarity] * (ids.has(pet.id) ? 1 : 2)]);
+  const weights = PETS.map((pet) => [pet,
+    Math.round(RARITY_WEIGHTS[pet.rarity] * tier.weights[pet.rarity] * 10) *
+      (ids.has(pet.id) ? 1 : 2)]).filter(([,weight]) => weight > 0);
   const total = weights.reduce((sum,[,weight]) => sum + weight,0);
   const roll = rng(total);
   if (!Number.isInteger(roll) || roll < 0 || roll >= total) throw new Error("Invalid companion egg roll.");
@@ -91,5 +124,5 @@ function hatch(owned = [], rng = (limit) => crypto.randomInt(limit)) {
   }
   throw new Error("Could not hatch companion.");
 }
-module.exports = { PETS, STARTERS, byId, RARITY_WEIGHTS, MAX_LEVEL, MAX_XP,
+module.exports = { PETS, STARTERS, byId, RARITY_WEIGHTS, TALENTS, CHARMS, EGG_TIERS, MAX_LEVEL, MAX_XP,
   xpFor, level, stage, bonus, boostPct, effectPct, eventXp, eggDrop, hatch };

@@ -5,7 +5,6 @@ const { dec, pretty, purchaseCost, PRESTIGE_REQUIREMENT } = require("./economy")
 const store = require("./store");
 const ui = require("./ui");
 
-const recipeChoices = Object.keys(recipes).map((id) => ({ name: items[id].name, value: id }));
 const idle = new SlashCommandBuilder().setName("idle").setDescription("ARVEE Idle — build, explore, mine and trade");
 idle.addSubcommand((c) => c.setName("help").setDescription("Commands and getting started"));
 idle.addSubcommand((c) => c.setName("profile").setDescription("View a player profile").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
@@ -25,11 +24,12 @@ idle.addSubcommand((c) => c.setName("equipment").setDescription("Upgrade permane
 idle.addSubcommand((c) => c.setName("settings").setDescription("View and reset your saved filter preferences"));
 idle.addSubcommand((c) => c.setName("inventory").setDescription("Check collected items").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
 idle.addSubcommand((c) => c.setName("craft").setDescription("Craft an item")
-  .addStringOption((o) => o.setName("item").setDescription("Item to craft (omit to browse recipes)").addChoices(...recipeChoices))
+  .addStringOption((o) => o.setName("item").setDescription("Item to craft (omit to browse recipes)").setAutocomplete(true))
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity (1-100)").setMinValue(1).setMaxValue(100)));
 idle.addSubcommand((c) => c.setName("open").setDescription("Open your Supply Caches")
   .addStringOption((o) => o.setName("type").setDescription("Type of supply cache").addChoices(
-    { name: "Supply Cache", value: "lootbox" }, { name: "Rare Supply Cache", value: "rare_lootbox" }, { name: "Mythic Supply Cache", value: "legendary_lootbox" }))
+    { name: "Supply Cache", value: "lootbox" }, { name: "Rare Supply Cache", value: "rare_lootbox" },
+    { name: "Mythic Supply Cache", value: "legendary_lootbox" }, { name: "Adventurer's Lunchbox", value: "lunchbox" }))
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity (1-20)").setMinValue(1).setMaxValue(20)));
 idle.addSubcommand((c) => c.setName("give").setDescription("Give another player an item")
   .addUserOption((o) => o.setName("user").setDescription("Recipient").setRequired(true))
@@ -322,9 +322,11 @@ async function handleAutocomplete(interaction) {
       (g.name + " " + g.id).toLowerCase().includes(term))
       .slice(0, 25).map((g) => ({ name: g.name.slice(0, 100), value: g.id }));
   } else if (focus.name === "item") {
-    choices = Object.entries(items).filter(([id, data]) =>
-      (data.name + " " + id).toLowerCase().includes(term))
-      .slice(0, 25).map(([id, data]) => ({ name: data.name.slice(0, 100), value: id }));
+    const craft = typeof interaction.options.getSubcommand === "function" &&
+      interaction.options.getSubcommand(false) === "craft";
+    choices = Object.entries(craft ? recipes : items).map(([id])=>[id,items[id]])
+      .filter(([id,data])=>(data.name+" "+id).toLowerCase().includes(term))
+      .slice(0,25).map(([id,data])=>({name:data.name.slice(0,100),value:id}));
   } else return false;
   await interaction.respond(choices);
   return true;
@@ -408,8 +410,20 @@ async function handleComponent(interaction) {
       result = await store.equipCompanion(owner, selected);
       view = ui.companionCollection(owner, await store.getCompanions(owner),
         result.name + " is now active.");
+    } else if (action === "companion_eggs") {
+      view = ui.companionEggs(owner, await store.getCompanions(owner));
+    } else if (action === "companion_mastery") {
+      view = ui.companionMastery(owner, await store.getCompanions(owner));
+    } else if (action === "companion_talent") {
+      result = await store.chooseCompanionTalent(owner,selected);
+      view = ui.companionMastery(owner, await store.getCompanions(owner),
+        result.name + " selected for your companion.");
+    } else if (action === "companion_charm") {
+      result = await store.equipCompanionCharm(owner,selected);
+      view = ui.companionMastery(owner, await store.getCompanions(owner),
+        result.charmId ? "Charm equipped." : "Charm unequipped.");
     } else if (action === "companion_hatch") {
-      result = await store.hatchCompanion(owner);
+      result = await store.hatchCompanion(owner,selected || "companion_egg");
       view = ui.companionCollection(owner, await store.getCompanions(owner),
         result.discovered ? "Discovered " + result.name + "!" :
           result.name + " bonded with you. +" + result.bonusXp + " companion XP.");

@@ -22,11 +22,11 @@ const ERROR = brand.theme.error;
 const LIMIT = 8;
 const PAGE_SIZE = 4;
 const INVENTORY_PAGE_SIZE = 8;
-const SORT_RARITY = Object.freeze({ Common: 0, Uncommon: 1, Rare: 2, Epic: 3, Legendary: 4 });
-const BOX_IDS = new Set(["lootbox", "rare_lootbox", "legendary_lootbox"]);
+const SORT_RARITY = Object.freeze({ Common: 0, Uncommon: 1, Rare: 2, Epic: 3, Legendary: 4, Mythic: 5 });
+const BOX_IDS = new Set(["lootbox", "rare_lootbox", "legendary_lootbox", "lunchbox"]);
 function category(id) {
   if (BOX_IDS.has(id)) return "caches";
-  if (items[id]?.effect) return "usable";
+  if (items[id]?.effect || Object.hasOwn(companions.CHARMS,id) || Object.hasOwn(companions.EGG_TIERS,id)) return "usable";
   return "materials";
 }
 function listState(page, filter, sort) { return [page, filter, sort].join("_"); }
@@ -305,6 +305,7 @@ function prestigeResult(owner, result) {
     "**PRESTIGE LEVEL**  " + result.prestige +
     "\n**PRODUCTION MULTIPLIER**  " + dec(result.multiplier).toString() + "×" +
     (result.itemId === "rebirth_cocktail" ? "\n**REWARD**  1× Rebirth Cocktail added to your Satchel" : "") +
+    (result.bonusItemId ? "\n**LUCKY BONUS**  1× " + items[result.bonusItemId].name : "") +
     "\nYour operation roster and wallet have reset; your permanent progress remains.",
     [button(owner, "shop", "Recruit operations", "", ButtonStyle.Primary),
      button(owner, "profile", "Command Center")],
@@ -512,6 +513,8 @@ function customization(owner, id) {
 function item(owner, id, quantity, back = "1_all_rarity") {
   const entry = items[id]; if (!entry) throw new Error("Unknown item.");
   const canOpen = BOX_IDS.has(id);
+  const canHatch = Object.hasOwn(companions.EGG_TIERS,id);
+  const canEquip = Object.hasOwn(companions.CHARMS,id);
   const c = container(itemArt(id) + "  " + entry.name.toUpperCase(),
     rarityMark(entry.rarity) + " **" + entry.rarity + "**   ·   **×" + quantity + " owned**");
   divider(c);
@@ -519,9 +522,11 @@ function item(owner, id, quantity, back = "1_all_rarity") {
     (entry.use ? "\n\n**Effect**  " + entry.use : "") +
     (recipes[id] ? "\n\n**Forge recipe**  " + Object.entries(recipes[id]).map(([part, q]) => q + "× " + items[part].name).join(" · ") : "")));
   c.addActionRowComponents(row([
-    button(owner, canOpen ? "open_one" : (CUSTOM_PRESETS[id] ? "customize" : "use_item"),
-      canOpen ? "Open cache" : (CUSTOM_PRESETS[id] ? "Customize" : "Use item"),
-      id, ButtonStyle.Secondary, (!entry.effect && !canOpen) || quantity < 1),
+    button(owner, canOpen ? "open_one" : canHatch ? "companion_eggs" : canEquip ? "companion_mastery" :
+      (CUSTOM_PRESETS[id] ? "customize" : "use_item"),
+      canOpen ? "Open cache" : canHatch ? "Hatch egg" : canEquip ? "Equip charm" :
+      (CUSTOM_PRESETS[id] ? "Customize" : "Use item"),
+      id, ButtonStyle.Secondary, (!entry.effect && !canOpen && !canHatch && !canEquip) || quantity < 1),
     button(owner, "inventory", "◀ Back to Satchel", String(back).includes("_") ? String(back) : "1_all_rarity"),
     ...(recipes[id] ? [button(owner, "recipe_view", "Forge recipe", id)] : [])
   ]));
@@ -629,11 +634,57 @@ function companionCollection(owner, state, note = "") {
       }))
   ));
   if (note) c.addTextDisplayComponents(text("**" + note.slice(0,280) + "**"));
+  const eggCounts = state.eggCounts || {companion_egg:state.eggs || 0};
+  const totalEggs = Object.values(eggCounts).reduce((sum,x)=>sum+Number(x||0),0);
   c.addActionRowComponents(row([
-    ...(state.eggs > 0 ? [button(owner, "companion_hatch", "Hatch egg (" + state.eggs + ")", "", ButtonStyle.Primary)] : []),
-    button(owner, "explore", "World Map", "", state.eggs > 0 ? ButtonStyle.Secondary : ButtonStyle.Primary),
+    button(owner, "companion_eggs", "Hatch eggs (" + totalEggs + ")", "", ButtonStyle.Primary, totalEggs < 1),
+    button(owner, "companion_mastery", "Mastery", "", ButtonStyle.Secondary, !selected),
     button(owner, "profile", "Command Center")
   ]));
+  return c;
+}
+function companionEggs(owner, state, note = "") {
+  const counts = state.eggCounts || {companion_egg:state.eggs||0};
+  const available = Object.entries(companions.EGG_TIERS).filter(([id])=>Number(counts[id]||0)>0);
+  const c=container("ARVEE IDLE  /  HATCHERY", "Hatch one egg. New discoveries unlock companion build options. Duplicate pets gain XP.");
+  c.addTextDisplayComponents(text("**YOUR EGGS**\n" +
+    Object.entries(companions.EGG_TIERS).map(([id,t])=>t.name+"  ×"+(counts[id]||0)).join("\n") +
+    "\n\nEnchanted and Astral Eggs favor higher rarities. Both can be forged from ordinary eggs."));
+  if(available.length)c.addActionRowComponents(selector(owner,"companion_hatch","","Choose an egg to hatch",
+    available.map(([id,t])=>({label:t.name,value:id,description:"Owned ×"+counts[id]}))));
+  if(note)c.addTextDisplayComponents(text("**"+note.slice(0,240)+"**"));
+  c.addActionRowComponents(row([button(owner,"companions","Back to companions","",ButtonStyle.Primary)]));
+  return c;
+}
+function companionMastery(owner,state,note="") {
+  const selected=state.owned.find(p=>p.id===state.activeId);
+  const c=container("ARVEE IDLE  /  COMPANION MASTERY",
+    "One active companion and one equipped charm. Talents unlock at level 10, improving again at level 20.");
+  if(selected){
+    const def=companions.byId.get(selected.id);
+    const talent=companions.TALENTS[selected.talentId];
+    c.addTextDisplayComponents(text("**ACTIVE**  "+def.name+"  ·  "+def.rarity+" · Lv "+selected.level+
+      "\n**TALENT**  "+(talent?.name || (selected.level<10?"Unlocks at Lv 10":"Not selected"))+
+      "\n**CHARM**  "+(companions.CHARMS[state.equippedCharmId]?.name || "None")+
+      "\n"+selected.bonus.description));
+    if(selected.level>=10)
+      c.addActionRowComponents(selector(owner,"companion_talent","","Choose a talent",
+        Object.entries(companions.TALENTS).map(([id,t])=>({
+          label:t.name,value:id,description:t.description.slice(0,100),default:selected.talentId===id
+        }))));
+    const available=Object.entries(companions.CHARMS).filter(([id])=>
+      Number(state.charms?.[id]||0)>0 || state.equippedCharmId===id);
+    if(available.length)
+      c.addActionRowComponents(selector(owner,"companion_charm","","Equip one charm",[
+        {label:"No charm",value:"none",description:"Unequip your charm",default:!state.equippedCharmId},
+        ...available.map(([id,charm])=>({label:charm.name,value:id,
+          description:charm.power+"% "+charm.effect.replaceAll("_"," ")+" bonus",
+          default:state.equippedCharmId===id}))
+      ]));
+    else c.addTextDisplayComponents(text("**CHARMS**  None owned yet. Forge charms or find them in Rare and Mythic Supply Caches."));
+  } else c.addTextDisplayComponents(text("Choose a companion to unlock mastery."));
+  if(note)c.addTextDisplayComponents(text("**"+note.slice(0,240)+"**"));
+  c.addActionRowComponents(row([button(owner,"companions","Back to companions","",ButtonStyle.Primary)]));
   return c;
 }
 
@@ -1013,8 +1064,7 @@ function season(owner, progress, page = 1, note = "") {
     "   ·   **Tier " + currentTier + " / " + rewards.length + "**\n" +
     "▰".repeat(currentTier === rewards.length ? 10 : Math.min(10, Math.floor((xp % SEASON.xpPerTier) / SEASON.xpPerTier * 10))) +
     "▱".repeat(currentTier === rewards.length ? 0 : 10 - Math.min(10, Math.floor((xp % SEASON.xpPerTier) / SEASON.xpPerTier * 10))) +
-    (currentTier === rewards.length ? "  MAX TIER" : "  " + (xp % SEASON.xpPerTier) + " / " + SEASON.xpPerTier + " to next") +
-    "\n**Today's XP:** " + (progress.dailyXp || 0) + " / " + SEASON.dailyXpCap));
+    (currentTier === rewards.length ? "  MAX TIER" : "  " + (xp % SEASON.xpPerTier) + " / " + SEASON.xpPerTier + " to next")));
   c.addTextDisplayComponents(text("**DAILY CONTRACTS**  ·  Earn XP by playing\n" +
     missions.map((m) => {
       const done = Math.min(m.goal, Number(progress.activities?.[m.event] || 0));
@@ -1087,7 +1137,8 @@ function prestige(owner, p) {
   foot(c, "**Your IC**  " + pretty(p.balance) + " / " + pretty(PRESTIGE_REQUIREMENT) +
     "\n**Current level**  " + p.prestige + "\n**Next level**  " + (p.prestige + 1) +
     "\n**Permanent production**  +" + ((p.prestige + 1) * 25) + "%" +
-    "\n**Prestige reward**  1× Rebirth Cocktail (cooldown reset, 2× for 3 digs)");
+    "\n**Prestige reward**  1× Rebirth Cocktail (cooldown reset, 2× for 3 digs)" +
+    "\n**Lucky bonus**  30% Supply Cache · 10% Rare Cache · 5% Adventurer's Lunchbox");
   c.addActionRowComponents(row([
     button(owner, "prestige_confirm", "Confirm prestige", "", ButtonStyle.Danger, !eligible),
     button(owner, "profile", "Cancel")
@@ -1200,6 +1251,6 @@ function payload(view) {
   return { components: [view], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 module.exports = {
-  custom, button, sectionMenu, customization, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, worldBoss, guildOverview, guildRankings, guildExpeditionBoard, guildLeagueBoard, preferences, challengeBoard, message, home, shop, generator, inventory, inventoryPreview, item, crafting, recipe, season, market, listing,
+  custom, button, sectionMenu, customization, companionMastery, companionEggs, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, worldBoss, guildOverview, guildRankings, guildExpeditionBoard, guildLeagueBoard, preferences, challengeBoard, message, home, shop, generator, inventory, inventoryPreview, item, crafting, recipe, season, market, listing,
   prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, miningResult, dailyResult, craftingResult, cacheResult, purchaseResult, prestigeResult, SUCCESS, WARN, ERROR
 };

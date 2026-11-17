@@ -71,7 +71,7 @@ test("restored Coffee items function transactionally and cosmetics survive prest
     assert.equal(retained.inventory.find(x=>x.item_id==="mine_alert").quantity,1);
     const atLeastOne=await store.pool.query("SELECT count(*)::integer AS n FROM economy_events WHERE user_id=$1 AND event_type='use_item'",[user]);
     assert.ok(atLeastOne.rows[0].n>=8);
-    await store.pool.query("INSERT INTO inventory(user_id,item_id,quantity) VALUES($1,'lootbox',1)",[user]);
+    await store.pool.query("INSERT INTO inventory(user_id,item_id,quantity) VALUES($1,'lootbox',1) ON CONFLICT(user_id,item_id) DO UPDATE SET quantity=inventory.quantity+1",[user]);
     let rolls=0;
     Math.random=()=>[0.7,0.001,0.99][rolls++%3];
     const drops=await store.openLootbox(user,1,"lootbox");

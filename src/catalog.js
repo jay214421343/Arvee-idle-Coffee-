@@ -19,6 +19,7 @@ const items = Object.freeze({
   cookie: { name: "Traveler's Ration", emoji: "🍪", rarity: "Common", description: "A reliable snack before a dungeon expedition.", use: "Gain 250 IC.", effect: { bp: "250" } },
   lucky_charm: { name: "Fate Charm", emoji: "🍀", rarity: "Epic", description: "A charm marked with runes from an ancient ARVEE expedition.", use: "Double your next mining reward.", effect: { nextMine: "2" } },
   lootbox: { name: "Supply Cache", emoji: "📦", rarity: "Common", description: "Contains a random selection of useful items.", use: "Open with /idle open." },
+  lunchbox: { name: "Adventurer's Lunchbox", emoji: "🥪", rarity: "Rare", description: "An extra meal packed for a brave new beginning. Contains one ration and one tonic.", use: "Open with /idle open to find two useful consumables." },
   rare_lootbox: { name: "Rare Supply Cache", emoji: "🎁", rarity: "Rare", description: "A better selection of loot.", use: "Open with /idle open." },
   legendary_lootbox: { name: "Mythic Supply Cache", emoji: "🌟", rarity: "Legendary", description: "A rare box full of precious items.", use: "Open with /idle open." },
   apple: { name: "Herbal Ration", emoji: "🍎", rarity: "Common", description: "An herb-packed adventurer ration.", use: "Gain 100 IC and +60% mining profit for the next 3 successful digs. Food buffs do not stack.", effect: {"bp":"100","mineBoost":{"multiplier":"1.6","charges":3}} },
@@ -34,6 +35,11 @@ const items = Object.freeze({
   gem: { name: "Astral Gem", emoji: "💎", rarity: "Legendary", description: "A precious gemstone for advanced crafting." },
   pickperk: { name: "Rune Fragment", emoji: "🧩", rarity: "Rare", description: "Upgrade one of your permanent pickaxe perks with /idle perks." },
   companion_egg: { name: "Companion Egg", emoji: "🥚", rarity: "Rare", description: "Hatch a companion through /idle companions. Earned from expeditions and challenges." },
+  rare_companion_egg: { name: "Enchanted Egg", emoji: "🥚", rarity: "Epic", description: "An enchanted egg that favors rare, epic and legendary companions." },
+  mythic_companion_egg: { name: "Astral Egg", emoji: "🥚", rarity: "Legendary", description: "A luminous egg with improved legendary and mythic companion odds." },
+  prospector_charm: { name: "Prospector Charm", emoji: "🪬", rarity: "Rare", description: "A reusable companion charm that improves mining rewards by 5%. Equip from Companion Mastery." },
+  pathfinder_charm: { name: "Pathfinder Charm", emoji: "🪬", rarity: "Rare", description: "A reusable companion charm that shortens expedition times by 5%. Equip from Companion Mastery." },
+  warcaller_charm: { name: "Warcaller Charm", emoji: "🪬", rarity: "Epic", description: "A reusable companion charm that increases World Boss power by 5%. Equip from Companion Mastery." },
   pumpkin_spice_latte: { name: "Harvest Brew", emoji: "🎃", rarity: "Rare", description: "A seasonal harvest potion brewed in the ARVEE realm.", use: "Reset mining cooldown and boost the next dig by 75%.", effect: {"nextMine":"1.75","cooldownReset":true} },
   bohemian_cocktail: { name: "Moonshadow Elixir", emoji: "🍹", rarity: "Epic", description: "Moonlit alchemy distilled by ARVEE artificers.", use: "Receive 1 Rare Supply Cache.", effect: { grant: "rare_lootbox", grantAmount: 1 } },
   jungle_juice: { name: "Forest Tonic", emoji: "🧃", rarity: "Rare", description: "A burst of concentrated energy.", use: "Gain 10 mining XP and shorten the current cooldown by half its normal duration.", effect: {"xp":10,"cooldownReduceFraction":"0.5"} },
@@ -77,7 +83,12 @@ const recipes = Object.freeze({
   pick_skin: { strange_matter: 8, gem: 1, silver: 15 },
   reward: { bread: 2, ore: 5 },
   stat_card: { silver: 8, coffee: 2 },
-  tag: { gold: 10, strange_matter: 8 }
+  tag: { gold: 10, strange_matter: 8 },
+  rare_companion_egg: { companion_egg: 3, silver: 12, gold: 3 },
+  mythic_companion_egg: { rare_companion_egg: 3, strange_matter: 8, gem: 2 },
+  prospector_charm: { silver: 14, gold: 3, ore: 20 },
+  pathfinder_charm: { silver: 12, gold: 3, strange_matter: 3 },
+  warcaller_charm: { gold: 8, strange_matter: 5, silver: 20 }
 });
 const perks = Object.freeze({
   miner: { name: "Power Strike", description: "+10% mining IC per level", max: 10 },
