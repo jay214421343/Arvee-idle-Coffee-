@@ -3,6 +3,7 @@ const { SlashCommandBuilder, MessageFlags, ButtonStyle } = require("discord.js")
 const { generators, byId, items, recipes } = require("./catalog");
 const { dec, pretty, purchaseCost, PRESTIGE_REQUIREMENT } = require("./economy");
 const store = require("./store");
+const tutorialStore = require("./tutorial-store");
 const ui = require("./ui");
 
 const idle = new SlashCommandBuilder().setName("idle").setDescription("ARVEE Idle — build, explore, mine and trade");
@@ -46,7 +47,8 @@ idle.addSubcommand((c) => c.setName("prestige").setDescription("Restart your gen
   .addBooleanOption((o) => o.setName("confirm").setDescription("Confirm resetting your generators and IC")));
 idle.addSubcommandGroup((g) => g.setName("account").setDescription("Your preferences and lifetime records")
   .addSubcommand((c) => c.setName("settings").setDescription("View and reset saved filters"))
-  .addSubcommand((c) => c.setName("stats").setDescription("View achievements and game activity")));
+  .addSubcommand((c) => c.setName("stats").setDescription("View achievements and game activity"))
+  .addSubcommand((c) => c.setName("tutorial").setDescription("Replay the step-by-step beginner guide")));
 
 idle.addSubcommandGroup((g) => g.setName("market").setDescription("Trade items for IC")
   .addSubcommand((c) => c.setName("browse").setDescription("Browse active listings"))
@@ -116,7 +118,7 @@ function shop(page) {
 }
 async function respond(interaction) {
   if (!interaction.isChatInputCommand() || interaction.commandName !== "idle") return;
-  await interaction.deferReply();
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply();
   try {
     const id = interaction.user.id;
     const opts = interaction.options;
@@ -198,7 +200,7 @@ async function respond(interaction) {
         "**✦ ARVEE Idle — Adventure & Progression**",
         "Start with /idle daily, /idle mine, then recruit an operation in /idle shop.",
         "**Economy:** /idle shop, /idle buy, /idle leaderboard, /idle prestige",
-        "**Season:** /idle season to unlock 20 free reward tiers",
+        "**Season:** /idle season to unlock 100 free reward tiers",
         "**Contracts:** /idle challenges for daily and weekly rewards",
         "**World Map:** /idle explore to send crew on timed expeditions",
         "**World Boss:** /idle boss for a cross-server cooperative battle",
@@ -206,7 +208,7 @@ async function respond(interaction) {
         "**Guild Expeditions:** /idle guild expeditions and /idle guild league",
         "**Companions:** /idle companions to choose a pet and hatch eggs",
         "**Equipment:** /idle equipment to boost expedition rewards",
-        "**Preferences:** /idle settings to view and reset your saved filters",
+        "**Preferences:** /idle account settings; replay guide with /idle account tutorial",
         "**Activities:** /idle mine, /idle daily, /idle craft, /idle open",
         "**Items:** /idle inventory, /idle info, /idle give, /idle market",
         "Prestige requires 1B IC and increases production by 25% per level.",
@@ -361,7 +363,14 @@ async function handleComponent(interaction) {
     const selected = interaction.isStringSelectMenu() ? interaction.values[0] : "";
     let view;
     let result;
-    if (action === "navigate") {
+    if (action === "tutorial_replay") {
+      const state = await tutorialStore.restart(owner);
+      view = ui.tutorialStep(owner,state.step);
+    } else if (["tutorial_next","tutorial_back","tutorial_skip","tutorial_finish"].includes(action)) {
+      const state = await tutorialStore.transition(owner,action,Number(argument));
+      view = state.status === "active" ? ui.tutorialStep(owner,state.step) :
+        ui.tutorialFinished(owner,state.status);
+    } else if (action === "navigate") {
       if (selected === "profile") view = ui.home(owner, interaction.user, await store.profile(owner));
       else if (selected === "shop") view = await savedShop(owner);
       else if (selected === "inventory") view = await savedInventory(owner);

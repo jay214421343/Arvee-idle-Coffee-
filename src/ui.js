@@ -10,6 +10,7 @@ const brand = require("./brand");
 const challengeData = require("./challenges");
 const exploration = require("./exploration");
 const companions = require("./companions");
+const { STEPS } = require("./tutorial-data");
 const activity = require("./activity");
 const { eligibleMiningReset } = require("./mining-reset");
 const progression = require("./progression");
@@ -1267,6 +1268,38 @@ function leaderboard(owner, rows) {
   c.addActionRowComponents(row([button(owner, "leaderboard", "↻ Refresh"), button(owner, "profile", "Command Center")]));
   return c;
 }
+function tutorialStep(owner, step = 0) {
+  if (!Number.isInteger(step) || step < 0 || step >= STEPS.length)
+    throw new Error("Unknown tutorial step.");
+  const info=STEPS[step];
+  const c=container("ARVEE IDLE  /  BEGINNER'S GUIDE",
+    "**STEP " + (step + 1) + " OF " + STEPS.length + "**  ·  " + info.title);
+  divider(c);
+  c.addTextDisplayComponents(text(info.body));
+  c.addTextDisplayComponents(text("**TRY LATER**  " + info.commands.join(" · ") +
+    "\nYour choices are saved across servers. This guide never consumes items or IC."));
+  const buttons=[];
+  if(step>0)buttons.push(button(owner,"tutorial_back","Back",String(step)));
+  buttons.push(button(owner,step===STEPS.length-1?"tutorial_finish":"tutorial_next",
+    step===STEPS.length-1?"Finish guide":"Next",String(step),ButtonStyle.Primary));
+  buttons.push(button(owner,"tutorial_skip","Skip guide",String(step)));
+  c.addActionRowComponents(row(buttons));
+  return c;
+}
+function tutorialFinished(owner,status) {
+  const skipped=status==="skipped";
+  const c=container("ARVEE IDLE  /  " + (skipped?"GUIDE SKIPPED":"GUIDE COMPLETE"),
+    skipped?"No problem. Your adventure is ready whenever you are.":
+      "You're ready to start building your own Idle adventure.");
+  c.addTextDisplayComponents(text("Start with **/idle daily** for supplies, then **/idle mine** and **/idle shop**." +
+    "\nReplay any time with **/idle account tutorial**, or from **/idle help**."));
+  c.addActionRowComponents(row([
+    button(owner,"profile","Command Center","",ButtonStyle.Primary),
+    button(owner,"daily","Claim daily"),
+    button(owner,"tutorial_replay","Replay guide")
+  ]));
+  return c;
+}
 function help(owner) {
   const c = container("✦ WELCOME TO ARVEE IDLE", "Begin with your starter wallet, quick mining, and your first operation.");
   divider(c);
@@ -1275,7 +1308,7 @@ function help(owner) {
     button(owner, "profile", "Dashboard", "", ButtonStyle.Primary),
     button(owner, "shop", "Shop"),
     button(owner, "mine", "Mine"),
-    button(owner, "inventory", "Inventory")
+    button(owner, "tutorial_replay", "Replay guide")
   ]));
   return c;
 }
@@ -1284,5 +1317,5 @@ function payload(view) {
 }
 module.exports = {
   custom, button, sectionMenu, customization, companionMastery, companionEggs, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, worldBoss, guildOverview, guildRankings, guildExpeditionBoard, guildLeagueBoard, preferences, challengeBoard, message, home, shop, generator, inventory, inventoryPreview, item, itemInfo, crafting, recipe, season, market, listing,
-  prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, miningResult, dailyResult, craftingResult, cacheResult, purchaseResult, prestigeResult, SUCCESS, WARN, ERROR
+  prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, tutorialStep, tutorialFinished, payload, miningResult, dailyResult, craftingResult, cacheResult, purchaseResult, prestigeResult, SUCCESS, WARN, ERROR
 };

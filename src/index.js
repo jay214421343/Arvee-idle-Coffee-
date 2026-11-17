@@ -7,6 +7,7 @@ const { Client, GatewayIntentBits, Events, MessageFlags } = require("discord.js"
 const { pool } = require("./store");
 const { respond, handleAutocomplete, handleComponent } = require("./commands");
 const { respondAdmin, handleAdminAutocomplete } = require("./admin-command");
+const { routeTutorial } = require("./tutorial-router");
 const brand = require("./brand");
 
 async function main() {
@@ -44,7 +45,7 @@ async function main() {
     const runner = interaction.isAutocomplete() ?
       (interaction.commandName === "admin" ? handleAdminAutocomplete(interaction) : handleAutocomplete(interaction)) :
       interaction.isButton() || interaction.isStringSelectMenu() ? handleComponent(interaction) :
-      interaction.commandName === "admin" ? respondAdmin(interaction) : respond(interaction);
+      interaction.commandName === "admin" ? respondAdmin(interaction) : routeTutorial(interaction,respond);
     void runner.catch(async (error) => {
       console.error("[ARVEE Idle] Interaction failed:", error.message);
       const payload = {
