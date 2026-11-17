@@ -166,24 +166,14 @@ async function grantSeasonXp(db, userId, type, metadata = {}) {
   if (season.phase() !== "active") return 0;
   const amount = season.eventXp(type, metadata);
   if (!amount) return 0;
-  const key = [userId, season.SEASON.id];
-  const previous = (await db.query(
-    "SELECT xp FROM season_xp_daily WHERE user_id=$1 AND season_id=$2 AND day=(now() AT TIME ZONE 'UTC')::date FOR UPDATE",
-    key
-  )).rows[0]?.xp || 0;
-  const earned = Math.max(0, Math.min(amount, season.SEASON.dailyXpCap - previous));
-  if (!earned) return 0;
-  await db.query(
-    "INSERT INTO season_xp_daily(user_id,season_id,day,xp) VALUES($1,$2,(now() AT TIME ZONE 'UTC')::date,$3) " +
-      "ON CONFLICT(user_id,season_id,day) DO UPDATE SET xp=season_xp_daily.xp+EXCLUDED.xp",
-    [...key, earned]
-  );
+  // Every committed qualifying action grants its full Season XP. No daily ceiling.
+  // Existing season_xp_daily records remain untouched for legacy compatibility.
   await db.query(
     "INSERT INTO season_progress(user_id,season_id,xp) VALUES($1,$2,$3) " +
       "ON CONFLICT(user_id,season_id) DO UPDATE SET xp=season_progress.xp+EXCLUDED.xp",
-    [...key, earned]
+    [userId, season.SEASON.id, amount]
   );
-  return earned;
+  return amount;
 }
 async function event(db, userId, type, amount, metadata = {}) {
   await db.query("INSERT INTO economy_events(user_id, event_type, amount, metadata) VALUES($1,$2,$3,$4)",
@@ -1005,9 +995,6 @@ async function seasonStatus(userId) {
       [userId, season.SEASON.id])).rows[0];
     const claimed = (await db.query("SELECT tier FROM season_claims WHERE user_id=$1 AND season_id=$2 ORDER BY tier",
       [userId, season.SEASON.id])).rows.map((r) => Number(r.tier));
-    const daily = (await db.query(
-      "SELECT xp FROM season_xp_daily WHERE user_id=$1 AND season_id=$2 AND day=(now() AT TIME ZONE 'UTC')::date",
-      [userId, season.SEASON.id])).rows[0]?.xp || 0;
     const counts = (await db.query(
       "SELECT event_type,count(*)::integer AS n FROM economy_events WHERE user_id=$1 " +
       "AND created_at >= date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' " +
@@ -1016,7 +1003,7 @@ async function seasonStatus(userId) {
     )).rows;
     const activities = Object.fromEntries(counts.map((r) => [r.event_type, Number(r.n)]));
     return {
-      xp: Number(progress?.xp || 0), claimed, dailyXp: Number(daily),
+      xp: Number(progress?.xp || 0), claimed,
       unlocked: season.unlocked(Number(progress?.xp || 0)),
       activities, phase: season.phase()
     };

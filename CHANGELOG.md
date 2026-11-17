@@ -1,3 +1,12 @@
+# 2.11.0 — Companion Builds & Mastery (pending review)
+
+- Remove the Founders' Journey 500 XP/day cap and its progress counter. All qualifying actions contribute full season XP; historical XP and claims are preserved.
+- Expand companions with level-gated mastery talents, cross-server charms and rarer discoverable egg paths.
+- Keep one active pet, compact Discord UI and server-side PostgreSQL protections.
+- Requires an additive database migration before bot restart.
+
+---
+
 # 2.10.0 — Companion Diversity & Supply Cache Improvements (pending review)
 
 - Expand companions from 3 to 18 distinct pets with six rarity tiers and build-oriented mining, expedition, boss, egg and cache effects.

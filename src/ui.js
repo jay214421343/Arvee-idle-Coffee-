@@ -1013,8 +1013,7 @@ function season(owner, progress, page = 1, note = "") {
     "   ·   **Tier " + currentTier + " / " + rewards.length + "**\n" +
     "▰".repeat(currentTier === rewards.length ? 10 : Math.min(10, Math.floor((xp % SEASON.xpPerTier) / SEASON.xpPerTier * 10))) +
     "▱".repeat(currentTier === rewards.length ? 0 : 10 - Math.min(10, Math.floor((xp % SEASON.xpPerTier) / SEASON.xpPerTier * 10))) +
-    (currentTier === rewards.length ? "  MAX TIER" : "  " + (xp % SEASON.xpPerTier) + " / " + SEASON.xpPerTier + " to next") +
-    "\n**Today's XP:** " + (progress.dailyXp || 0) + " / " + SEASON.dailyXpCap));
+    (currentTier === rewards.length ? "  MAX TIER" : "  " + (xp % SEASON.xpPerTier) + " / " + SEASON.xpPerTier + " to next")));
   c.addTextDisplayComponents(text("**DAILY CONTRACTS**  ·  Earn XP by playing\n" +
     missions.map((m) => {
       const done = Math.min(m.goal, Number(progress.activities?.[m.event] || 0));

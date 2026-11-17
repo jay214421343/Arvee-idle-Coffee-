@@ -18,6 +18,14 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.11 — Companion Builds & Mastery
+
+**Season XP no longer has a daily cap.** Every qualifying action awards its full normal XP, even after 500 XP earned in a UTC day. The confusing “Today's XP: 500 / 500” bar is removed; season tier thresholds and once-only reward claims remain unchanged. Historic daily XP rows are retained but no longer used.
+
+**Companion mastery and equipment:** [See 2.11 release notes.] Companion talents unlock at level 10, enhance at 20, and complement collectible/equippable charms for distinct builds. Egg crafting introduces optional higher-rarity egg pools without blocking existing free eggs.
+
+**Deploy after review/merge:** pull, run `npm ci && npm run db:migrate && npm run register && npm run mac:restart`. No existing Season XP is removed.
+
 ## ARVEE Idle 2.10 — Companion Variety & Better Supply Caches
 
 Expanded the permanent companion collection to **18 species** spanning Common, Uncommon, Rare, Epic, Legendary and Mythic. The original three starters are still free to choose from; additional pets are discovered by hatching expedition eggs with weighted rarity odds and a bias toward undiscovered species. One pet remains active at a time and supports specialized builds: mining power, expedition duration, expedition loot, success chance, World Boss strength/cooldown, extra eggs or Supply Cache discovery. Old companion IDs, XP and collection records remain valid; no monetized pet mechanics.
