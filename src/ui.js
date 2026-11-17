@@ -9,6 +9,7 @@ const brand = require("./brand");
 const challengeData = require("./challenges");
 const exploration = require("./exploration");
 const companions = require("./companions");
+const activity = require("./activity");
 const { SEASON, rewards, missions, label, tierNeeded } = require("./season");
 
 const ACCENT = brand.theme.primary;
@@ -242,14 +243,15 @@ function cacheResult(owner, drops) {
     "Your finds have been added to your inventory."
   );
 }
-function home(owner, user, p) {
+function home(owner, user, p, readOnly = false) {
   const operations = p.generators.reduce((n, g) => n + g.quantity, 0);
-  const c = container("✦ ARVEE IDLE  /  COMMAND CENTER", "THE ADVENTURE CONTINUES WHILE YOU'RE AWAY");
+  const c = container("✦ ARVEE IDLE  /  COMMAND CENTER",
+    readOnly ? "PLAYER PROFILE  /  READ ONLY" : "THE ADVENTURE CONTINUES WHILE YOU'RE AWAY");
   const s = new SectionBuilder().addTextDisplayComponents(
     text("### " + escapeMarkdown(user.username).slice(0, 80) + "\n**" +
       pretty(p.balance) + " IC**  ·  **+" + pretty(p.rate) + " IC/s**"),
     text("Crew " + operations + "   ·   Prestige " + p.prestige +
-      "\nMining XP " + p.mineXp + "   ·   " + pretty(p.totalEarned) + " lifetime IC")
+      "\nMining XP " + p.mineXp + "   ·   " + pretty(p.totalEarned) + " IC earned this run")
   ).setThumbnailAccessory(new ThumbnailBuilder()
     .setURL(user.displayAvatarURL({ extension: "png", size: 128 }))
     .setDescription("ARVEE Idle player avatar"));
@@ -260,6 +262,15 @@ function home(owner, user, p) {
     "▱".repeat(10 - progress) + "  " + Math.floor(progress * 10) + "%\n" +
     (operations === 0 ? "**Getting started:** Claim Daily → Mine → Recruit your first expedition." :
       "**Passive income:** Your expeditions are producing IC, even offline.")));
+  if (readOnly) {
+    foot(c, "Viewing another player's public progress. Only your own character can perform actions.");
+    c.addActionRowComponents(row([button(owner, "profile", "My Command Center", "", ButtonStyle.Primary)]));
+    return c;
+  }
+  const ready = activity.playerReadiness(p);
+  const displayReady = (state) => state.ready ? "Ready" : "<t:" + state.readyAt + ":R>";
+  c.addTextDisplayComponents(text("**ACTIVITIES**  Mine " + displayReady(ready.mine) +
+    "  ·  Daily " + displayReady(ready.daily)));
   c.addActionRowComponents(row([
     button(owner, "mine", "Mine", "", ButtonStyle.Primary),
     button(owner, "daily", "Daily Reward"),
@@ -380,6 +391,24 @@ function inventory(owner, p, page = 1, filter = "all", sort = "rarity") {
   ]));
   foot(c, "**BAG " + page + " / " + total + "**  ·  " + entries.length + " matches   ·   " +
     "◇ Common  ·  ◆ Uncommon  ·  ✦ Rare  ·  ✧ Epic  ·  ★ Legendary  ·  Filters auto-save");
+  return c;
+}
+
+function inventoryPreview(owner, user, player) {
+  const entries = (player.inventory || []).filter((r) => r.quantity > 0 && items[r.item_id])
+    .sort((a, b) => items[a.item_id].name.localeCompare(items[b.item_id].name));
+  const c = container("ARVEE IDLE  /  PLAYER SATCHEL",
+    "**" + escapeMarkdown(user.username).slice(0, 80) + "** · Read-only collection" +
+    "\n" + entries.length + " unique items. Use your own Satchel to manage items.");
+  if (!entries.length) c.addTextDisplayComponents(text("This player has no items yet."));
+  for (let i = 0; i < entries.length && i < 80; i += 16) {
+    c.addTextDisplayComponents(text(entries.slice(i, i + 16).map((r) => {
+      const item = items[r.item_id];
+      return rarityMark(item.rarity) + "  " + escapeMarkdown(item.name) + "  ×" + r.quantity;
+    }).join("\n")));
+  }
+  if (entries.length > 80) foot(c, "Showing 80 of " + entries.length + " unique items.");
+  c.addActionRowComponents(row([button(owner, "profile", "My Command Center", "", ButtonStyle.Primary)]));
   return c;
 }
 
@@ -866,6 +895,6 @@ function payload(view) {
   return { components: [view], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 module.exports = {
-  custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, preferences, challengeBoard, message, home, shop, generator, inventory, item, crafting, recipe, season, market, listing,
+  custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, preferences, challengeBoard, message, home, shop, generator, inventory, inventoryPreview, item, crafting, recipe, season, market, listing,
   prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, miningResult, dailyResult, craftingResult, cacheResult, SUCCESS, WARN, ERROR
 };
