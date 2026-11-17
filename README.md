@@ -22,7 +22,13 @@ The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They on
 
 **Season XP no longer has a daily cap.** Every qualifying action awards its full normal XP, even after 500 XP earned in a UTC day. The confusing “Today's XP: 500 / 500” bar is removed; season tier thresholds and once-only reward claims remain unchanged. Historic daily XP rows are retained but no longer used.
 
-**Companion mastery and equipment:** [See 2.11 release notes.] Companion talents unlock at level 10, enhance at 20, and complement collectible/equippable charms for distinct builds. Egg crafting introduces optional higher-rarity egg pools without blocking existing free eggs.
+**Companion mastery and equipment:** your active companion can choose one of three freely switchable talents at level 10 (Focus, Tracker, Vanguard). At level 20 that talent becomes stronger automatically. A single non-consumable charm can be equipped globally alongside the active pet: Prospector, Pathfinder, or Warcaller. Charms are craftable from existing materials and can appear as bonus finds in Rare/Mythic Supply Caches. Equipment only works while the player still owns the charm, preventing stale trade/sell bonuses. All choices are saved per user across Discord servers.
+
+**Egg rarities:** ordinary Companion Eggs keep their original possible species; craft three ordinary eggs and materials into an Enchanted Egg, or combine three Enchanted Eggs with rare resources into an Astral Egg. The higher-rarity eggs use explicit rarity-weighted pools, not guaranteed Mythics. The compact Hatchery and Mastery screens sit one tap away from Companions, keeping the Command Center uncluttered.
+
+**Rebirth bonuses:** each successful prestige always grants one Rebirth Cocktail, then independently rolls for exactly one optional bonus: **30% Supply Cache**, **10% Rare Supply Cache**, **5% Adventurer's Lunchbox**, or **55% nothing extra**. Lunchboxes yield one ration and one tonic when opened from the Satchel or with `/idle open`. The bonus roll and rewards are committed in the same database transaction as the prestige reset: failed/replayed requests do not duplicate them.
+
+**Craft slash command:** as the Forge grows beyond Discord's 25-choice limit, `/idle craft item:` now uses autocomplete. Recipes remain accessible through the Forge menus.
 
 **Deploy after review/merge:** pull, run `npm ci && npm run db:migrate && npm run register && npm run mac:restart`. No existing Season XP is removed.
 
@@ -244,7 +250,7 @@ After approval, update the ARVEE Idle `master` clone, run `npm ci`, `npm run set
 Season 01 runs **17 November 2026–15 January 2027 (UTC)**. Players may claim earned rewards until **23 January 2027 00:00 UTC**.
 
 - `/idle season` opens a free 20-tier journey with **Claim All**, personal XP, daily contracts, and reward previews.
-- Earn XP through mining, daily claims, recruiting expeditions, crafting, opening caches, pickaxe/perk upgrades, and prestige. The cap is **500 XP per UTC day**; a tier unlocks every **250 XP**.
+- Earn XP through mining, daily claims, recruiting operations, expeditions, crafting, opening caches, pickaxe/perk upgrades, and prestige. **There is no daily Season XP cap**; a tier unlocks every **250 XP**.
 - Claims are written atomically in PostgreSQL; reconnects or repeated clicks cannot duplicate rewards.
 - Your season journey is separate from prestige, and installing this migration does not wipe existing characters or items.
 - **No paid pass or Prime purchase is activated.** Paid rewards would require an explicit Discord SKU/entitlement integration with the *ARVEE Idle* Discord application.

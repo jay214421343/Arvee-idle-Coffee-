@@ -1,9 +1,14 @@
 # 2.11.0 — Companion Builds & Mastery (pending review)
 
 - Remove the Founders' Journey 500 XP/day cap and its progress counter. All qualifying actions contribute full season XP; historical XP and claims are preserved.
-- Expand companions with level-gated mastery talents, cross-server charms and rarer discoverable egg paths.
-- Keep one active pet, compact Discord UI and server-side PostgreSQL protections.
-- Requires an additive database migration before bot restart.
+- Add three per-pet talent specializations (Focus, Tracker and Vanguard), unlocked at level 10 and enhanced automatically at level 20.
+- Add three craftable and collectible equipped charms. One charm follows the active pet; trading away the owned charm disables its effect. Saved choices and bonuses are cross-server.
+- Introduce Enchanted and Astral Eggs as craftable rarity-weighted hatch sources, without guaranteeing Mythics or invalidating ordinary eggs.
+- Add a compact Hatchery and Mastery UI, preserving one active pet and the concise Command Center navigation.
+- Keep the guaranteed Rebirth Cocktail and add a 30% regular cache, 10% rare cache, 5% Adventurer's Lunchbox chance at successful prestige. Lunchboxes yield one ration and one tonic.
+- Move `/idle craft` item selection to autocomplete to support more than 25 blueprints.
+- Roll optional rebirth rewards atomically under the existing player transaction lock. Never grant on failed or duplicate prestige.
+- Requires an additive database migration for pet talents and equipped charms before bot restart; slash-command re-registration also required.
 
 ---
 
