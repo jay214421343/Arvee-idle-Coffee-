@@ -145,3 +145,30 @@ CREATE TABLE IF NOT EXISTS companion_settings (
   active_pet_id TEXT CHECK(active_pet_id IN ('ember_fox','moss_wisp','moon_owl'))
 );
 ALTER TABLE expedition_missions ADD COLUMN IF NOT EXISTS companion_egg BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Global weekly bosses are keyed by UTC Monday; never by Discord guild/server.
+CREATE TABLE IF NOT EXISTS world_boss_instances (
+  period_key TEXT PRIMARY KEY CHECK (period_key ~ '^[0-9]{8}$'),
+  boss_id TEXT NOT NULL CHECK (boss_id IN ('hollow_guardian','ashbound_titan','starved_colossus')),
+  max_hp INTEGER NOT NULL CHECK (max_hp > 0),
+  reward_pool INTEGER NOT NULL CHECK (reward_pool > 0),
+  reward_item_id TEXT NOT NULL,
+  hp INTEGER NOT NULL CHECK (hp >= 0 AND hp <= max_hp),
+  starts_at TIMESTAMPTZ NOT NULL,
+  ends_at TIMESTAMPTZ NOT NULL,
+  defeated_at TIMESTAMPTZ,
+  CHECK (ends_at > starts_at)
+);
+CREATE TABLE IF NOT EXISTS world_boss_contributions (
+  period_key TEXT NOT NULL REFERENCES world_boss_instances(period_key) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  total_damage INTEGER NOT NULL DEFAULT 0 CHECK (total_damage >= 0),
+  attack_count INTEGER NOT NULL DEFAULT 0 CHECK (attack_count >= 0),
+  last_attack_at TIMESTAMPTZ,
+  next_attack_at TIMESTAMPTZ,
+  owl_bonus_points BIGINT NOT NULL DEFAULT 0 CHECK (owl_bonus_points >= 0),
+  claimed_at TIMESTAMPTZ,
+  PRIMARY KEY(period_key,user_id)
+);
+CREATE INDEX IF NOT EXISTS world_boss_contributions_player_idx
+  ON world_boss_contributions(user_id,period_key) WHERE claimed_at IS NULL;

@@ -56,6 +56,7 @@ function navigation(owner) {
     { label: "Season Journey", value: "season", description: "Earn Season XP and unlock 20 free rewards" },
     { label: "Adventurer Contracts", value: "challenges", description: "Daily and weekly challenges with claimable rewards" },
     { label: "World Map", value: "explore", description: "Send a crew on timed missions to discover loot" },
+    { label: "World Boss", value: "boss", description: "Cooperate across servers in weekly battles" },
     { label: "Companions", value: "companions", description: "Collect, level and equip your pets" },
     { label: "Expedition Gear", value: "equipment", description: "Upgrade your kit, compass and protective ward" },
     { label: "Saved Preferences", value: "settings", description: "View or reset your personal filters" },
@@ -531,6 +532,51 @@ function companionCollection(owner, state, note = "") {
   return c;
 }
 
+function worldBoss(owner, status, note = "") {
+  const max = Math.max(1, status.maxHp);
+  const progress = Math.max(0,Math.min(10,Math.round(10*status.hp/max)));
+  const finished = status.ended;
+  const subtitle = status.defeated ? "Defeated · Awaiting next weekly rotation" :
+    finished ? "This week's encounter has ended" : status.description;
+  const c = container("ARVEE IDLE  /  WORLD BOSS", subtitle);
+  c.addTextDisplayComponents(text("### " + status.name + "\n" +
+    "**HP**  " + status.hp.toLocaleString("en-US") + " / " +
+    max.toLocaleString("en-US") + "\n" +
+    "▰".repeat(progress) + "▱".repeat(10-progress) +
+    "\n**IC REWARD POOL**  " + pretty(status.rewardPool || 0) + " IC\n**Participants**  " + status.participants +
+    "   ·   **Ends**  <t:" + Math.floor(Date.parse(status.endsAt)/1000) + ":R>"));
+  divider(c);
+  c.addTextDisplayComponents(text("**YOUR CONTRIBUTION**\n" +
+    status.myDamage.toLocaleString("en-US") + " damage  ·  " +
+    status.myAttacks + " strikes\n" +
+    (status.qualified ? "Qualified for rewards" :
+      "To qualify: " + status.minAttacks + " strikes and " +
+      status.minDamage + " damage") +
+    (!finished && !status.canAttack && status.nextAttackAt
+      ? "\n**Next attack**  <t:" + Math.floor(Date.parse(status.nextAttackAt)/1000) + ":R>" : "")));
+  if (status.leaders?.length) {
+    c.addTextDisplayComponents(text("**TOP CONTRIBUTORS**\n" +
+      status.leaders.map((p,i) => (i+1) + ". <@" + p.userId + "> · " +
+        p.damage.toLocaleString("en-US")).join("\n")));
+  }
+  if (status.pending) {
+    c.addTextDisplayComponents(text("**REWARDS AVAILABLE**\n" +
+      status.pending.name + " · " + status.pending.damage + " damage. Claim any time."));
+  }
+  if (note) c.addTextDisplayComponents(text("**" + note.slice(0,280) + "**"));
+  const actions = [];
+  if (status.pending) actions.push(button(owner,"boss_claim","Claim rewards",
+    status.pending.periodKey,ButtonStyle.Primary));
+  if (status.canAttack) actions.push(button(owner,"boss_attack","Attack boss","",
+    status.pending ? ButtonStyle.Secondary : ButtonStyle.Primary));
+  if (!status.canAttack && !status.pending) actions.push(
+    button(owner,"boss","Refresh","",ButtonStyle.Primary));
+  actions.push(button(owner,"profile","Command Center"));
+  c.addActionRowComponents(row(actions));
+  foot(c,"Shared across all ARVEE Idle servers · One boss per UTC week · Reward claims are permanent.");
+  return c;
+}
+
 function expeditionMap(owner, status, note = "") {
   const c = container("ARVEE IDLE  /  WORLD MAP",
     "Explore new regions with your recruited adventurers. Missions continue while offline.");
@@ -895,6 +941,6 @@ function payload(view) {
   return { components: [view], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 module.exports = {
-  custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, preferences, challengeBoard, message, home, shop, generator, inventory, inventoryPreview, item, crafting, recipe, season, market, listing,
+  custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, worldBoss, preferences, challengeBoard, message, home, shop, generator, inventory, inventoryPreview, item, crafting, recipe, season, market, listing,
   prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, miningResult, dailyResult, craftingResult, cacheResult, SUCCESS, WARN, ERROR
 };

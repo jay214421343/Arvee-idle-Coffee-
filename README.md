@@ -18,6 +18,22 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.5 — World Bosses
+
+**/idle boss** opens one **global, cooperative weekly encounter** shared by every Discord server using the same ARVEE Idle application and PostgreSQL database. No server-specific save files or duplicate boss HP bars.
+
+- **Weekly rotation:** UTC Monday 00:00. Hollow Guardian (2,500 HP; 5,000 IC reward pool), Ashbound Titan (5,000 HP; 10,000 IC pool), and Starved Colossus (8,500 HP; 16,000 IC pool) rotate automatically. The encounter is created lazily when someone opens or attacks the board; no scheduler or uptime requirement.
+- **Combat:** One attack every 10 minutes, with server-authoritative power increasing through mining XP, pickaxe tier and prestige. The exact final hit is capped by remaining boss HP, so damage cannot exceed the shared health pool. Only actual stored damage counts.
+- **Companion roles:** Ember Fox boosts strike damage; Moss Wisp reduces the cooldown of its strikes; Moon Owl increases rare-cache odds in proportion to the damage dealt *while equipped*. Pet bonuses are snapshotted on each attack and cannot be changed by swapping at claim time.
+- **Fair rewards:** To qualify, hit at least twice and deal at least the greater of 80 damage or 1.5% of the boss HP. When a boss is defeated **or** the UTC week ends, rewards can be claimed. IC is a strict fixed pool allocated by actual HP damage: `floor(pool × your_damage / max_hp)`. Unfinished encounters pay a proportionally smaller total, not unlimited consolation coins. Qualified players also receive bounded materials and a small chance at a Rare Supply Cache, improved by Moon Owl.
+- **Persistent claims:** Rewards remain claimable across later weeks and are granted exactly once in a PostgreSQL transaction. Shared boss HP, per-account cooldowns, per-user contribution and claims are persisted. Per-boss reward pool and item type are snapshotted at spawn, protecting old rewards from later balance changes.
+- **Progression:** Boss attacks grant Season Journey and active-pet XP. One new rotating weekly contract rewards sustained participation.
+- **Interface:** Coffee-inspired, mostly emoji-free Components V2. HP, participants, personal contribution, top three contributors and countdown; contextual **Attack**, **Claim rewards** and **Command Center**, never more than three buttons. Reopening the board refreshes current global state.
+
+### Rollout
+
+After CI/review and merge, pull the ARVEE Idle `master` branch in `/Users/gabberjay/Documents/arvee-idle`, then run `npm ci`, `npm run setup`, `npm run mac:restart`, `npm run mac:status`. `npm run setup` performs only additive migrations and slash-command registration. No main ARVEE services are restarted. Test with two Discord accounts in different guilds, verify shared HP and cooldowns, and test a finished-boss claim in a staging/test database before production release.
+
 ## ARVEE Idle 2.4.2 — Quality & readiness
 
 - **Activity readiness:** The Command Center shows whether Mine and Daily Reward are ready. When they are cooling down, Discord relative timestamps display the next available time. Quick Hands and the 22-hour daily cooldown use a shared calculation with the game service, so UI and backend cannot drift.

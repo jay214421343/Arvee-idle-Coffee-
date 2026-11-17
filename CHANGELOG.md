@@ -1,3 +1,13 @@
+# 2.5.0 — World Bosses (unreleased)
+
+- Added globally shared weekly bosses rotating at UTC Monday, with one PostgreSQL boss instance and serializable HP updates across servers/shards.
+- Added `/idle boss` and a compact, owner-bound battle board with contextual attack, reward claim, cooldown and top contributor information.
+- Added persistent per-player strike cooldown, contribution ledger and once-only reward claims. Old qualified rewards remain claimable after future weekly rotations.
+- World Boss rewards share a bounded IC budget by actual global HP damage; qualification requires two strikes and at least 1.5% HP damage (minimum 80). Timed-out encounters grant partial payouts for real damage rather than all-or-nothing rewards.
+- Ember Fox increases damage, Moss Wisp shortens strike cooldowns, Moon Owl boosts rare loot odds based on snapshotted on-strike contribution. Attacks earn limited Season/Companion XP and can progress a rotating weekly contract.
+- Additive schema, no changes to old balances or player items; CI checks weekly boundaries, cross-user damage races, double-click prevention, payouts, old-week claims, and Components V2 mobile limits.
+
+---
 # 2.4.2 — Quality & readiness (unreleased)
 
 - Added unobtrusive Mine/Daily readiness to the Command Center, with Discord-relative cooldown timestamps and no extra buttons.
