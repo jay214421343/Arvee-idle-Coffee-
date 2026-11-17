@@ -2,9 +2,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const crypto = require("node:crypto");
-test("PostgreSQL economy transactions are atomic", { skip: !process.env.COFFEE_TEST_DATABASE_URL }, async () => {
-  if (!/coffee_test/.test(process.env.COFFEE_TEST_DATABASE_URL)) throw new Error("Refusing to run outside a coffee_test database.");
-  process.env.DATABASE_URL = process.env.COFFEE_TEST_DATABASE_URL;
+test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_IDLE_TEST_DATABASE_URL }, async () => {
+  if (!/arvee_idle_test/.test(process.env.ARVEE_IDLE_TEST_DATABASE_URL)) throw new Error("Refusing to run outside a arvee_idle_test database.");
+  process.env.DATABASE_URL = process.env.ARVEE_IDLE_TEST_DATABASE_URL;
   const store = require("../src/store");
   const suffix = crypto.randomInt(100000, 999999).toString();
   const a = "999999000000" + suffix;

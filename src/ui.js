@@ -12,6 +12,35 @@ const SUCCESS = brand.theme.success;
 const WARN = brand.theme.warning;
 const ERROR = brand.theme.error;
 const LIMIT = 8;
+const PAGE_SIZE = 4;
+const SORT_RARITY = Object.freeze({ Common: 0, Uncommon: 1, Rare: 2, Epic: 3, Legendary: 4 });
+const BOX_IDS = new Set(["lootbox", "rare_lootbox", "legendary_lootbox"]);
+function category(id) {
+  if (BOX_IDS.has(id)) return "caches";
+  if (items[id]?.effect) return "usable";
+  return "materials";
+}
+function listState(page, filter, sort) { return [page, filter, sort].join("_"); }
+function parseListState(raw, type = "inventory") {
+  const filters = type === "shop" ? ["all", "affordable", "owned"] : ["all", "materials", "usable", "caches"];
+  const sorts = type === "shop" ? ["price", "income"] : ["rarity", "name", "quantity"];
+  const parts = String(raw || "").split("_");
+  const page = Math.min(999, Math.max(1, Number.parseInt(parts[0], 10) || 1));
+  return { page, filter: filters.includes(parts[1]) ? parts[1] : "all", sort: sorts.includes(parts[2]) ? parts[2] : sorts[0] };
+}
+function selector(owner, action, value, placeholder, choices) {
+  return new ActionRowBuilder().addComponents(new StringSelectMenuBuilder()
+    .setCustomId(custom(owner, action, value)).setPlaceholder(placeholder).addOptions(choices));
+}
+function entrySection(owner, action, id, heading, detail, label = "View") {
+  return new SectionBuilder()
+    .addTextDisplayComponents(text("**" + heading + "**\n" + detail))
+    .setButtonAccessory(button(owner, action, label, id, ButtonStyle.Secondary));
+}
+function rarityMark(rarity) {
+  return ({ Common: "⚪", Uncommon: "🟢", Rare: "🔵", Epic: "🟣", Legendary: "🟠" })[rarity] || "⚪";
+}
+
 function custom(owner, action, arg = "") {
   if (!/^[0-9]{15,22}$/.test(String(owner)) || !/^[a-z_]+$/.test(action) || !/^[a-zA-Z0-9_]*$/.test(String(arg))) {
     throw new Error("Invalid UI identifier");
@@ -68,7 +97,7 @@ function home(owner, user, p) {
   const progress = Math.max(0, Math.min(10, Decimal.min(p.balance.div(PRESTIGE_REQUIREMENT).times(10), 10).floor().toNumber()));
   foot(c, "**NEXT PRESTIGE**  " + "▰".repeat(progress) + "▱".repeat(10 - progress) +
     "  " + Math.floor(progress * 10) + "%\n" +
-    "Passive income continues while you are offline. Explore, craft and build your realm.");
+    "New here? Start with **Daily → Mine → Operations**. Rewards scale with your empire.");
   c.addActionRowComponents(row([
     button(owner, "mine", "Mine", "", ButtonStyle.Primary),
     button(owner, "daily", "Daily", "", ButtonStyle.Success),
@@ -85,38 +114,45 @@ function home(owner, user, p) {
   ]));
   return c;
 }
-function shop(owner, page = 1, p = null) {
-  const total = Math.max(1, Math.ceil(generators.length / LIMIT));
+function shop(owner, page = 1, p = null, filter = "all", sort = "price") {
+  if (!["all", "affordable", "owned"].includes(filter)) filter = "all";
+  if (!["price", "income"].includes(sort)) sort = "price";
+  const owned = (g) => p?.generators.find((x) => x.generator_id === g.id)?.quantity || 0;
+  const cost = (g) => purchaseCost(g.cost, owned(g), 1);
+  let entries = generators.filter((g) => filter === "all" ||
+    (filter === "owned" ? owned(g) > 0 : p && p.balance.gte(cost(g))));
+  entries = entries.sort((a, b) => sort === "income" ? dec(b.income).cmp(dec(a.income)) : cost(a).cmp(cost(b)));
+  const total = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
   page = Math.max(1, Math.min(total, Number(page) || 1));
-  const entries = generators.slice((page - 1) * LIMIT, page * LIMIT);
-  const nextCost = (g) => purchaseCost(g.cost, p?.generators.find((x) => x.generator_id === g.id)?.quantity || 0, 1);
-  const c = container("⚔ ARVEE OPERATIONS", "Recruit expeditions to produce Idle Credits automatically.");
-  divider(c);
-  if (p) foot(c, "**Wallet**  " + pretty(p.balance) + " IC   ·   **Production**  +" + pretty(p.rate) + " IC/s");
-  divider(c);
-  c.addTextDisplayComponents(text(entries.map((g, index) => {
-    const owned = p?.generators.find((x) => x.generator_id === g.id)?.quantity || 0;
-    const cost = nextCost(g);
-    const affordable = p ? p.balance.gte(cost) : false;
-    return (affordable ? "🟣" : "▫️") + " **" + g.name + "**  " + (owned ? "×" + owned : "") +
-      "\n" + pretty(cost) + " IC  ·  +" + pretty(g.income) + " IC/s per unit";
-  }).join("\n\n")));
-  c.addActionRowComponents(new ActionRowBuilder().addComponents(new StringSelectMenuBuilder()
-    .setCustomId(custom(owner, "generator_select", String(page)))
-    .setPlaceholder("Select an operation to expand")
-    .addOptions(entries.map((g) => ({
-      label: g.name.slice(0, 100),
-      description: g.id + " · " + pretty(nextCost(g)) + " IC",
-      value: g.id
-    })))));
+  const visible = entries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const c = container("✦ ARVEE IDLE  /  OPERATIONS",
+    "**Wallet** " + (p ? pretty(p.balance) + " IC" : "—") + "  ·  **Production** +" + (p ? pretty(p.rate) : "0") +
+    " IC/s\nRecruit adventurers and build your empire.");
+  if (!visible.length) c.addTextDisplayComponents(text("No operations match this filter yet. Choose All operations."));
+  for (const g of visible) {
+    const units = owned(g);
+    const next = cost(g);
+    c.addSectionComponents(entrySection(owner, "operation", g.id,
+      (units ? "🟣 " : "⚔️ ") + g.name,
+      "**" + pretty(next) + " IC** next  ·  +" + pretty(g.income) + " IC/s per unit\n" +
+      (units ? "Owned: " + units : "Not recruited") + (p && p.balance.gte(next) ? "  ·  ✓ Affordable" : ""), "Details"));
+  }
+  c.addActionRowComponents(selector(owner, "shop_filter", sort, "Show: " + (filter === "all" ? "All operations" : filter),
+    [{ label: "All operations", value: "all", default: filter === "all" },
+      { label: "Affordable now", value: "affordable", default: filter === "affordable" },
+      { label: "My operations", value: "owned", default: filter === "owned" }]));
+  c.addActionRowComponents(selector(owner, "shop_sort", filter, "Sort: " + (sort === "price" ? "Lowest price" : "Highest income"),
+    [{ label: "Lowest price", value: "price", default: sort === "price" },
+      { label: "Highest income", value: "income", default: sort === "income" }]));
   c.addActionRowComponents(row([
-    button(owner, "shop", "Previous", String(page - 1), ButtonStyle.Secondary, page === 1),
-    button(owner, "profile", "Command Center"),
-    button(owner, "shop", "Next", String(page + 1), ButtonStyle.Secondary, page === total)
+    button(owner, "shop", "◀ Previous", listState(page - 1, filter, sort), ButtonStyle.Secondary, page === 1),
+    button(owner, "profile", "Command Center", "", ButtonStyle.Primary),
+    button(owner, "shop", "Next ▶", listState(page + 1, filter, sort), ButtonStyle.Secondary, page === total)
   ]));
-  foot(c, "Sector " + page + "/" + total + "  ·  " + generators.length + " ARVEE operations   ·   Purple = affordable");
+  foot(c, "**Sector " + page + " / " + total + "**  ·  " + entries.length + " operations  ·  Select Details to recruit");
   return c;
 }
+
 function generator(owner, id, page, p, note = "") {
   const g = byId.get(id);
   if (!g) throw new Error("Unknown generator.");
@@ -141,65 +177,114 @@ function generator(owner, id, page, p, note = "") {
   ]));
   return c;
 }
-function inventory(owner, p, page = 1) {
-  const total = Math.max(1, Math.ceil(p.inventory.length / LIMIT));
+function inventory(owner, p, page = 1, filter = "all", sort = "rarity") {
+  if (!["all", "materials", "usable", "caches"].includes(filter)) filter = "all";
+  if (!["rarity", "name", "quantity"].includes(sort)) sort = "rarity";
+  let entries = p.inventory.filter((e) => e.quantity > 0 && (filter === "all" || category(e.item_id) === filter));
+  entries = entries.sort((a, b) => {
+    if (sort === "quantity") return b.quantity - a.quantity || a.item_id.localeCompare(b.item_id);
+    if (sort === "name") return (items[a.item_id]?.name || a.item_id).localeCompare(items[b.item_id]?.name || b.item_id);
+    return (SORT_RARITY[items[b.item_id]?.rarity] || 0) - (SORT_RARITY[items[a.item_id]?.rarity] || 0) ||
+      (items[a.item_id]?.name || a.item_id).localeCompare(items[b.item_id]?.name || b.item_id);
+  });
+  const total = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
   page = Math.max(1, Math.min(total, Number(page) || 1));
-  const entries = p.inventory.slice((page - 1) * LIMIT, page * LIMIT);
-  const c = container("🎒 Your Inventory", p.inventory.length + " distinct item types · select an item for details.");
-  divider(c);
-  foot(c, entries.length ? entries.map((e) => (items[e.item_id]?.emoji || "▪") + "  **" + (items[e.item_id]?.name || e.item_id) + "**  ×" + e.quantity).join("\n") : "Your inventory is empty. Mine or claim your daily reward!");
-  if (entries.length) c.addActionRowComponents(new ActionRowBuilder().addComponents(new StringSelectMenuBuilder()
-    .setCustomId(custom(owner, "item_select", String(page))).setPlaceholder("Inspect an item")
-    .addOptions(entries.map((e) => ({ label: (items[e.item_id]?.name || e.item_id).slice(0, 100), value: e.item_id })))));
+  const visible = entries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const c = container("✦ ARVEE IDLE  /  INVENTORY", "**" + p.inventory.length +
+    " item types** collected  ·  Filter and sort your collection.");
+  if (!visible.length) c.addTextDisplayComponents(text("Nothing here yet. Claim /idle daily, mine for materials, or try another filter."));
+  for (const e of visible) {
+    const item = items[e.item_id];
+    if (!item) continue;
+    c.addSectionComponents(entrySection(owner, "item_view", e.item_id,
+      (item.emoji || "📦") + "  " + item.name,
+      rarityMark(item.rarity) + " " + item.rarity.toUpperCase() + "  ·  **Owned ×" + e.quantity + "**\n" +
+      (item.description || "An ARVEE collectible.").slice(0, 100), "Inspect"));
+  }
+  c.addActionRowComponents(selector(owner, "inventory_filter", sort, "Filter: " + filter,
+    [{ label: "All items", value: "all", default: filter === "all" },
+      { label: "Materials", value: "materials", default: filter === "materials" },
+      { label: "Consumables", value: "usable", default: filter === "usable" },
+      { label: "Supply caches", value: "caches", default: filter === "caches" }]));
+  c.addActionRowComponents(selector(owner, "inventory_sort", filter, "Sort: " + sort,
+    [{ label: "Rarity (highest first)", value: "rarity", default: sort === "rarity" },
+      { label: "Name (A-Z)", value: "name", default: sort === "name" },
+      { label: "Quantity (highest first)", value: "quantity", default: sort === "quantity" }]));
   c.addActionRowComponents(row([
-    button(owner, "inventory", "◀ Previous", String(page - 1), ButtonStyle.Secondary, page === 1),
-    button(owner, "profile", "Dashboard"),
-    button(owner, "inventory", "Next ▶", String(page + 1), ButtonStyle.Secondary, page === total)
+    button(owner, "inventory", "◀ Previous", listState(page - 1, filter, sort), ButtonStyle.Secondary, page === 1),
+    button(owner, "profile", "Command Center", "", ButtonStyle.Primary),
+    button(owner, "inventory", "Next ▶", listState(page + 1, filter, sort), ButtonStyle.Secondary, page === total)
   ]));
-  foot(c, "Page " + page + " / " + total);
+  foot(c, "**Page " + page + " / " + total + "**  ·  " + entries.length + " matching items  ·  Select Inspect for details");
   return c;
 }
+
 function item(owner, id, quantity, page = 1) {
   const entry = items[id]; if (!entry) throw new Error("Unknown item.");
-  const c = container((entry.emoji || "📦") + " " + entry.name, entry.description || "A collectible item.");
-  divider(c);
-  foot(c, "**Owned**  " + quantity + "   ·   **Rarity**  " + (entry.rarity || "Common") +
-    "\n" + (entry.use ? "**Use:** " + entry.use : "") +
-    (recipes[id] ? "\n**Recipe:** " + Object.entries(recipes[id]).map(([part, q]) => q + "× " + items[part].name).join(", ") : ""));
+  const canOpen = BOX_IDS.has(id);
+  const accent = entry.rarity === "Legendary" ? 0xE6AA51 : entry.rarity === "Rare" ? 0x487AD8 : ACCENT;
+  const c = container((entry.emoji || "📦") + "  " + entry.name.toUpperCase(),
+    rarityMark(entry.rarity) + " **" + entry.rarity + "**  ·  **" + quantity + " owned**", accent);
+  c.addTextDisplayComponents(text("### ITEM DETAILS\n" + entry.description +
+    (entry.use ? "\n\n**Effect:** " + entry.use : "") +
+    (recipes[id] ? "\n\n**Forging recipe:** " + Object.entries(recipes[id]).map(([part, q]) => q + "× " + items[part].name).join(", ") : "")));
   c.addActionRowComponents(row([
-    button(owner, ["lootbox", "rare_lootbox", "legendary_lootbox"].includes(id) ? "open_one" : "use_item",
-      ["lootbox", "rare_lootbox", "legendary_lootbox"].includes(id) ? "Open 1" : "Use item",
-      id, ButtonStyle.Primary, (!entry.effect && !["lootbox", "rare_lootbox", "legendary_lootbox"].includes(id)) || quantity < 1),
-    button(owner, "inventory", "Back", String(page)),
-    button(owner, "profile", "Dashboard")
+    button(owner, canOpen ? "open_one" : "use_item", canOpen ? "Open 1" : "Use item",
+      id, ButtonStyle.Primary, (!entry.effect && !canOpen) || quantity < 1),
+    button(owner, "inventory", "Collection", "1_all_rarity"),
+    button(owner, "craft", "Forge", "1"),
+    button(owner, "profile", "Command Center")
   ]));
   return c;
 }
-function crafting(owner) {
-  const c = container("🛠 Crafting Workshop", "Turn mining resources into useful items. Everything is crafted atomically.");
-  divider(c);
-  foot(c, Object.entries(recipes).map(([id, ingredients]) => "**" + (items[id]?.name || id) + "**\n" +
-    Object.entries(ingredients).map(([k, v]) => v + "× " + items[k].name).join(" · ")).join("\n\n"));
-  c.addActionRowComponents(new ActionRowBuilder().addComponents(new StringSelectMenuBuilder()
-    .setCustomId(custom(owner, "recipe_select")).setPlaceholder("Choose a recipe")
-    .addOptions(Object.keys(recipes).map((id) => ({ label: items[id].name, value: id })))));
-  c.addActionRowComponents(row([button(owner, "inventory", "Inventory"), button(owner, "profile", "Dashboard")]));
+
+function crafting(owner, p = null, page = 1) {
+  const entries = Object.entries(recipes);
+  const total = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
+  page = Math.max(1, Math.min(total, Number(page) || 1));
+  const visible = entries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const owned = (id) => p?.inventory.find((e) => e.item_id === id)?.quantity || 0;
+  const c = container("✦ ARVEE IDLE  /  FORGE", "Craft gear from materials found on expeditions.");
+  for (const [id, ingredients] of visible) {
+    const item = items[id];
+    const canCraft = p && Object.entries(ingredients).every(([key, quantity]) => owned(key) >= quantity);
+    c.addSectionComponents(entrySection(owner, "recipe_view", id,
+      (item.emoji || "⚒️") + "  " + item.name,
+      rarityMark(item.rarity) + " " + item.rarity + "  ·  " +
+      Object.entries(ingredients).map(([key, quantity]) => quantity + "× " + items[key].name).join(", ").slice(0, 120) +
+      "\n" + (canCraft ? "✓ Ready to forge" : "Requires materials"), "Recipe"));
+  }
+  c.addActionRowComponents(row([
+    button(owner, "craft", "◀ Previous", String(page - 1), ButtonStyle.Secondary, page === 1),
+    button(owner, "inventory", "Inventory"),
+    button(owner, "profile", "Command Center", "", ButtonStyle.Primary),
+    button(owner, "craft", "Next ▶", String(page + 1), ButtonStyle.Secondary, page === total)
+  ]));
+  foot(c, "**Recipes " + page + "/" + total + "**  ·  Select Recipe to view full requirements");
   return c;
 }
-function recipe(owner, id) {
-  if (!recipes[id]) throw new Error("Unknown recipe");
-  const c = container("🛠 Craft " + items[id].name, "Resources required per item:");
-  divider(c);
-  foot(c, Object.entries(recipes[id]).map(([part, amount]) => "• " + amount + " × " + items[part].name).join("\n"));
+function recipe(owner, id, p = null) {
+  if (!recipes[id]) throw new Error("Unknown recipe.");
+  const item = items[id];
+  const owns = (key) => p?.inventory.find((x) => x.item_id === key)?.quantity || 0;
+  const craftable = p ? Math.min(...Object.entries(recipes[id]).map(([key, quantity]) => Math.floor(owns(key) / quantity))) : null;
+  const c = container((item.emoji || "⚒️") + "  " + item.name.toUpperCase(),
+    rarityMark(item.rarity) + " **" + item.rarity + "**  ·  " + item.description);
+  c.addTextDisplayComponents(text("### FORGING MATERIALS\n" +
+    Object.entries(recipes[id]).map(([key, quantity]) =>
+      (p && owns(key) >= quantity ? "✅ " : "▫️ ") + "**" + items[key].name + "**  " + (p ? owns(key) + " / " : "") + quantity).join("\n") +
+    "\n\n**You can craft:** " + (craftable ?? "Check inventory")));
   c.addActionRowComponents(row([
-    button(owner, "craft_one", "Craft 1", id, ButtonStyle.Primary),
-    button(owner, "craft_five", "Craft 5", id, ButtonStyle.Success),
-    button(owner, "craft", "Back")
+    button(owner, "craft_one", "Forge 1", id, ButtonStyle.Primary, craftable !== null && craftable < 1),
+    button(owner, "craft_five", "Forge 5", id, ButtonStyle.Success, craftable !== null && craftable < 5),
+    button(owner, "craft", "All recipes", "1"),
+    button(owner, "inventory", "Inventory")
   ]));
   return c;
 }
+
 function market(owner, rows) {
-  const c = container("💱 ARVEE Idle Marketplace", "Discover player listings. Buy or cancel listings using the selector.");
+  const c = container("💱 ARVEE Idle Exchange", "Discover player listings. Buy or cancel listings using the selector.");
   divider(c);
   foot(c, rows.length ? rows.map((r) => "**#" + r.id + "**  ·  " + r.quantity + "× " + (items[r.item_id]?.name || r.item_id) +
     "  ·  " + pretty(r.price) + " IC").join("\n") : "There are no active listings yet.");
@@ -207,7 +292,7 @@ function market(owner, rows) {
     .setCustomId(custom(owner, "listing_select")).setPlaceholder("Choose a listing")
     .addOptions(rows.map((r) => ({ label: ("#" + r.id + " · " + (items[r.item_id]?.name || r.item_id)).slice(0, 100),
       description: pretty(r.price) + " IC · Quantity " + r.quantity, value: String(r.id) })))));
-  c.addActionRowComponents(row([button(owner, "market", "↻ Refresh", "", ButtonStyle.Primary), button(owner, "profile", "Dashboard")]));
+  c.addActionRowComponents(row([button(owner, "market", "↻ Refresh", "", ButtonStyle.Primary), button(owner, "profile", "Command Center")]));
   return c;
 }
 function listing(owner, l) {
@@ -247,12 +332,12 @@ function pickaxe(owner, p) {
     button(owner, "pickaxe_upgrade", "Upgrade", "", ButtonStyle.Primary, tier >= 10),
     button(owner, "perks", "Manage perks"),
     button(owner, "mine", "Mine"),
-    button(owner, "profile", "Dashboard")
+    button(owner, "profile", "Command Center")
   ]));
   return c;
 }
 function perks(owner, p, defs) {
-  const c = container("✨ Pickaxe Perks", "Unlock perks using Pickperk tokens, found in higher-tier lootboxes.");
+  const c = container("✨ Pickaxe Perks", "Unlock perks using Rune Fragments, found in high-tier supply caches.");
   divider(c);
   foot(c, Object.entries(defs).map(([id, d]) => "**" + d.name + "** · " + (p.perks?.find((x) => x.perk_id === id)?.level || 0) + " / " + d.max +
     "\n" + d.description).join("\n\n"));
@@ -262,7 +347,7 @@ function perks(owner, p, defs) {
   c.addActionRowComponents(row([
     button(owner, "pickaxe", "Back to pickaxe"),
     button(owner, "perk_respec", "Respec perks", "", ButtonStyle.Danger, !p.perks?.length),
-    button(owner, "profile", "Dashboard")
+    button(owner, "profile", "Command Center")
   ]));
   return c;
 }
@@ -286,7 +371,7 @@ function stats(owner, p) {
     "\n**Marketplace sales**  " + n("market_sell") + "   ·   **Prestiges**  " + p.prestige);
   c.addActionRowComponents(row([
     button(owner, "stats", "↻ Refresh", "", ButtonStyle.Primary),
-    button(owner, "profile", "Dashboard")
+    button(owner, "profile", "Command Center")
   ]));
   return c;
 }
@@ -294,13 +379,13 @@ function leaderboard(owner, rows) {
   const c = container("🏆 ARVEE Idle Leaderboard", "Ranked by lifetime IC earned this prestige.");
   divider(c);
   foot(c, rows.length ? rows.map((r, i) => "**" + (i + 1) + ".** <@" + r.user_id + "> · " + pretty(r.total_earned) + " IC · P" + r.prestige).join("\n") : "No players yet.");
-  c.addActionRowComponents(row([button(owner, "leaderboard", "↻ Refresh"), button(owner, "profile", "Dashboard")]));
+  c.addActionRowComponents(row([button(owner, "leaderboard", "↻ Refresh"), button(owner, "profile", "Command Center")]));
   return c;
 }
 function help(owner) {
-  const c = container("☕ Welcome to ARVEE Idle", "The idle economy game built for Discord.");
+  const c = container("✦ WELCOME TO ARVEE IDLE", "Begin with your starter wallet, quick mining, and your first operation.");
   divider(c);
-  foot(c, "**Grow** · /idle shop, /idle buy, /idle profile\n**Explore** · /idle mine, /idle pickaxe, /idle daily\n**Collect** · /idle inventory, /idle open, /idle craft, /idle use\n**Trade** · /idle give, /idle market\n**Compete** · /idle leaderboard, /idle prestige\n\nUse the buttons below to navigate without typing commands.");
+  foot(c, "**START** · /idle daily → /idle mine → /idle shop\n**Grow** · /idle shop, /idle buy, /idle profile\n**Explore** · /idle mine, /idle pickaxe, /idle daily\n**Collect** · /idle inventory, /idle open, /idle craft, /idle use\n**Trade** · /idle give, /idle market\n**Compete** · /idle leaderboard, /idle prestige\n\nUse the buttons below to navigate without typing commands.");
   c.addActionRowComponents(row([
     button(owner, "profile", "Dashboard", "", ButtonStyle.Primary),
     button(owner, "shop", "Shop"),
@@ -313,6 +398,6 @@ function payload(view) {
   return { components: [view], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 module.exports = {
-  custom, button, message, home, shop, generator, inventory, item, crafting, recipe, market, listing,
+  custom, button, category, listState, parseListState, message, home, shop, generator, inventory, item, crafting, recipe, market, listing,
   prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, SUCCESS, WARN, ERROR
 };

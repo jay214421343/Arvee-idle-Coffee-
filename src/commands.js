@@ -14,15 +14,15 @@ idle.addSubcommand((c) => c.setName("shop").setDescription("Browse IC generators
 idle.addSubcommand((c) => c.setName("buy").setDescription("Buy generators with IC")
   .addStringOption((o) => o.setName("generator").setDescription("Generator code from /idle shop").setRequired(true))
   .addIntegerOption((o) => o.setName("amount").setDescription("How many (1-1000)").setMinValue(1).setMaxValue(1000)));
-idle.addSubcommand((c) => c.setName("mine").setDescription("Mine IC and materials (5-minute cooldown)"));
-idle.addSubcommand((c) => c.setName("daily").setDescription("Claim daily coffee and lootboxes"));
+idle.addSubcommand((c) => c.setName("mine").setDescription("Mine Idle Credits and crafting materials (90-second cooldown)"));
+idle.addSubcommand((c) => c.setName("daily").setDescription("Claim your daily Idle Credits and supply caches"));
 idle.addSubcommand((c) => c.setName("inventory").setDescription("Check collected items").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
 idle.addSubcommand((c) => c.setName("craft").setDescription("Craft an item")
   .addStringOption((o) => o.setName("item").setDescription("Item to craft (omit to browse recipes)").addChoices(...recipeChoices))
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity (1-100)").setMinValue(1).setMaxValue(100)));
 idle.addSubcommand((c) => c.setName("open").setDescription("Open lootboxes")
   .addStringOption((o) => o.setName("type").setDescription("Type of lootbox").addChoices(
-    { name: "Lootbox", value: "lootbox" }, { name: "Rare Lootbox", value: "rare_lootbox" }, { name: "Legendary Lootbox", value: "legendary_lootbox" }))
+    { name: "Supply Cache", value: "lootbox" }, { name: "Rare Supply Cache", value: "rare_lootbox" }, { name: "Mythic Supply Cache", value: "legendary_lootbox" }))
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity (1-20)").setMinValue(1).setMaxValue(20)));
 idle.addSubcommand((c) => c.setName("give").setDescription("Give another player an item")
   .addUserOption((o) => o.setName("user").setDescription("Recipient").setRequired(true))
@@ -92,8 +92,8 @@ async function respond(interaction) {
     } else if (command === "help") {
       view = ui.help(id);
       content = [
-        "**☕ ARVEE Idle — Idle Game**",
-        "Start with /idle profile. Earn IC passively by buying generators.",
+        "**✦ ARVEE Idle — Adventure & Progression**",
+        "Start with /idle daily, /idle mine, then recruit an operation in /idle shop.",
         "**Economy:** /idle shop, /idle buy, /idle leaderboard, /idle prestige",
         "**Activities:** /idle mine, /idle daily, /idle craft, /idle open",
         "**Items:** /idle inventory, /idle give, /idle market",
@@ -105,7 +105,7 @@ async function respond(interaction) {
       const p = await store.profile(target.id);
       view = ui.home(id, target, p);
       const genTotal = p.generators.reduce((sum, g) => sum + g.quantity, 0);
-      content = "**☕ " + target.username + "'s ARVEE Idle Profile**\nIC: **" + pretty(p.balance) +
+      content = "**✦ " + target.username + "'s ARVEE Idle Profile**\nIC: **" + pretty(p.balance) +
         "**\nIC/s: **" + pretty(p.rate) + "**\nTotal earned: " + pretty(p.totalEarned) +
         "\nGenerators owned: " + genTotal + "\nPrestige: " + p.prestige + " · Mining XP: " + p.mineXp;
     } else if (command === "shop") {
@@ -132,7 +132,7 @@ async function respond(interaction) {
     } else if (command === "craft") {
       const item = opts.getString("item");
       if (!item) {
-        view = ui.crafting(id);
+        view = ui.crafting(id, await store.profile(id));
       } else {
         const qty = opts.getInteger("amount") || 1;
         await store.craft(id, item, qty);
@@ -140,7 +140,7 @@ async function respond(interaction) {
       }
     } else if (command === "open") {
       const drops = await store.openLootbox(id, opts.getInteger("amount") || 1, opts.getString("type") || "lootbox");
-      content = "📦 Opened lootboxes: " + Object.entries(drops).map(([item, n]) => n + " " + labelItem(item)).join(", ") + ".";
+      content = "📦 Opened supply caches: " + Object.entries(drops).map(([item, n]) => n + " " + labelItem(item)).join(", ") + ".";
     } else if (command === "give") {
       const recipient = opts.getUser("user", true);
       if (recipient.bot) throw new Error("You cannot send items to bots.");
@@ -151,7 +151,7 @@ async function respond(interaction) {
     } else if (command === "leaderboard") {
       const top = await store.leaderboard();
       view = ui.leaderboard(id, top);
-      content = "**☕ ARVEE Idle Leaderboard**\n" +
+      content = "**✦ ARVEE Idle Leaderboard**\n" +
         (top.length ? top.map((p, n) => (n + 1) + ". <@" + p.user_id + "> — " + pretty(p.total_earned) + " IC · P" + p.prestige).join("\n") : "Nobody has started playing yet.");
     } else if (command === "prestige") {
       if (!opts.getBoolean("confirm")) {
@@ -171,13 +171,13 @@ async function respond(interaction) {
       const used = await store.useItem(id, opts.getString("item", true));
       content = "Used **" + labelItem(used.itemId) + "**. " + used.message;
     } else content = "Unknown command.";
-    view ||= ui.message("☕ ARVEE Idle", content.slice(0, 2900), id);
+    view ||= ui.message("✦ ARVEE Idle", content.slice(0, 2900), id);
     await interaction.editReply({ content: null, embeds: [], ...ui.payload(view) });
   } catch (error) {
     console.error("[ARVEE Idle command]", error);
     const reply = error.message && !/SQL|relation|column|syntax|connect|pool|password|database/i.test(error.message)
       ? error.message : "An unexpected error occurred. Please try again.";
-    await interaction.editReply({ content: null, embeds: [], ...ui.payload(ui.message("Something went wrong", "☕ " + reply.slice(0, 1800), interaction.user.id, { color: ui.ERROR })) }).catch(console.error);
+    await interaction.editReply({ content: null, embeds: [], ...ui.payload(ui.message("Something went wrong", "✦ " + reply.slice(0, 1800), interaction.user.id, { color: ui.ERROR })) }).catch(console.error);
   }
 }
 function uiError(error) {
@@ -203,20 +203,27 @@ async function handleComponent(interaction) {
     if (action === "profile") {
       view = ui.home(owner, interaction.user, await store.profile(owner));
     } else if (action === "shop") {
-      view = ui.shop(owner, Number(argument) || 1, await store.profile(owner));
+      const { page, filter, sort } = ui.parseListState(argument, "shop");
+      view = ui.shop(owner, page, await store.profile(owner), filter, sort);
+    } else if (action === "shop_filter") {
+      view = ui.shop(owner, 1, await store.profile(owner), selected, argument);
+    } else if (action === "shop_sort") {
+      view = ui.shop(owner, 1, await store.profile(owner), argument, selected);
+    } else if (action === "operation") {
+      view = ui.generator(owner, argument, 1, await store.profile(owner));
     } else if (action === "generator_select") {
       const player = await store.profile(owner);
       view = ui.generator(owner, selected, Number(argument) || 1, player);
     } else if (action === "buy_one" || action === "buy_ten" || action === "buy_hundred") {
       const amount = action === "buy_hundred" ? 100 : action === "buy_ten" ? 10 : 1;
       result = await store.buyGenerator(owner, argument, amount);
-      const page = Math.floor(Math.max(0, generators.findIndex((g) => g.id === argument)) / 8) + 1;
+      const page = Math.floor(Math.max(0, generators.findIndex((g) => g.id === argument)) / 4) + 1;
       view = ui.generator(owner, argument, page, await store.profile(owner), "Purchased " + amount + " for " + pretty(result.cost) + " IC.");
     } else if (action === "mine") {
       result = await store.mine(owner);
       view = ui.message(result.cooldown ? "⏳ Pickaxe cooling down" : "⛏ Mining complete",
         result.cooldown ? "You can mine again in " + result.cooldown + " seconds." :
-          "**+" + pretty(result.reward) + " IC** and **" + labelItem(result.drop) + "**" + (result.box ? " · Bonus lootbox!" : ""),
+          "**+" + pretty(result.reward) + " IC** and **" + labelItem(result.drop) + "**" + (result.box ? " · Bonus Supply Cache!" : ""),
         owner, { color: result.cooldown ? ui.WARN : ui.SUCCESS });
     } else if (action === "daily") {
       result = await store.daily(owner);
@@ -224,7 +231,15 @@ async function handleComponent(interaction) {
         result.cooldown ? "Available again in " + Math.ceil(result.cooldown / 60) + " minutes." : result.received.join(" · "),
         owner, { color: result.cooldown ? ui.WARN : ui.SUCCESS });
     } else if (action === "inventory") {
-      view = ui.inventory(owner, await store.profile(owner), Number(argument) || 1);
+      const { page, filter, sort } = ui.parseListState(argument, "inventory");
+      view = ui.inventory(owner, await store.profile(owner), page, filter, sort);
+    } else if (action === "inventory_filter") {
+      view = ui.inventory(owner, await store.profile(owner), 1, selected, argument);
+    } else if (action === "inventory_sort") {
+      view = ui.inventory(owner, await store.profile(owner), 1, argument, selected);
+    } else if (action === "item_view") {
+      const p = await store.profile(owner);
+      view = ui.item(owner, argument, p.inventory.find((e) => e.item_id === argument)?.quantity || 0);
     } else if (action === "item_select") {
       const p = await store.profile(owner);
       const quantity = p.inventory.find((r) => r.item_id === selected)?.quantity || 0;
@@ -234,11 +249,13 @@ async function handleComponent(interaction) {
       view = ui.message("✨ Item used", "**" + labelItem(result.itemId) + "** · " + result.message, owner, { color: ui.SUCCESS });
     } else if (action === "open_one") {
       const drops = await store.openLootbox(owner, 1, argument);
-      view = ui.message("📦 Lootbox opened", Object.entries(drops).map(([id, n]) => n + "× " + labelItem(id)).join(" · "), owner, { color: ui.SUCCESS });
+      view = ui.message("📦 Supply Cache opened", Object.entries(drops).map(([id, n]) => n + "× " + labelItem(id)).join(" · "), owner, { color: ui.SUCCESS });
     } else if (action === "craft") {
-      view = ui.crafting(owner);
+      view = ui.crafting(owner, await store.profile(owner), Number(argument) || 1);
+    } else if (action === "recipe_view") {
+      view = ui.recipe(owner, argument, await store.profile(owner));
     } else if (action === "recipe_select") {
-      view = ui.recipe(owner, selected);
+      view = ui.recipe(owner, selected, await store.profile(owner));
     } else if (action === "craft_one" || action === "craft_five") {
       const quantity = action === "craft_five" ? 5 : 1;
       await store.craft(owner, argument, quantity);
@@ -281,7 +298,7 @@ async function handleComponent(interaction) {
     await interaction.editReply({ components: [view], allowedMentions: { parse: [] } });
   } catch (error) {
     console.error("[ARVEE Idle component]", error);
-    await interaction.followUp({ content: "☕ " + uiError(error).slice(0, 1800), flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } }).catch(console.error);
+    await interaction.followUp({ content: "✦ " + uiError(error).slice(0, 1800), flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } }).catch(console.error);
   }
   return true;
 }

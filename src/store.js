@@ -87,7 +87,7 @@ async function profile(userId) {
 async function buyGenerator(userId, generatorId, quantity) {
   assertQuantity(quantity);
   const entry = byId.get(String(generatorId).toUpperCase());
-  if (!entry) throw new Error("Generator not found. Use /coffee shop.");
+  if (!entry) throw new Error("Operation not found. Try /idle shop.");
   return transact([userId], async (db, states) => {
     const state = stateOf(states, userId);
     const current = (await db.query("SELECT quantity FROM player_generators WHERE user_id=$1 AND generator_id=$2", [userId, entry.id])).rows[0];
@@ -112,10 +112,10 @@ async function mine(userId) {
   return transact([userId], async (db, states) => {
     const state = stateOf(states, userId);
     const now = Date.now();
-    const cooldown = Math.max(45000, (300 - 15 * perkLevel(state, "sprinter")) * 1000);
+    const cooldown = Math.max(30000, (90 - 6 * perkLevel(state, "sprinter")) * 1000);
     const remaining = state.lastMine ? cooldown - (now - new Date(state.lastMine).getTime()) : 0;
     if (remaining > 0) return { cooldown: Math.ceil(remaining / 1000) };
-    const reward = Decimal.max(25, state.rate.times(15))
+    const reward = Decimal.max(150, state.rate.times(30))
       .times(dec(1).plus(dec(state.pickaxeTier).times("0.25")))
       .times(dec(1).plus(dec(perkLevel(state, "miner")).times("0.10")))
       .times(state.mineBonus).floor();
@@ -130,11 +130,12 @@ async function mine(userId) {
       roll < 0.05 + fortune * 0.012 ? "gold" :
       roll < 0.08 + fortune * 0.017 ? "strange_matter" :
       roll < 0.35 + fortune * 0.025 ? "silver" : "ore";
-    await addItem(db, userId, drop, 1);
+    const dropQuantity = drop === "ore" ? 3 : drop === "silver" ? 2 : 1;
+    await addItem(db, userId, drop, dropQuantity);
     const box = Math.random() < 0.04 + 0.03 * perkLevel(state, "scavenger");
     if (box) await addItem(db, userId, "lootbox", 1);
     await event(db, userId, "mine", reward, { drop });
-    return { reward, drop, mineXp: state.mineXp, box };
+    return { reward, drop, dropQuantity, mineXp: state.mineXp, box };
   });
 }
 async function daily(userId) {
@@ -145,10 +146,15 @@ async function daily(userId) {
     const remaining = state.lastDaily ? cooldown - (now - new Date(state.lastDaily).getTime()) : 0;
     if (remaining > 0) return { cooldown: Math.ceil(remaining / 1000) };
     state.lastDaily = new Date(now);
-    await addItem(db, userId, "lootbox", 2);
+    const credits = dec(750);
+    state.balance = state.balance.plus(credits);
+    state.totalEarned = state.totalEarned.plus(credits);
+    await addItem(db, userId, "lootbox", 3);
     await addItem(db, userId, "coffee", 1);
-    await event(db, userId, "daily", 0);
-    return { received: ["2 Lootboxes", "1 Coffee"] };
+    await addItem(db, userId, "ore", 4);
+    await addItem(db, userId, "silver", 2);
+    await event(db, userId, "daily", credits);
+    return { received: ["750 IC", "3 Supply Caches", "1 Campfire Brew", "4 Rune Ore", "2 Moonsteel"] };
   });
 }
 async function craft(userId, itemId, quantity) {
@@ -307,9 +313,9 @@ async function upgradePickaxe(userId) {
   return transact([userId], async (db, states) => {
     const state = stateOf(states, userId);
     if (state.pickaxeTier >= 10) throw new Error("Your pickaxe is already maximum tier.");
-    const costOre = 20 * (state.pickaxeTier + 1);
-    const costSilver = 5 * (state.pickaxeTier + 1);
-    const costGold = state.pickaxeTier >= 2 ? state.pickaxeTier : 0;
+    const costOre = 8 * (state.pickaxeTier + 1);
+    const costSilver = 2 * (state.pickaxeTier + 1);
+    const costGold = state.pickaxeTier >= 3 ? Math.ceil(state.pickaxeTier / 2) : 0;
     await removeItem(db, userId, "ore", costOre);
     await removeItem(db, userId, "silver", costSilver);
     if (costGold) await removeItem(db, userId, "gold", costGold);
@@ -360,8 +366,8 @@ async function getStats(userId) {
   )).rows;
   const counts = Object.fromEntries(rows.map((row) => [row.event_type, row.count]));
   const achievements = [
-    { name: "Coffee Lover", achieved: (counts.daily || 0) >= 1, goal: "Claim a daily reward" },
-    { name: "Mine Apprentice", achieved: (counts.mine || 0) >= 25, goal: "Mine 25 times" },
+    { name: "First Expedition", achieved: (counts.daily || 0) >= 1, goal: "Claim your first daily supplies" },
+    { name: "Prospector", achieved: (counts.mine || 0) >= 10, goal: "Mine 10 times" },
     { name: "Crafting Artisan", achieved: (counts.craft || 0) >= 10, goal: "Craft 10 times" },
     { name: "Merchant", achieved: (counts.market_sell || 0) >= 1, goal: "List an item for sale" },
     { name: "Shopping Spree", achieved: (counts.generator_purchase || 0) >= 20, goal: "Buy generators 20 times" },

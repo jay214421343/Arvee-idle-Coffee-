@@ -16,7 +16,13 @@
     "doctor": "node src/doctor.js",
     "pm2:start": "pm2 start ecosystem.config.cjs --only arvee-idle",
     "pm2:logs": "pm2 logs arvee-idle --lines 60",
-    "pm2:restart": "pm2 restart arvee-idle --update-env"
+    "pm2:restart": "pm2 restart arvee-idle --update-env",
+    "setup": "npm run db:migrate && npm run doctor && npm run register",
+    "mac:start": "bash scripts/mac-pm2.sh start",
+    "mac:restart": "bash scripts/mac-pm2.sh restart",
+    "mac:logs": "bash scripts/mac-pm2.sh logs",
+    "mac:status": "bash scripts/mac-pm2.sh status",
+    "mac:stop": "bash scripts/mac-pm2.sh stop"
   },
   "dependencies": {
     "decimal.js": "^10.6.0",

@@ -1,3 +1,13 @@
+# 2.1.0 — polished collection and easier progression (unreleased)
+
+- Reworked inventory, operations and forging into individual Components V2 cards with buttons, filtering, sorting and pagination.
+- Made the early game less grindy: 500 IC starting balance, 150 IC mine minimum, 90-second mining cooldown, 750 IC daily credits, larger material drops and cheaper starter pickaxe tiers.
+- Renamed lingering user-facing item names, achievements, help and slash-command descriptions while keeping database IDs compatible.
+- Added simple Mac setup/PM2 scripts matched to the existing PM2 6.0.14 daemon and isolated to arvee-idle.
+- CI now uses ARVEE_IDLE_TEST_DATABASE_URL and arvee_idle_test.
+
+---
+
 # 2.0.0 — ARVEE Idle rebrand and independent service (unreleased)
 
 - Rebranded the Coffee bot as ARVEE Idle; its public Discord command is now /idle and the separate currency is **Idle Credits (IC)**.

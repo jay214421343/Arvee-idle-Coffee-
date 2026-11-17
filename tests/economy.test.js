@@ -3,7 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { byId, generators, recipes } = require("../src/catalog");
 const { dec, purchaseCost, settle, generatorRate, prestigeMultiplier, pretty } = require("../src/economy");
-test("legacy generator catalogue has unique IDs", () => {
+test("ARVEE operation catalogue retains stable database IDs", () => {
   assert.ok(generators.length > 20);
   assert.equal(byId.size, generators.length);
   assert.ok(byId.has("MSPS"));
@@ -16,12 +16,12 @@ test("generator prices grow by ownership and quantity", () => {
   assert.throws(() => purchaseCost("100", 0, -1));
   assert.throws(() => purchaseCost("100", 0, 1001));
 });
-test("large BP amounts stay precise", () => {
+test("large IC amounts stay precise", () => {
   const huge = dec("1e230");
   assert.equal(huge.plus(1).minus(huge).toString(), "1");
   assert.ok(pretty(huge).length < 20);
 });
-test("passive BP settles whole seconds without losing fractional time", () => {
+test("passive IC settles whole seconds without losing fractional time", () => {
   const start = new Date("2026-01-01T00:00:00.100Z");
   const first = settle("10", "10", "3", start, new Date("2026-01-01T00:00:02.650Z"));
   assert.equal(first.earned.toString(), "6");

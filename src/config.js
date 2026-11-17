@@ -20,7 +20,7 @@ function validateDatabaseUrl() {
   catch { throw new Error("DATABASE_URL must be a valid PostgreSQL connection URL."); }
   if (!["postgresql:", "postgres:"].includes(address.protocol)) throw new Error("DATABASE_URL must use postgresql://.");
   const name = decodeURIComponent(address.pathname.replace(/^\/+/, ""));
-  if (!name || !/(idle|coffee)/i.test(name) || /^(postgres|template0|template1|arvee_hub|arvee_game)$/i.test(name)) {
+  if (!name || !/idle/i.test(name) || /^(postgres|template0|template1|arvee_hub|arvee_game)$/i.test(name)) {
     throw new Error("Refusing to use a database that is not dedicated to ARVEE Idle. Use 'arvee_idle'.");
   }
   if (process.env.HUB_DATABASE_URL && raw === process.env.HUB_DATABASE_URL) {
