@@ -621,7 +621,7 @@ function companionCollection(owner, state, note = "") {
   const c = container("ARVEE IDLE  /  COMPANIONS",
     "**" + state.owned.length + " / " + companions.PETS.length +
     " discovered**  ·  **" + state.eggs + " eggs**\n" +
-    "One active companion supports your chosen build. No feeding or paid upgrades.");
+    "One active companion: specialists offer 2–3 focused perks, Mythics offer all-round power.");
   if (selected) {
     const next = selected.level === companions.MAX_LEVEL ? companions.MAX_XP : selected.nextXp;
     const progress = next === selected.startXp ? 10 :
@@ -656,7 +656,8 @@ function companionCollection(owner, state, note = "") {
     (state.starterClaimed ? state.owned.map((pet) => companions.byId.get(pet.id)) : companions.STARTERS)
       .map((pet) => ({
         label: pet.name, value: pet.id,
-        description: (pet.rarity + " · " + pet.description).slice(0,100),
+        description: (pet.rarity + " · " +
+          (companions.bonus({id:pet.id,level:1})?.description || pet.description)).slice(0,100),
         ...(state.starterClaimed ? { default: state.activeId === pet.id } : {})
       }))
   ));
