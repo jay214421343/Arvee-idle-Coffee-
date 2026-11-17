@@ -305,8 +305,9 @@ async function handleComponent(interaction) {
         result.quantity + "× " + labelItem(result.itemId) + ".");
     } else if (action === "equipment") {
       view = ui.expeditionGear(owner, await store.getExploration(owner));
-    } else if (action === "equipment_upgrade") {
-      result = await store.upgradeExpeditionGear(owner, argument);
+    } else if (action === "equipment_select" || action === "equipment_upgrade") {
+      const gearId = action === "equipment_select" ? selected : argument;
+      result = await store.upgradeExpeditionGear(owner, gearId);
       view = ui.expeditionGear(owner, await store.getExploration(owner),
         result.equipment + " upgraded to level " + result.level + "!");
     } else if (action === "profile") {

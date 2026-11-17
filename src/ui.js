@@ -390,9 +390,8 @@ function expeditionMap(owner, status, note = "") {
       description, "Inspect"));
   }
   c.addActionRowComponents(row([
-    button(owner, "expedition_collect", status.active?.ready ? "Collect rewards" : "Nothing to collect",
-      "", ButtonStyle.Primary, !status.active?.ready),
-    button(owner, "equipment", "Equipment"),
+    ...(status.active?.ready ? [button(owner, "expedition_collect", "Collect rewards", "", ButtonStyle.Primary)] : []),
+    button(owner, "equipment", "Equipment", "", status.active?.ready ? ButtonStyle.Secondary : ButtonStyle.Primary),
     button(owner, "profile", "Command Center")
   ]));
   if (note) c.addTextDisplayComponents(text("**" + note.slice(0, 280) + "**"));
@@ -418,35 +417,45 @@ function expeditionRegion(owner, status, regionId) {
   c.addActionRowComponents(row([
     button(owner, "expedition_start", unlocked ? "Start expedition" : "Region locked",
       region.id, ButtonStyle.Primary, !unlocked || !!status.active),
-    button(owner, "explore", "World Map"),
-    button(owner, "equipment", "Equipment")
+    button(owner, "explore", "World Map")
   ]));
   return c;
 }
 function expeditionGear(owner, status, note = "") {
   const c = container("ARVEE IDLE  /  EXPEDITION GEAR",
-    "Permanent adventure upgrades. Your equipment survives prestige and bot restarts.");
-  c.addTextDisplayComponents(text("**Available IC:** " + pretty(status.balance) +
-    "  ·  **Exploration XP:** " + status.xp));
+    "Three permanent upgrades for your adventures. Equipment survives prestige.");
+  c.addTextDisplayComponents(text("**TREASURY**  " + pretty(status.balance) +
+    " IC   ·   **EXPLORATION XP**  " + status.xp));
+  divider(c);
+  const affordable = [];
+  const details = [];
   for (const g of exploration.GEAR) {
     const level = status.gear[g.id] || 0;
-    const max = level >= g.max;
-    const cost = max ? null : exploration.upgradeCost(g.id, level);
+    const maxed = level >= g.max;
+    const cost = maxed ? null : exploration.upgradeCost(g.id, level);
     const parts = cost ? Object.entries(cost.materials).map(([id, qty]) => {
       const owned = status.inventory.find((row) => row.item_id === id)?.quantity || 0;
-      return (owned >= qty ? "✓ " : "· ") + qty + "× " + items[id].name;
-    }).join(", ") : "";
-    const affordable = !!cost && status.balance.gte(cost.credits) &&
+      return qty + "× " + items[id].name + " (" + owned + "/" + qty + ")";
+    }).join(" · ") : "";
+    const canUpgrade = !!cost && status.balance.gte(cost.credits) &&
       Object.entries(cost.materials).every(([id, quantity]) =>
         (status.inventory.find((r) => r.item_id === id)?.quantity || 0) >= quantity);
-    const section = new SectionBuilder().addTextDisplayComponents(text(
-      "**" + g.icon + " " + g.name + "  ·  Lv " + level + "/" + g.max + "**\n" +
+    if (canUpgrade) affordable.push(g);
+    details.push("**" + g.icon + " " + g.name + "  ·  Lv " + level + "/" + g.max + "**\n" +
       g.description + "\n" +
-      (max ? "Fully upgraded." : "**Next:** " + cost.credits + " IC + " + parts)
-    )).setButtonAccessory(button(owner, "equipment_upgrade", max ? "Maxed" : "Upgrade",
-      g.id, ButtonStyle.Secondary, !affordable));
-    c.addSectionComponents(section);
+      (maxed ? "Fully upgraded" : (canUpgrade ? "Ready" : "Need supplies") +
+        "  ·  " + cost.credits + " IC + " + parts));
   }
+  c.addTextDisplayComponents(text(details.join("\n\n")));
+  const options = affordable.length
+    ? affordable.map((g) => ({ label: "Upgrade " + g.name, value: g.id, emoji: g.icon,
+      description: "Spend IC and materials to reach the next level" }))
+    : [{ label: "No upgrades available", value: "none",
+      description: "Collect IC and materials or finish upgrading your equipment" }];
+  c.addActionRowComponents(new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder().setCustomId(custom(owner, "equipment_select"))
+      .setPlaceholder("Upgrade equipment").setDisabled(!affordable.length).addOptions(options)
+  ));
   c.addActionRowComponents(row([
     button(owner, "explore", "World Map", "", ButtonStyle.Primary),
     button(owner, "profile", "Command Center")

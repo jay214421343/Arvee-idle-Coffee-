@@ -44,7 +44,7 @@ test("expedition outcomes are calculated server-side and bounded", () => {
   assert.equal(setback.outcome,"setback");
   assert.ok(setback.credits>0 && setback.credits<450);
   assert.equal(setback.quantity,1);
-  assert.throws(()=>exploration.reward({id:"unknown"}),/Unknown region/);
+  assert.throws(()=>exploration.reward({id:"unknown"}),/Unknown expedition region/);
 });
 test("world map, region briefing and gear views stay within Discord V2 limits", () => {
   const views=[
@@ -68,20 +68,26 @@ test("world map, region briefing and gear views stay within Discord V2 limits", 
   assert.ok(region.components.filter(x=>x.type===1).flatMap(x=>x.components)
     .some(x=>x.custom_id===ui.custom(owner,"expedition_start","forest")&&!x.disabled));
 });
-test("equipment upgrades are disabled until all materials and IC are available", () => {
+test("equipment upgrade uses one contextual dropdown and shows affordability", () => {
+  const menus = (j) => j.components.filter(x=>x.type===1).flatMap(x=>x.components).filter(x=>x.type===3);
   const empty=ui.expeditionGear(owner,status()).toJSON();
-  assert.ok(empty.components.filter(x=>x.type===9).every(x=>x.accessory.disabled));
+  assert.equal(empty.components.filter(x=>x.type===9).length,0);
+  assert.equal(menus(empty).length,1);
+  assert.equal(menus(empty)[0].disabled,true);
   const enough=status({inventory:[{item_id:"ore",quantity:100},{item_id:"silver",quantity:100}],balance:dec(10000)});
   const full=ui.expeditionGear(owner,enough).toJSON();
-  assert.ok(full.components.filter(x=>x.type===9).every(x=>!x.accessory.disabled));
+  assert.equal(menus(full)[0].disabled,false);
+  assert.equal(menus(full)[0].options.length,3);
+  assert.equal(menus(full)[0].custom_id,ui.custom(owner,"equipment_select"));
+  assert.ok(full.components.filter(x=>x.type===1).flatMap(x=>x.components).filter(x=>x.type===2).length<=2);
   const capped=ui.expeditionGear(owner,status({...enough,gear:{kit:5,compass:5,ward:5}})).toJSON();
-  assert.ok(capped.components.filter(x=>x.type===9).every(x=>x.accessory.disabled));
+  assert.equal(menus(capped)[0].disabled,true);
 });
 test("active missions prevent new starts until collection and show server timer", () => {
   const active={id:"1",regionId:"forest",finishesAt:"2027-01-01T00:00:00.000Z",ready:false};
   const waiting=ui.expeditionMap(owner,status({active})).toJSON();
   const buttons=waiting.components.filter(x=>x.type===1).flatMap(x=>x.components);
-  assert.ok(buttons.some(x=>x.custom_id===ui.custom(owner,"expedition_collect")&&x.disabled));
+  assert.ok(!buttons.some(x=>x.custom_id===ui.custom(owner,"expedition_collect")));
   assert.match(JSON.stringify(waiting),/Returns/);
   const ready=ui.expeditionMap(owner,status({active:{...active,ready:true}})).toJSON();
   assert.ok(ready.components.filter(x=>x.type===1).flatMap(x=>x.components)
