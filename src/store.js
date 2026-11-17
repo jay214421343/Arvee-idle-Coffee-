@@ -94,7 +94,7 @@ async function buyGenerator(userId, generatorId, quantity) {
     const owned = current ? current.quantity : 0;
     if (owned + quantity > 10000) throw new Error("Generator ownership limit reached (10,000 per type).");
     const cost = purchaseCost(entry.cost, owned, quantity);
-    if (state.balance.lt(cost)) throw new Error("Not enough BP. Need " + cost.toSignificantDigits(5).toString() + " BP.");
+    if (state.balance.lt(cost)) throw new Error("Not enough IC. Need " + cost.toSignificantDigits(5).toString() + " IC.");
     state.balance = state.balance.minus(cost);
     await db.query(
       "INSERT INTO player_generators(user_id,generator_id,quantity) VALUES($1,$2,$3) ON CONFLICT(user_id,generator_id) DO UPDATE SET quantity=player_generators.quantity + EXCLUDED.quantity",
@@ -195,7 +195,7 @@ async function giveItem(from, to, item, quantity) {
 async function prestige(userId) {
   return transact([userId], async (db, states) => {
     const state = stateOf(states, userId);
-    if (state.balance.lt(PRESTIGE_REQUIREMENT)) throw new Error("You need 1B BP to prestige.");
+    if (state.balance.lt(PRESTIGE_REQUIREMENT)) throw new Error("You need 1B IC to prestige.");
     state.prestige += 1;
     state.balance = dec(10);
     state.totalEarned = dec(10);
@@ -215,7 +215,7 @@ async function browseMarket() {
 async function sellItem(userId, item, quantity, price) {
   assertQuantity(quantity, 1000000); assertItem(item);
   const totalPrice = dec(price);
-  if (!totalPrice.isInteger() || totalPrice.lt(1) || totalPrice.gt("1e1000")) throw new Error("Price must be a positive whole BP amount.");
+  if (!totalPrice.isInteger() || totalPrice.lt(1) || totalPrice.gt("1e1000")) throw new Error("Price must be a positive whole IC amount.");
   return transact([userId], async (db) => {
     await removeItem(db, userId, item, quantity);
     const r = await db.query("INSERT INTO market_listings(seller_id,item_id,quantity,price) VALUES($1,$2,$3,$4) RETURNING id", [userId, item, quantity, totalPrice.toFixed(0)]);
@@ -239,7 +239,7 @@ async function buyListing(buyerId, rawId) {
     const buyer = stateOf(states, buyerId);
     const seller = stateOf(states, listing.seller_id);
     const price = dec(row.price);
-    if (buyer.balance.lt(price)) throw new Error("Insufficient BP.");
+    if (buyer.balance.lt(price)) throw new Error("Insufficient IC.");
     buyer.balance = buyer.balance.minus(price);
     seller.balance = seller.balance.plus(price);
     await addItem(db, buyerId, row.item_id, row.quantity);
@@ -280,7 +280,7 @@ async function useItem(userId, itemId) {
     if (e.bp) {
       state.balance = state.balance.plus(e.bp);
       state.totalEarned = state.totalEarned.plus(e.bp);
-      message = "Gained " + e.bp + " BP.";
+      message = "Gained " + e.bp + " IC.";
     }
     if (e.nextMine) {
       state.mineBonus = state.mineBonus.times(e.nextMine);

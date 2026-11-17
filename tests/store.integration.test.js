@@ -13,7 +13,7 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.COFFEE_T
   try {
     const original = await store.profile(a);
     assert.equal(original.balance.toString(), "10");
-    await assert.rejects(() => store.buyGenerator(a, "MSPS", 1), /Not enough BP/);
+    await assert.rejects(() => store.buyGenerator(a, "MSPS", 1), /Not enough IC/);
     await store.pool.query("UPDATE players SET balance=1000000,total_earned=1000000 WHERE user_id=$1", [a]);
     const both = await Promise.all([store.buyGenerator(a, "MSPS", 1), store.buyGenerator(a, "MSPS", 1)]);
     assert.equal(both.length, 2);

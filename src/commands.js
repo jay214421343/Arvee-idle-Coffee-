@@ -7,42 +7,42 @@ const ui = require("./ui");
 
 const itemChoices = Object.entries(items).map(([value, info]) => ({ name: info.name, value }));
 const recipeChoices = Object.keys(recipes).map((id) => ({ name: items[id].name, value: id }));
-const coffee = new SlashCommandBuilder().setName("coffee").setDescription("Play Coffee's idle economy game");
-coffee.addSubcommand((c) => c.setName("help").setDescription("Commands and getting started"));
-coffee.addSubcommand((c) => c.setName("profile").setDescription("View a player profile").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
-coffee.addSubcommand((c) => c.setName("shop").setDescription("Browse BP generators").addIntegerOption((o) => o.setName("page").setDescription("Page number").setMinValue(1)));
-coffee.addSubcommand((c) => c.setName("buy").setDescription("Buy generators with BP")
-  .addStringOption((o) => o.setName("generator").setDescription("Generator code from /coffee shop").setRequired(true))
+const idle = new SlashCommandBuilder().setName("idle").setDescription("ARVEE Idle — build, explore, mine and trade");
+idle.addSubcommand((c) => c.setName("help").setDescription("Commands and getting started"));
+idle.addSubcommand((c) => c.setName("profile").setDescription("View a player profile").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
+idle.addSubcommand((c) => c.setName("shop").setDescription("Browse IC generators").addIntegerOption((o) => o.setName("page").setDescription("Page number").setMinValue(1)));
+idle.addSubcommand((c) => c.setName("buy").setDescription("Buy generators with IC")
+  .addStringOption((o) => o.setName("generator").setDescription("Generator code from /idle shop").setRequired(true))
   .addIntegerOption((o) => o.setName("amount").setDescription("How many (1-1000)").setMinValue(1).setMaxValue(1000)));
-coffee.addSubcommand((c) => c.setName("mine").setDescription("Mine BP and materials (5-minute cooldown)"));
-coffee.addSubcommand((c) => c.setName("daily").setDescription("Claim daily coffee and lootboxes"));
-coffee.addSubcommand((c) => c.setName("inventory").setDescription("Check collected items").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
-coffee.addSubcommand((c) => c.setName("craft").setDescription("Craft an item")
+idle.addSubcommand((c) => c.setName("mine").setDescription("Mine IC and materials (5-minute cooldown)"));
+idle.addSubcommand((c) => c.setName("daily").setDescription("Claim daily coffee and lootboxes"));
+idle.addSubcommand((c) => c.setName("inventory").setDescription("Check collected items").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
+idle.addSubcommand((c) => c.setName("craft").setDescription("Craft an item")
   .addStringOption((o) => o.setName("item").setDescription("Item to craft (omit to browse recipes)").addChoices(...recipeChoices))
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity (1-100)").setMinValue(1).setMaxValue(100)));
-coffee.addSubcommand((c) => c.setName("open").setDescription("Open lootboxes")
+idle.addSubcommand((c) => c.setName("open").setDescription("Open lootboxes")
   .addStringOption((o) => o.setName("type").setDescription("Type of lootbox").addChoices(
     { name: "Lootbox", value: "lootbox" }, { name: "Rare Lootbox", value: "rare_lootbox" }, { name: "Legendary Lootbox", value: "legendary_lootbox" }))
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity (1-20)").setMinValue(1).setMaxValue(20)));
-coffee.addSubcommand((c) => c.setName("give").setDescription("Give another player an item")
+idle.addSubcommand((c) => c.setName("give").setDescription("Give another player an item")
   .addUserOption((o) => o.setName("user").setDescription("Recipient").setRequired(true))
   .addStringOption((o) => o.setName("item").setDescription("Item").setRequired(true).addChoices(...itemChoices))
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity").setMinValue(1).setMaxValue(1000)));
-coffee.addSubcommand((c) => c.setName("leaderboard").setDescription("Top players by earned BP"));
-coffee.addSubcommand((c) => c.setName("pickaxe").setDescription("Upgrade your pickaxe and view mining stats"));
-coffee.addSubcommand((c) => c.setName("perks").setDescription("View and upgrade permanent pickaxe perks"));
-coffee.addSubcommand((c) => c.setName("stats").setDescription("View unlocked achievements and game activity"));
-coffee.addSubcommand((c) => c.setName("use").setDescription("Consume an item from your inventory")
+idle.addSubcommand((c) => c.setName("leaderboard").setDescription("Top players by earned IC"));
+idle.addSubcommand((c) => c.setName("pickaxe").setDescription("Upgrade your pickaxe and view mining stats"));
+idle.addSubcommand((c) => c.setName("perks").setDescription("View and upgrade permanent pickaxe perks"));
+idle.addSubcommand((c) => c.setName("stats").setDescription("View unlocked achievements and game activity"));
+idle.addSubcommand((c) => c.setName("use").setDescription("Consume an item from your inventory")
   .addStringOption((o) => o.setName("item").setDescription("Item to consume").setRequired(true)
     .addChoices(...Object.entries(items).filter(([, i]) => !!i.effect).map(([value, i]) => ({ name: i.name, value })))));
-coffee.addSubcommand((c) => c.setName("prestige").setDescription("Restart your generators with a permanent boost")
-  .addBooleanOption((o) => o.setName("confirm").setDescription("Confirm resetting your generators and BP")));
-coffee.addSubcommandGroup((g) => g.setName("market").setDescription("Trade items for BP")
+idle.addSubcommand((c) => c.setName("prestige").setDescription("Restart your generators with a permanent boost")
+  .addBooleanOption((o) => o.setName("confirm").setDescription("Confirm resetting your generators and IC")));
+idle.addSubcommandGroup((g) => g.setName("market").setDescription("Trade items for IC")
   .addSubcommand((c) => c.setName("browse").setDescription("Browse active listings"))
   .addSubcommand((c) => c.setName("sell").setDescription("List items for sale")
     .addStringOption((o) => o.setName("item").setDescription("Item").setRequired(true).addChoices(...itemChoices))
     .addIntegerOption((o) => o.setName("amount").setDescription("Quantity").setRequired(true).setMinValue(1).setMaxValue(1000))
-    .addStringOption((o) => o.setName("price").setDescription("Total BP price, as a whole number").setRequired(true)))
+    .addStringOption((o) => o.setName("price").setDescription("Total IC price, as a whole number").setRequired(true)))
   .addSubcommand((c) => c.setName("buy").setDescription("Buy one listing")
     .addStringOption((o) => o.setName("id").setDescription("Listing ID").setRequired(true)))
   .addSubcommand((c) => c.setName("cancel").setDescription("Cancel your active listing")
@@ -54,13 +54,13 @@ function shop(page) {
   const selected = Math.max(1, Math.min(page, pages));
   const lines = generators.slice((selected - 1) * 8, selected * 8).map((entry) => {
     const cost = purchaseCost(entry.cost, 0, 1);
-    return "**" + entry.id + "** · " + entry.name + " — " + pretty(cost) + " BP · +" + pretty(dec(entry.income)) + " BP/s";
+    return "**" + entry.id + "** · " + entry.name + " — " + pretty(cost) + " IC · +" + pretty(dec(entry.income)) + " IC/s";
   });
-  return "☕ **Coffee Generator Shop** · Page " + selected + "/" + pages + "\n" + lines.join("\n") +
-    "\nUse /coffee buy with a generator code. Generator prices increase as you own more.";
+  return "☕ **ARVEE Idle Generator Shop** · Page " + selected + "/" + pages + "\n" + lines.join("\n") +
+    "\nUse /idle buy with a generator code. Generator prices increase as you own more.";
 }
 async function respond(interaction) {
-  if (!interaction.isChatInputCommand() || interaction.commandName !== "coffee") return;
+  if (!interaction.isChatInputCommand() || interaction.commandName !== "idle") return;
   await interaction.deferReply();
   try {
     const id = interaction.user.id;
@@ -73,18 +73,18 @@ async function respond(interaction) {
       if (command === "browse") {
         const rows = await store.browseMarket();
         view = ui.market(id, rows);
-        content = rows.length ? "**Coffee Market**\n" + rows.map((r) =>
-          "#" + r.id + " · " + r.quantity + " " + labelItem(r.item_id) + " · " + pretty(r.price) + " BP · Seller <@" + r.seller_id + ">"
-        ).join("\n") : "The market is empty. List something with /coffee market sell!";
+        content = rows.length ? "**ARVEE Idle Market**\n" + rows.map((r) =>
+          "#" + r.id + " · " + r.quantity + " " + labelItem(r.item_id) + " · " + pretty(r.price) + " IC · Seller <@" + r.seller_id + ">"
+        ).join("\n") : "The market is empty. List something with /idle market sell!";
       } else if (command === "sell") {
         const item = opts.getString("item", true);
         const amount = opts.getInteger("amount", true);
         const price = opts.getString("price", true);
         const result = await store.sellItem(id, item, amount, price);
-        content = "Listed #" + result.id + ": " + amount + " " + labelItem(item) + " for " + pretty(result.price) + " BP.";
+        content = "Listed #" + result.id + ": " + amount + " " + labelItem(item) + " for " + pretty(result.price) + " IC.";
       } else if (command === "buy") {
         const result = await store.buyListing(id, opts.getString("id", true));
-        content = "Purchased " + result.quantity + " " + labelItem(result.item) + " for " + pretty(result.price) + " BP!";
+        content = "Purchased " + result.quantity + " " + labelItem(result.item) + " for " + pretty(result.price) + " IC!";
       } else if (command === "cancel") {
         const result = await store.cancelListing(id, opts.getString("id", true));
         content = "Cancelled listing; returned " + result.quantity + " " + labelItem(result.item) + ".";
@@ -92,12 +92,12 @@ async function respond(interaction) {
     } else if (command === "help") {
       view = ui.help(id);
       content = [
-        "**☕ Coffee — Idle Game**",
-        "Start with /coffee profile. Earn BP passively by buying generators.",
-        "**Economy:** /coffee shop, /coffee buy, /coffee leaderboard, /coffee prestige",
-        "**Activities:** /coffee mine, /coffee daily, /coffee craft, /coffee open",
-        "**Items:** /coffee inventory, /coffee give, /coffee market",
-        "Prestige requires 1B BP and increases production by 25% per level.",
+        "**☕ ARVEE Idle — Idle Game**",
+        "Start with /idle profile. Earn IC passively by buying generators.",
+        "**Economy:** /idle shop, /idle buy, /idle leaderboard, /idle prestige",
+        "**Activities:** /idle mine, /idle daily, /idle craft, /idle open",
+        "**Items:** /idle inventory, /idle give, /idle market",
+        "Prestige requires 1B IC and increases production by 25% per level.",
         "All progress is stored in PostgreSQL. This is a fresh season."
       ].join("\n");
     } else if (command === "profile") {
@@ -105,20 +105,20 @@ async function respond(interaction) {
       const p = await store.profile(target.id);
       view = ui.home(id, target, p);
       const genTotal = p.generators.reduce((sum, g) => sum + g.quantity, 0);
-      content = "**☕ " + target.username + "'s Coffee Profile**\nBP: **" + pretty(p.balance) +
-        "**\nBP/s: **" + pretty(p.rate) + "**\nTotal earned: " + pretty(p.totalEarned) +
+      content = "**☕ " + target.username + "'s ARVEE Idle Profile**\nIC: **" + pretty(p.balance) +
+        "**\nIC/s: **" + pretty(p.rate) + "**\nTotal earned: " + pretty(p.totalEarned) +
         "\nGenerators owned: " + genTotal + "\nPrestige: " + p.prestige + " · Mining XP: " + p.mineXp;
     } else if (command === "shop") {
-      view = ui.shop(id, opts.getInteger("page") || 1);
+      view = ui.shop(id, opts.getInteger("page") || 1, await store.profile(id));
       content = shop(opts.getInteger("page") || 1);
     } else if (command === "buy") {
       const result = await store.buyGenerator(id, opts.getString("generator", true), opts.getInteger("amount") || 1);
       content = "Bought " + result.quantity + " × **" + result.generator.name + "** for **" +
-        pretty(result.cost) + " BP**.\nNew balance: " + pretty(result.balance) + " BP · Income: " + pretty(result.rate) + " BP/s.";
+        pretty(result.cost) + " IC**.\nNew balance: " + pretty(result.balance) + " IC · Income: " + pretty(result.rate) + " IC/s.";
     } else if (command === "mine") {
       const result = await store.mine(id);
       content = result.cooldown ? "Your pickaxe is resting. Try again in " + result.cooldown + " seconds." :
-        "⛏️ Mined **" + pretty(result.reward) + " BP** and found **" + labelItem(result.drop) + "**! Mining XP: " + result.mineXp;
+        "⛏️ Mined **" + pretty(result.reward) + " IC** and found **" + labelItem(result.drop) + "**! Mining XP: " + result.mineXp;
     } else if (command === "daily") {
       const result = await store.daily(id);
       content = result.cooldown ? "Daily reward available in " + Math.ceil(result.cooldown / 60) + " minutes." :
@@ -128,7 +128,7 @@ async function respond(interaction) {
       const p = await store.profile(target.id);
       view = ui.inventory(id, p);
       content = "**" + target.username + "'s inventory**\n" +
-        (p.inventory.length ? p.inventory.map((r) => labelItem(r.item_id) + " × " + r.quantity).join("\n") : "Empty. Try /coffee mine or /coffee daily.");
+        (p.inventory.length ? p.inventory.map((r) => labelItem(r.item_id) + " × " + r.quantity).join("\n") : "Empty. Try /idle mine or /idle daily.");
     } else if (command === "craft") {
       const item = opts.getString("item");
       if (!item) {
@@ -151,12 +151,12 @@ async function respond(interaction) {
     } else if (command === "leaderboard") {
       const top = await store.leaderboard();
       view = ui.leaderboard(id, top);
-      content = "**☕ Coffee Leaderboard**\n" +
-        (top.length ? top.map((p, n) => (n + 1) + ". <@" + p.user_id + "> — " + pretty(p.total_earned) + " BP · P" + p.prestige).join("\n") : "Nobody has started playing yet.");
+      content = "**☕ ARVEE Idle Leaderboard**\n" +
+        (top.length ? top.map((p, n) => (n + 1) + ". <@" + p.user_id + "> — " + pretty(p.total_earned) + " IC · P" + p.prestige).join("\n") : "Nobody has started playing yet.");
     } else if (command === "prestige") {
       if (!opts.getBoolean("confirm")) {
         view = ui.prestige(id, await store.profile(id));
-        content = "Prestige costs **" + pretty(PRESTIGE_REQUIREMENT) + " BP**. It resets your BP and generators (not inventory) and adds +25% permanent production per prestige.\nRun /coffee prestige confirm:true when ready.";
+        content = "Prestige costs **" + pretty(PRESTIGE_REQUIREMENT) + " IC**. It resets your IC and generators (not inventory) and adds +25% permanent production per prestige.\nRun /idle prestige confirm:true when ready.";
       } else {
         const result = await store.prestige(id);
         content = "🌟 Prestige **" + result.prestige + "**! Permanent production multiplier: " + result.multiplier.toString() + "×.";
@@ -171,10 +171,10 @@ async function respond(interaction) {
       const used = await store.useItem(id, opts.getString("item", true));
       content = "Used **" + labelItem(used.itemId) + "**. " + used.message;
     } else content = "Unknown command.";
-    view ||= ui.message("☕ Coffee", content.slice(0, 2900), id);
+    view ||= ui.message("☕ ARVEE Idle", content.slice(0, 2900), id);
     await interaction.editReply({ content: null, embeds: [], ...ui.payload(view) });
   } catch (error) {
-    console.error("[Coffee command]", error);
+    console.error("[ARVEE Idle command]", error);
     const reply = error.message && !/SQL|relation|column|syntax|connect|pool|password|database/i.test(error.message)
       ? error.message : "An unexpected error occurred. Please try again.";
     await interaction.editReply({ content: null, embeds: [], ...ui.payload(ui.message("Something went wrong", "☕ " + reply.slice(0, 1800), interaction.user.id, { color: ui.ERROR })) }).catch(console.error);
@@ -188,10 +188,10 @@ function uiError(error) {
 async function handleComponent(interaction) {
   if (!(interaction.isButton() || interaction.isStringSelectMenu())) return false;
   const parts = interaction.customId.split(":");
-  if (parts.length !== 5 || parts[0] !== "cf" || parts[1] !== "1") return false;
+  if (parts.length !== 5 || parts[0] !== "ai" || parts[1] !== "2") return false;
   const [, , owner, action, argument] = parts;
   if (owner !== interaction.user.id) {
-    await interaction.reply({ content: "This menu belongs to another player. Use /coffee profile to open your own.", flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: "This menu belongs to another player. Use /idle profile to open your own.", flags: MessageFlags.Ephemeral });
     return true;
   }
   if (!/^[a-z_]+$/.test(action) || !/^[a-zA-Z0-9_]*$/.test(argument)) return false;
@@ -203,20 +203,20 @@ async function handleComponent(interaction) {
     if (action === "profile") {
       view = ui.home(owner, interaction.user, await store.profile(owner));
     } else if (action === "shop") {
-      view = ui.shop(owner, Number(argument) || 1);
+      view = ui.shop(owner, Number(argument) || 1, await store.profile(owner));
     } else if (action === "generator_select") {
       const player = await store.profile(owner);
       view = ui.generator(owner, selected, Number(argument) || 1, player);
-    } else if (action === "buy_one" || action === "buy_ten") {
-      const amount = action === "buy_ten" ? 10 : 1;
+    } else if (action === "buy_one" || action === "buy_ten" || action === "buy_hundred") {
+      const amount = action === "buy_hundred" ? 100 : action === "buy_ten" ? 10 : 1;
       result = await store.buyGenerator(owner, argument, amount);
       const page = Math.floor(Math.max(0, generators.findIndex((g) => g.id === argument)) / 8) + 1;
-      view = ui.generator(owner, argument, page, await store.profile(owner), "Purchased " + amount + " for " + pretty(result.cost) + " BP.");
+      view = ui.generator(owner, argument, page, await store.profile(owner), "Purchased " + amount + " for " + pretty(result.cost) + " IC.");
     } else if (action === "mine") {
       result = await store.mine(owner);
       view = ui.message(result.cooldown ? "⏳ Pickaxe cooling down" : "⛏ Mining complete",
         result.cooldown ? "You can mine again in " + result.cooldown + " seconds." :
-          "**+" + pretty(result.reward) + " BP** and **" + labelItem(result.drop) + "**" + (result.box ? " · Bonus lootbox!" : ""),
+          "**+" + pretty(result.reward) + " IC** and **" + labelItem(result.drop) + "**" + (result.box ? " · Bonus lootbox!" : ""),
         owner, { color: result.cooldown ? ui.WARN : ui.SUCCESS });
     } else if (action === "daily") {
       result = await store.daily(owner);
@@ -249,7 +249,7 @@ async function handleComponent(interaction) {
       view = ui.listing(owner, await store.getListing(selected));
     } else if (action === "listing_buy") {
       result = await store.buyListing(owner, argument);
-      view = ui.message("✅ Purchase completed", result.quantity + "× " + labelItem(result.item) + " for " + pretty(result.price) + " BP.", owner, { color: ui.SUCCESS });
+      view = ui.message("✅ Purchase completed", result.quantity + "× " + labelItem(result.item) + " for " + pretty(result.price) + " IC.", owner, { color: ui.SUCCESS });
     } else if (action === "listing_cancel") {
       result = await store.cancelListing(owner, argument);
       view = ui.message("✅ Listing cancelled", result.quantity + "× " + labelItem(result.item) + " returned.", owner, { color: ui.SUCCESS });
@@ -280,9 +280,9 @@ async function handleComponent(interaction) {
     } else return true;
     await interaction.editReply({ components: [view], allowedMentions: { parse: [] } });
   } catch (error) {
-    console.error("[Coffee component]", error);
+    console.error("[ARVEE Idle component]", error);
     await interaction.followUp({ content: "☕ " + uiError(error).slice(0, 1800), flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } }).catch(console.error);
   }
   return true;
 }
-module.exports = { coffee, respond, handleComponent, shop };
+module.exports = { idle, respond, handleComponent, shop };

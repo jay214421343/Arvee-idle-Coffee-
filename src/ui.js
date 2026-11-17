@@ -4,18 +4,19 @@ const {
   ActionRowBuilder, ButtonBuilder, StringSelectMenuBuilder, ButtonStyle, MessageFlags, escapeMarkdown
 } = require("discord.js");
 const { generators, byId, items, recipes } = require("./catalog");
-const { pretty, dec, purchaseCost, PRESTIGE_REQUIREMENT } = require("./economy");
+const { pretty, dec, purchaseCost, PRESTIGE_REQUIREMENT, Decimal } = require("./economy");
+const brand = require("./brand");
 
-const ACCENT = 0xA67B5B;
-const SUCCESS = 0x4A9169;
-const WARN = 0xCC8941;
-const ERROR = 0xC95B5B;
+const ACCENT = brand.theme.primary;
+const SUCCESS = brand.theme.success;
+const WARN = brand.theme.warning;
+const ERROR = brand.theme.error;
 const LIMIT = 8;
 function custom(owner, action, arg = "") {
   if (!/^[0-9]{15,22}$/.test(String(owner)) || !/^[a-z_]+$/.test(action) || !/^[a-zA-Z0-9_]*$/.test(String(arg))) {
     throw new Error("Invalid UI identifier");
   }
-  const id = ["cf", "1", owner, action, arg].join(":");
+  const id = ["ai", "2", owner, action, arg].join(":");
   if (id.length > 100) throw new Error("UI identifier exceeds Discord limit");
   return id;
 }
@@ -23,6 +24,7 @@ function button(owner, action, label, arg = "", style = ButtonStyle.Secondary, d
   return new ButtonBuilder().setCustomId(custom(owner, action, arg)).setLabel(label).setStyle(style).setDisabled(disabled);
 }
 function row(buttons) { return new ActionRowBuilder().addComponents(...buttons); }
+function linkButton(label, url) { return new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel(label).setURL(url); }
 function text(content) { return new TextDisplayBuilder().setContent(String(content).slice(0, 3900)); }
 function container(title, sub = "", accent = ACCENT) {
   const c = new ContainerBuilder().setAccentColor(accent);
@@ -49,65 +51,93 @@ function message(heading, body, owner, opts = {}) {
   return c;
 }
 function home(owner, user, p) {
-  const c = container("☕ Coffee  /  Player Dashboard", "Your idle empire, all in one place.");
+  const c = container("✦ ARVEE IDLE  /  COMMAND CENTER", "Your adventure continues even while you are away.");
   divider(c);
   const s = new SectionBuilder().addTextDisplayComponents(
-    text("### " + escapeMarkdown(user.username).slice(0, 80) + "\n**" + pretty(p.balance) + " BP**  ·  +" + pretty(p.rate) + " BP/s"),
-    text("**Prestige**  " + p.prestige + "   ·   **Mining XP**  " + p.mineXp + "\n**Lifetime BP**  " + pretty(p.totalEarned) + "   ·   **Generators**  " + p.generators.reduce((n, g) => n + g.quantity, 0))
+    text("### " + escapeMarkdown(user.username).slice(0, 80) +
+      "\n**" + pretty(p.balance) + " IC**  ·  +" + pretty(p.rate) + " IC/s"),
+    text("**Prestige** " + p.prestige + "   ·   **Mining XP** " + p.mineXp +
+      "\n**Lifetime earned** " + pretty(p.totalEarned) + " IC   ·   **Operations** " +
+      p.generators.reduce((n, g) => n + g.quantity, 0))
   );
-  s.setThumbnailAccessory(new ThumbnailBuilder().setURL(user.displayAvatarURL({ extension: "png", size: 128 })).setDescription("Player avatar"));
+  s.setThumbnailAccessory(new ThumbnailBuilder()
+    .setURL(user.displayAvatarURL({ extension: "png", size: 128 }))
+    .setDescription("ARVEE Idle adventurer avatar"));
   c.addSectionComponents(s);
   divider(c);
+  const progress = Math.max(0, Math.min(10, Decimal.min(p.balance.div(PRESTIGE_REQUIREMENT).times(10), 10).floor().toNumber()));
+  foot(c, "**NEXT PRESTIGE**  " + "▰".repeat(progress) + "▱".repeat(10 - progress) +
+    "  " + Math.floor(progress * 10) + "%\n" +
+    "Passive income continues while you are offline. Explore, craft and build your realm.");
   c.addActionRowComponents(row([
-    button(owner, "mine", "⛏ Mine", "", ButtonStyle.Primary),
-    button(owner, "daily", "🎁 Daily", "", ButtonStyle.Success),
-    button(owner, "shop", "🛍 Shop"),
-    button(owner, "inventory", "🎒 Inventory")
+    button(owner, "mine", "Mine", "", ButtonStyle.Primary),
+    button(owner, "daily", "Daily", "", ButtonStyle.Success),
+    button(owner, "shop", "Operations"),
+    button(owner, "inventory", "Inventory"),
+    button(owner, "profile", "Refresh")
   ]));
   c.addActionRowComponents(row([
-    button(owner, "market", "💱 Market"),
-    button(owner, "pickaxe", "⛏ Pickaxe"),
-    button(owner, "craft", "🛠 Craft"),
-    button(owner, "stats", "🏅 Stats"),
-    button(owner, "profile", "↻ Refresh")
+    button(owner, "market", "Exchange"),
+    button(owner, "pickaxe", "Pickaxe"),
+    button(owner, "craft", "Crafting"),
+    button(owner, "stats", "Milestones"),
+    linkButton("ARVEE World", brand.website)
   ]));
   return c;
 }
-function shop(owner, page = 1) {
+function shop(owner, page = 1, p = null) {
   const total = Math.max(1, Math.ceil(generators.length / LIMIT));
   page = Math.max(1, Math.min(total, Number(page) || 1));
   const entries = generators.slice((page - 1) * LIMIT, page * LIMIT);
-  const c = container("🛍 Coffee Shop", "Buy generators to earn BP automatically. Prices rise as you own more.");
+  const nextCost = (g) => purchaseCost(g.cost, p?.generators.find((x) => x.generator_id === g.id)?.quantity || 0, 1);
+  const c = container("⚔ ARVEE OPERATIONS", "Recruit expeditions to produce Idle Credits automatically.");
   divider(c);
-  c.addTextDisplayComponents(text(entries.map((g) => "**" + g.id + "** · " + g.name + "\n" + pretty(g.cost) + " BP · +" + pretty(g.income) + " BP/s").join("\n\n")));
+  if (p) foot(c, "**Wallet**  " + pretty(p.balance) + " IC   ·   **Production**  +" + pretty(p.rate) + " IC/s");
+  divider(c);
+  c.addTextDisplayComponents(text(entries.map((g, index) => {
+    const owned = p?.generators.find((x) => x.generator_id === g.id)?.quantity || 0;
+    const cost = nextCost(g);
+    const affordable = p ? p.balance.gte(cost) : false;
+    return (affordable ? "🟣" : "▫️") + " **" + g.name + "**  " + (owned ? "×" + owned : "") +
+      "\n" + pretty(cost) + " IC  ·  +" + pretty(g.income) + " IC/s per unit";
+  }).join("\n\n")));
   c.addActionRowComponents(new ActionRowBuilder().addComponents(new StringSelectMenuBuilder()
     .setCustomId(custom(owner, "generator_select", String(page)))
-    .setPlaceholder("Choose a generator to buy")
-    .addOptions(entries.map((g) => ({ label: g.name.slice(0, 100), description: g.id + " · " + pretty(g.cost) + " BP", value: g.id })))));
+    .setPlaceholder("Select an operation to expand")
+    .addOptions(entries.map((g) => ({
+      label: g.name.slice(0, 100),
+      description: g.id + " · " + pretty(nextCost(g)) + " IC",
+      value: g.id
+    })))));
   c.addActionRowComponents(row([
-    button(owner, "shop", "◀ Previous", String(page - 1), ButtonStyle.Secondary, page === 1),
-    button(owner, "profile", "Dashboard"),
-    button(owner, "shop", "Next ▶", String(page + 1), ButtonStyle.Secondary, page === total)
+    button(owner, "shop", "Previous", String(page - 1), ButtonStyle.Secondary, page === 1),
+    button(owner, "profile", "Command Center"),
+    button(owner, "shop", "Next", String(page + 1), ButtonStyle.Secondary, page === total)
   ]));
-  foot(c, "Page " + page + " / " + total + "  ·  " + generators.length + " original Coffee generators");
+  foot(c, "Sector " + page + "/" + total + "  ·  " + generators.length + " ARVEE operations   ·   Purple = affordable");
   return c;
 }
 function generator(owner, id, page, p, note = "") {
   const g = byId.get(id);
   if (!g) throw new Error("Unknown generator.");
   const owned = p.generators.find((row) => row.generator_id === id)?.quantity || 0;
-  const c = container("🛒 " + g.name, g.description || "An idle BP generator.");
+  const c = container("⚔ " + g.name, g.description || "An ARVEE Idle expedition.");
+  const oneCost = purchaseCost(g.cost, owned, 1);
+  const tenCost = purchaseCost(g.cost, owned, 10);
+  const hundredCost = purchaseCost(g.cost, owned, 100);
   divider(c);
   c.addTextDisplayComponents(text("**Owned**  " + owned + "  ·  **Income/unit**  +" + pretty(g.income) +
-    " BP/s\n**Buy 1**  " + pretty(purchaseCost(g.cost, owned, 1)) + " BP" +
-    "\n**Buy 10**  " + pretty(purchaseCost(g.cost, owned, 10)) + " BP" +
-    "\n**Balance**  " + pretty(p.balance) + " BP"));
+    " IC/s\n**Buy 1**  " + pretty(oneCost) + " IC" +
+    "\n**Buy 10**  " + pretty(tenCost) + " IC" +
+    "\n**Buy 100**  " + pretty(hundredCost) + " IC" +
+    "\n**Wallet**  " + pretty(p.balance) + " IC"));
   if (note) foot(c, "✅ " + note);
   c.addActionRowComponents(row([
-    button(owner, "buy_one", "Buy 1", id, ButtonStyle.Primary, owned + 1 > 10000),
-    button(owner, "buy_ten", "Buy 10", id, ButtonStyle.Success, owned + 10 > 10000),
-    button(owner, "shop", "Back to shop", String(page)),
-    button(owner, "profile", "Dashboard")
+    button(owner, "buy_one", "Buy 1", id, ButtonStyle.Primary, owned + 1 > 10000 || p.balance.lt(oneCost)),
+    button(owner, "buy_ten", "Buy 10", id, ButtonStyle.Success, owned + 10 > 10000 || p.balance.lt(tenCost)),
+    button(owner, "buy_hundred", "Buy 100", id, ButtonStyle.Secondary, owned + 100 > 10000 || p.balance.lt(hundredCost)),
+    button(owner, "shop", "Operations", String(page)),
+    button(owner, "profile", "Command Center")
   ]));
   return c;
 }
@@ -169,21 +199,21 @@ function recipe(owner, id) {
   return c;
 }
 function market(owner, rows) {
-  const c = container("💱 Coffee Marketplace", "Discover player listings. Buy or cancel listings using the selector.");
+  const c = container("💱 ARVEE Idle Marketplace", "Discover player listings. Buy or cancel listings using the selector.");
   divider(c);
   foot(c, rows.length ? rows.map((r) => "**#" + r.id + "**  ·  " + r.quantity + "× " + (items[r.item_id]?.name || r.item_id) +
-    "  ·  " + pretty(r.price) + " BP").join("\n") : "There are no active listings yet.");
+    "  ·  " + pretty(r.price) + " IC").join("\n") : "There are no active listings yet.");
   if (rows.length) c.addActionRowComponents(new ActionRowBuilder().addComponents(new StringSelectMenuBuilder()
     .setCustomId(custom(owner, "listing_select")).setPlaceholder("Choose a listing")
     .addOptions(rows.map((r) => ({ label: ("#" + r.id + " · " + (items[r.item_id]?.name || r.item_id)).slice(0, 100),
-      description: pretty(r.price) + " BP · Quantity " + r.quantity, value: String(r.id) })))));
+      description: pretty(r.price) + " IC · Quantity " + r.quantity, value: String(r.id) })))));
   c.addActionRowComponents(row([button(owner, "market", "↻ Refresh", "", ButtonStyle.Primary), button(owner, "profile", "Dashboard")]));
   return c;
 }
 function listing(owner, l) {
   const c = container("💱 Listing #" + l.id, (items[l.item_id]?.name || l.item_id) + " × " + l.quantity);
   divider(c);
-  foot(c, "**Price**  " + pretty(l.price) + " BP\n**Seller**  <@" + l.seller_id + ">");
+  foot(c, "**Price**  " + pretty(l.price) + " IC\n**Seller**  <@" + l.seller_id + ">");
   c.addActionRowComponents(row([
     button(owner, "listing_buy", "Purchase", String(l.id), ButtonStyle.Success, owner === l.seller_id),
     button(owner, "listing_cancel", "Cancel listing", String(l.id), ButtonStyle.Danger, owner !== l.seller_id),
@@ -193,9 +223,9 @@ function listing(owner, l) {
 }
 function prestige(owner, p) {
   const eligible = p.balance.gte(PRESTIGE_REQUIREMENT);
-  const c = container("🌟 Prestige", "Reset your BP and generators to gain permanent production power.", WARN);
+  const c = container("🌟 Prestige", "Reset your IC and generators to gain permanent production power.", WARN);
   divider(c);
-  foot(c, "**Your BP**  " + pretty(p.balance) + " / " + pretty(PRESTIGE_REQUIREMENT) +
+  foot(c, "**Your IC**  " + pretty(p.balance) + " / " + pretty(PRESTIGE_REQUIREMENT) +
     "\n**Current level**  " + p.prestige + "\n**Next level**  " + (p.prestige + 1) +
     "\n**Permanent production**  +" + ((p.prestige + 1) * 25) + "%");
   c.addActionRowComponents(row([
@@ -206,7 +236,7 @@ function prestige(owner, p) {
 }
 function pickaxe(owner, p) {
   const tier = p.pickaxeTier || 0;
-  const c = container("⛏ Coffee Pickaxe", "Upgrade your pickaxe using minerals. Higher tiers improve your mining rewards.");
+  const c = container("⛏ ARVEE Idle Pickaxe", "Upgrade your pickaxe using minerals. Higher tiers improve your mining rewards.");
   divider(c);
   foot(c, "**Tier**  " + tier + " / 10   ·   **Mining XP**  " + p.mineXp +
     "\n**Reward multiplier**  " + (1 + tier * 0.25).toFixed(2) + "×" +
@@ -247,7 +277,7 @@ function perkRespec(owner) {
   return c;
 }
 function stats(owner, p) {
-  const c = container("🏅 Coffee Achievements", "Player achievements and lifetime activity in the current season.");
+  const c = container("🏅 ARVEE Idle Achievements", "Player achievements and lifetime activity in the current season.");
   divider(c);
   foot(c, p.achievements.map((a) => (a.achieved ? "✅" : "▫") + " **" + a.name + "** · " + a.goal).join("\n"));
   divider(c);
@@ -261,16 +291,16 @@ function stats(owner, p) {
   return c;
 }
 function leaderboard(owner, rows) {
-  const c = container("🏆 Coffee Leaderboard", "Ranked by lifetime BP earned this prestige.");
+  const c = container("🏆 ARVEE Idle Leaderboard", "Ranked by lifetime IC earned this prestige.");
   divider(c);
-  foot(c, rows.length ? rows.map((r, i) => "**" + (i + 1) + ".** <@" + r.user_id + "> · " + pretty(r.total_earned) + " BP · P" + r.prestige).join("\n") : "No players yet.");
+  foot(c, rows.length ? rows.map((r, i) => "**" + (i + 1) + ".** <@" + r.user_id + "> · " + pretty(r.total_earned) + " IC · P" + r.prestige).join("\n") : "No players yet.");
   c.addActionRowComponents(row([button(owner, "leaderboard", "↻ Refresh"), button(owner, "profile", "Dashboard")]));
   return c;
 }
 function help(owner) {
-  const c = container("☕ Welcome to Coffee", "The idle economy game built for Discord.");
+  const c = container("☕ Welcome to ARVEE Idle", "The idle economy game built for Discord.");
   divider(c);
-  foot(c, "**Grow** · /coffee shop, /coffee buy, /coffee profile\n**Explore** · /coffee mine, /coffee pickaxe, /coffee daily\n**Collect** · /coffee inventory, /coffee open, /coffee craft, /coffee use\n**Trade** · /coffee give, /coffee market\n**Compete** · /coffee leaderboard, /coffee prestige\n\nUse the buttons below to navigate without typing commands.");
+  foot(c, "**Grow** · /idle shop, /idle buy, /idle profile\n**Explore** · /idle mine, /idle pickaxe, /idle daily\n**Collect** · /idle inventory, /idle open, /idle craft, /idle use\n**Trade** · /idle give, /idle market\n**Compete** · /idle leaderboard, /idle prestige\n\nUse the buttons below to navigate without typing commands.");
   c.addActionRowComponents(row([
     button(owner, "profile", "Dashboard", "", ButtonStyle.Primary),
     button(owner, "shop", "Shop"),
