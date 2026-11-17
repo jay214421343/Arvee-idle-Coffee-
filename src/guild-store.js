@@ -207,6 +207,13 @@ function createGuildStore({ transact, pool, stateOf, dec, assertId }) {
         )).rows[0].n);
         if(count>=3) throw new Error("A guild can have at most three officers.");
       }
+      if(action==="transfer" && target.role==="member") {
+        const officers=Number((await db.query(
+          "SELECT count(*)::integer AS n FROM idle_guild_members WHERE guild_id=$1 AND role='officer'",
+          [m.guild_id]
+        )).rows[0].n);
+        if(officers>=3) throw new Error("Demote an officer before transferring leadership to a member.");
+      }
       if(action==="kick") await db.query(
         "DELETE FROM idle_guild_members WHERE guild_id=$1 AND user_id=$2",[m.guild_id,targetId]
       );

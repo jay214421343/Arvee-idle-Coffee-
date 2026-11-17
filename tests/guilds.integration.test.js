@@ -112,8 +112,8 @@ test("global player guilds, permissions, shared perks, daily caps and attributio
     assert.equal((await store.pool.query("SELECT 1 FROM idle_guild_boss_damage WHERE guild_id=$1",[second.id])).rowCount,0);
 
     // Ownership transfers remain atomic and prevent the former leader from acting.
-    await store.manageGuild(a,c,"promote").then(()=>{throw new Error("removed player was promoted")},()=>{});
-    await store.manageGuild(a,b,"transfer").then(()=>{throw new Error("former member received leadership")},()=>{});
+    await assert.rejects(()=>store.manageGuild(a,c,"promote"),/not in your guild/);
+    await assert.rejects(()=>store.manageGuild(a,b,"transfer"),/not in your guild/);
     await store.inviteGuild(a,e);
     await store.acceptGuild(e,first.id);
     await store.manageGuild(a,e,"transfer");
@@ -144,6 +144,17 @@ test("global player guilds, permissions, shared perks, daily caps and attributio
     const view=await store.getGuild(f);
     assert.equal(view.guild.memberCount,12);
     assert.equal(view.guild.capacity,12);
+    for(const officer of members.slice(0,3)) await store.manageGuild(f,officer,"promote");
+    await assert.rejects(()=>store.manageGuild(f,members[3],"promote"),/three officers/);
+    await assert.rejects(()=>store.manageGuild(f,members[3],"transfer"),/Demote an officer/);
+    assert.equal((await store.getGuild(f)).role,"leader");
+    await store.manageGuild(f,members[0],"demote");
+    await store.manageGuild(f,members[3],"transfer");
+    assert.equal((await store.getGuild(members[3])).role,"leader");
+    assert.equal((await store.getGuild(f)).role,"officer");
+    await assert.rejects(()=>store.disbandGuild(f),/Only the leader/);
+    await store.disbandGuild(members[3]);
+    assert.equal((await store.getGuild(f)).guild,null);
   } finally {
     await store.pool.query("DELETE FROM idle_guilds WHERE id=ANY($1::bigint[])",[guildIds]);
     await store.pool.query("DELETE FROM world_boss_instances WHERE period_key=$1",[key]);
