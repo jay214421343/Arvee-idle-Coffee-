@@ -320,11 +320,18 @@ async function craft(userId, itemId, quantity) {
 }
 async function openLootbox(userId, quantity, boxType = "lootbox") {
   assertQuantity(quantity, 20);
-  if (!["lootbox", "rare_lootbox", "legendary_lootbox"].includes(boxType)) throw new Error("Unknown supply cache type.");
+  if (!["lootbox", "rare_lootbox", "legendary_lootbox", "lunchbox"].includes(boxType)) throw new Error("Unknown supply cache type.");
   return transact([userId], async (db) => {
     await removeItem(db, userId, boxType, quantity);
     const drops = {};
     for (let i = 0; i < quantity; i++) {
+      if (boxType === "lunchbox") {
+        const ration = ["apple", "bread", "bacon", "cookie"][Math.floor(Math.random()*4)];
+        const tonic = ["coffee", "cola", "jungle_juice", "pumpkin_spice_latte"][Math.floor(Math.random()*4)];
+        drops[ration] = (drops[ration] || 0) + 1;
+        drops[tonic] = (drops[tonic] || 0) + 1;
+        continue;
+      }
       const roll = Math.random();
       const item = boxType === "legendary_lootbox" ?
         (roll < 0.10 ? "orb_of_almanac" : roll < 0.23 ? "gem" : roll < 0.43 ? "pickperk" : roll < 0.65 ? "tinkers_gizmo" : roll >= 0.995 ? "creditus_deletus" : "strange_matter") :
@@ -370,11 +377,17 @@ async function prestige(userId) {
     state.rate = dec(0);
     state.generators = [];
     await db.query("DELETE FROM player_generators WHERE user_id=$1", [userId]);
-    // The cocktail is awarded in the same locked transaction as the prestige reset.
+    // Cocktail and optional bonus are granted together under the same player row lock.
     await addItem(db, userId, "rebirth_cocktail", 1);
-    await event(db, userId, "prestige", 0, { newLevel: state.prestige, reward: "rebirth_cocktail" });
+    const roll = Math.random();
+    const bonusItemId = roll < 0.05 ? "lunchbox" :
+      roll < 0.15 ? "rare_lootbox" : roll < 0.45 ? "lootbox" : null;
+    if (bonusItemId) await addItem(db, userId, bonusItemId, 1);
+    await event(db, userId, "prestige", 0, {
+      newLevel: state.prestige, reward: "rebirth_cocktail", bonusItemId
+    });
     return { prestige: state.prestige, multiplier: prestigeMultiplier(state.prestige),
-      itemId: "rebirth_cocktail", itemQuantity: 1 };
+      itemId: "rebirth_cocktail", itemQuantity: 1, bonusItemId };
   });
 }
 async function leaderboard(limit = 10) {

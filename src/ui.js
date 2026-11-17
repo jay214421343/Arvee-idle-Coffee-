@@ -23,7 +23,7 @@ const LIMIT = 8;
 const PAGE_SIZE = 4;
 const INVENTORY_PAGE_SIZE = 8;
 const SORT_RARITY = Object.freeze({ Common: 0, Uncommon: 1, Rare: 2, Epic: 3, Legendary: 4 });
-const BOX_IDS = new Set(["lootbox", "rare_lootbox", "legendary_lootbox"]);
+const BOX_IDS = new Set(["lootbox", "rare_lootbox", "legendary_lootbox", "lunchbox"]);
 function category(id) {
   if (BOX_IDS.has(id)) return "caches";
   if (items[id]?.effect) return "usable";
@@ -305,6 +305,7 @@ function prestigeResult(owner, result) {
     "**PRESTIGE LEVEL**  " + result.prestige +
     "\n**PRODUCTION MULTIPLIER**  " + dec(result.multiplier).toString() + "×" +
     (result.itemId === "rebirth_cocktail" ? "\n**REWARD**  1× Rebirth Cocktail added to your Satchel" : "") +
+    (result.bonusItemId ? "\n**LUCKY BONUS**  1× " + items[result.bonusItemId].name : "") +
     "\nYour operation roster and wallet have reset; your permanent progress remains.",
     [button(owner, "shop", "Recruit operations", "", ButtonStyle.Primary),
      button(owner, "profile", "Command Center")],
@@ -1086,7 +1087,8 @@ function prestige(owner, p) {
   foot(c, "**Your IC**  " + pretty(p.balance) + " / " + pretty(PRESTIGE_REQUIREMENT) +
     "\n**Current level**  " + p.prestige + "\n**Next level**  " + (p.prestige + 1) +
     "\n**Permanent production**  +" + ((p.prestige + 1) * 25) + "%" +
-    "\n**Prestige reward**  1× Rebirth Cocktail (cooldown reset, 2× for 3 digs)");
+    "\n**Prestige reward**  1× Rebirth Cocktail (cooldown reset, 2× for 3 digs)" +
+    "\n**Lucky bonus**  30% Supply Cache · 10% Rare Cache · 5% Adventurer's Lunchbox");
   c.addActionRowComponents(row([
     button(owner, "prestige_confirm", "Confirm prestige", "", ButtonStyle.Danger, !eligible),
     button(owner, "profile", "Cancel")

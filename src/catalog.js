@@ -19,6 +19,7 @@ const items = Object.freeze({
   cookie: { name: "Traveler's Ration", emoji: "🍪", rarity: "Common", description: "A reliable snack before a dungeon expedition.", use: "Gain 250 IC.", effect: { bp: "250" } },
   lucky_charm: { name: "Fate Charm", emoji: "🍀", rarity: "Epic", description: "A charm marked with runes from an ancient ARVEE expedition.", use: "Double your next mining reward.", effect: { nextMine: "2" } },
   lootbox: { name: "Supply Cache", emoji: "📦", rarity: "Common", description: "Contains a random selection of useful items.", use: "Open with /idle open." },
+  lunchbox: { name: "Adventurer's Lunchbox", emoji: "🥪", rarity: "Rare", description: "An extra meal packed for a brave new beginning. Contains one ration and one tonic.", use: "Open with /idle open to find two useful consumables." },
   rare_lootbox: { name: "Rare Supply Cache", emoji: "🎁", rarity: "Rare", description: "A better selection of loot.", use: "Open with /idle open." },
   legendary_lootbox: { name: "Mythic Supply Cache", emoji: "🌟", rarity: "Legendary", description: "A rare box full of precious items.", use: "Open with /idle open." },
   apple: { name: "Herbal Ration", emoji: "🍎", rarity: "Common", description: "An herb-packed adventurer ration.", use: "Gain 100 IC and +60% mining profit for the next 3 successful digs. Food buffs do not stack.", effect: {"bp":"100","mineBoost":{"multiplier":"1.6","charges":3}} },

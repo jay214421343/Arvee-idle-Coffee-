@@ -29,7 +29,8 @@ idle.addSubcommand((c) => c.setName("craft").setDescription("Craft an item")
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity (1-100)").setMinValue(1).setMaxValue(100)));
 idle.addSubcommand((c) => c.setName("open").setDescription("Open your Supply Caches")
   .addStringOption((o) => o.setName("type").setDescription("Type of supply cache").addChoices(
-    { name: "Supply Cache", value: "lootbox" }, { name: "Rare Supply Cache", value: "rare_lootbox" }, { name: "Mythic Supply Cache", value: "legendary_lootbox" }))
+    { name: "Supply Cache", value: "lootbox" }, { name: "Rare Supply Cache", value: "rare_lootbox" },
+    { name: "Mythic Supply Cache", value: "legendary_lootbox" }, { name: "Adventurer's Lunchbox", value: "lunchbox" }))
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity (1-20)").setMinValue(1).setMaxValue(20)));
 idle.addSubcommand((c) => c.setName("give").setDescription("Give another player an item")
   .addUserOption((o) => o.setName("user").setDescription("Recipient").setRequired(true))
