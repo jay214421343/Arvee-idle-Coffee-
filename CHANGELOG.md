@@ -1,3 +1,19 @@
+# 2.9.2 — Operation Lore & Coffee Items Restoration (pending review)
+
+- Replaced all repeated operation boilerplate with 56 distinct ARVEE-themed descriptions, including a handful of subtle jokes.
+- Added **Creditus Deletus**, a safe Coffee-inspired prank item that displays a fake wallet-deletion message but changes no IC or progression.
+- Obtain it from a 0.5% Mythic Supply Cache chance or by crafting 10 Void Essence, 15 Moonsteel and 1 Traveler's Ration.
+- Consumption remains owner-bound and database-transactional, with no permanent side effects beyond consuming the scroll and recording its use.
+- Added deterministic lore and item regression tests, including database concurrency and loot safety.
+- Existing operation economy, player rewards and high-tier drop rates otherwise remain unchanged.
+- Restored 12 additional Coffee-inspired consumables and utilities with real ARVEE-safe effects, dedicated Forge recipes and bonus cache finds.
+- Added persistent player tags, cosmetic pickaxe names and pickaxe finishes, using three additive PostgreSQL columns; survival across prestige and cross-server use are tested.
+- Exposed /idle use item autocomplete for the expanded catalogue, with optional name input and safe compact preset menus.
+- Mine Alert and Stat Card are reusable tools, while unfinished Crew Reboot safely recruits one Rookie instead of wiping operations.
+- Deployment needs `npm run db:migrate && npm run register` before restarting the dedicated Idle bot.
+
+---
+
 # 2.9.1 — Command Center Navigation & Prestige Shortcut (pending review)
 
 - Moved the six-option navigation dropdown directly underneath the Command Center player summary for easier access without additional UI rows.

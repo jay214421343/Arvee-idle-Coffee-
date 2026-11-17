@@ -18,6 +18,18 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.9.2 — Operation Lore & Coffee Item Restoration
+
+All 56 operations now have their own compact lore tied to their specific crews, kingdoms and cosmic domains, with a handful of in-world jokes. Every operation ID, name, price, income, icon, ordering and progression mechanic is unchanged.
+
+**Creditus Deletus** is a harmless, consumable Easter egg inspired by an original Coffee item. Find it with a 0.5% draw in a Mythic Supply Cache (without reducing any other premium reward drop rates), or craft it from 10 Void Essence, 15 Moonsteel and 1 Traveler's Ration. It shows a dramatic fake-deletion message when used, but **does not subtract or reset IC, player data, generators or prestige**. The one scroll is consumed transactionally, and the item can be traded like regular items.
+
+The restoration also adds 12 Coffee-inspired items: Arthur's Tablet, Crafting Supply Bundle, Crew Reboot Voucher, Gnome's Rocket Brew, Kingstone's Stone, Mine Alert, Pickaxe Nametag, Merchant Pay Slip, Pickaxe Skin Token, Miner's Reward, Stat Card and Profile Tag. Each is obtainable through a Forge recipe and some also appear as additional bonus cache finds; old standard cache rewards keep their existing probabilities. The original Coffee pickaxe is already represented by /idle pickaxe, so it is not duplicated as a collectible. Incomplete and unsafe legacy actions have functional, bounded ARVEE equivalents: Crew Reboot recruits one Rookie rather than resetting existing operations, Mine Alert is a reusable cooldown readout without promises of notifications, and Stat Card is a reusable achievements viewer.
+  
+Custom pickaxe names and profile tags can be selected from a compact menu or set through /idle use item:<item> name:<name>. A pickaxe skin cycles between Copper, Obsidian and Astral. These cosmetics survive prestige and are stored cross-server using three **additive PostgreSQL columns**. No existing inventory, balance, prestige, operation or guild data is removed.
+
+**After merging, run the database migration before restarting ARVEE Idle and register the updated /idle use command**: `npm ci && npm run db:migrate && npm run register && npm run mac:restart`. Do not deploy this change until it passes the full suite.
+
 ## ARVEE Idle 2.9.1 — Command Center Polish
 
 The Command Center now puts its six-option navigation dropdown directly beneath the player summary, above prestige progress, activity readiness and quick actions. All navigation options, slash commands and cross-server data behavior remain unchanged.

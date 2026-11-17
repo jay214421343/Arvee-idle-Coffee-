@@ -17,6 +17,11 @@ ALTER TABLE players ALTER COLUMN total_earned SET DEFAULT 500;
 ALTER TABLE players ADD COLUMN IF NOT EXISTS pickaxe_tier INTEGER NOT NULL DEFAULT 0 CHECK (pickaxe_tier BETWEEN 0 AND 10);
 ALTER TABLE players ADD COLUMN IF NOT EXISTS next_mine_multiplier NUMERIC NOT NULL DEFAULT 1 CHECK (next_mine_multiplier BETWEEN 1 AND 20);
 ALTER TABLE players ADD COLUMN IF NOT EXISTS orb_count INTEGER NOT NULL DEFAULT 0 CHECK (orb_count BETWEEN 0 AND 20);
+-- Cosmetics stay with the player across servers and prestige. Additive to existing accounts.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS pickaxe_name TEXT NOT NULL DEFAULT 'Pickaxe' CHECK (length(pickaxe_name) BETWEEN 1 AND 24);
+ALTER TABLE players ADD COLUMN IF NOT EXISTS pickaxe_style TEXT NOT NULL DEFAULT 'Copper' CHECK (pickaxe_style IN ('Copper','Obsidian','Astral'));
+ALTER TABLE players ADD COLUMN IF NOT EXISTS profile_tag TEXT NOT NULL DEFAULT '' CHECK (length(profile_tag) <= 24);
+
 
 CREATE TABLE IF NOT EXISTS player_generators (
   user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,

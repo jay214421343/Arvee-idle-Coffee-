@@ -2,7 +2,7 @@
   "catalogue": [
     {
       "name": "Rookie Adventurer",
-      "desc": "A growing operation in the ARVEE world. Recruit allies, gather supplies, and earn Idle Credits.",
+      "desc": "A new adventurer takes modest jobs beyond the village gates, learning the roads and earning their first hard-won credits.",
       "baseCost": "100",
       "baseIncome": "1",
       "alias": "MSPS",
@@ -11,7 +11,7 @@
     },
     {
       "name": "Campfire Scavengers",
-      "desc": "A growing operation in the ARVEE world. Recruit allies, gather supplies, and earn Idle Credits.",
+      "desc": "At first light, scavengers search abandoned camps for forgotten tools, supplies and treasures worth another journey.",
       "baseCost": "4.26e+2",
       "baseIncome": "1.2e+1",
       "alias": "CATV",
@@ -20,7 +20,7 @@
     },
     {
       "name": "Copper Mining Crew",
-      "desc": "A growing operation in the ARVEE world. Recruit allies, gather supplies, and earn Idle Credits.",
+      "desc": "Lantern-lit miners follow copper veins through the foothills, hauling ore back to the settlement after every shift.",
       "baseCost": "7.58e+2",
       "baseIncome": "4.1e+1",
       "alias": "MONK",
@@ -29,7 +29,7 @@
     },
     {
       "name": "Village Outpost",
-      "desc": "A growing operation in the ARVEE world. Recruit allies, gather supplies, and earn Idle Credits.",
+      "desc": "A timber watchtower anchors a lively frontier outpost, where guards and merchants keep the roads open.",
       "baseCost": "2.92e+3",
       "baseIncome": "2.04e+2",
       "alias": "CTSH",
@@ -38,7 +38,7 @@
     },
     {
       "name": "Goblin Patrol",
-      "desc": "A growing operation in the ARVEE world. Recruit allies, gather supplies, and earn Idle Credits.",
+      "desc": "Goblin scouts patrol with great confidence and approximately zero sense of direction. Their reports are mostly doodles.",
       "baseCost": "5.70e+3",
       "baseIncome": "6.35e+2",
       "alias": "BSTA",
@@ -47,7 +47,7 @@
     },
     {
       "name": "Quest Board",
-      "desc": "A growing operation in the ARVEE world. Recruit allies, gather supplies, and earn Idle Credits.",
+      "desc": "Wax-sealed notices draw travelers from every tavern. Each completed contract brings another tale to the board.",
       "baseCost": "3.27e+4",
       "baseIncome": "2.26e+3",
       "alias": "HBSC",
@@ -56,7 +56,7 @@
     },
     {
       "name": "Runesmith Workshop",
-      "desc": "A growing operation in the ARVEE world. Recruit allies, gather supplies, and earn Idle Credits.",
+      "desc": "Rune-carvers work by enchanted coals, engraving protective sigils onto travelers' weapons and tools.",
       "baseCost": "4.13e+5",
       "baseIncome": "3.93e+4",
       "alias": "NKCC",
@@ -65,7 +65,7 @@
     },
     {
       "name": "Merchant Caravan",
-      "desc": "A growing operation in the ARVEE world. Recruit allies, gather supplies, and earn Idle Credits.",
+      "desc": "Pack beasts and seasoned traders cross dangerous routes, carrying rare goods between distant settlements.",
       "baseCost": "1.39e+6",
       "baseIncome": "3.78e+5",
       "alias": "BGSS",
@@ -74,7 +74,7 @@
     },
     {
       "name": "Forest Rangers",
-      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "desc": "Hidden among ancient pines, the rangers patrol forgotten trails and guide wanderers out of the deep forest.",
       "baseCost": "1.35e+9",
       "baseIncome": "1.96e+6",
       "alias": "IM9S",
@@ -83,7 +83,7 @@
     },
     {
       "name": "Ancient Ruins Expedition",
-      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "desc": "Torch-bearing scholars descend into vine-covered temples, piecing together maps of kingdoms swallowed by time.",
       "baseCost": "4.23e+10",
       "baseIncome": "2.92e+7",
       "alias": "ACFB",
@@ -92,7 +92,7 @@
     },
     {
       "name": "Alchemy Circle",
-      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "desc": "Alchemists gather around bubbling flasks, refining unstable reagents into tinctures sought across the realm.",
       "baseCost": "4.30e+11",
       "baseIncome": "1.28e+8",
       "alias": "HARD",
@@ -101,7 +101,7 @@
     },
     {
       "name": "Dwarven Foundry",
-      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "desc": "Deep beneath the mountains, dwarven smiths hammer glowing ingots on anvils that have never gone cold.",
       "baseCost": "2.50e+13",
       "baseIncome": "2.58e+11",
       "alias": "HFB",
@@ -110,7 +110,7 @@
     },
     {
       "name": "Moonlit Library",
-      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "desc": "By pale moonlight, archivists translate enchanted manuscripts that whisper their secrets only after dusk.",
       "baseCost": "1.45e+14",
       "baseIncome": "2.47e+12",
       "alias": "VAPE",
@@ -119,7 +119,7 @@
     },
     {
       "name": "Dragon Hatchery",
-      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "desc": "Careful handlers tend smoldering nests where young dragons learn to fly without setting the roof on fire.",
       "baseCost": "3.61e+16",
       "baseIncome": "1.13e+14",
       "alias": "CHBF",
@@ -128,7 +128,7 @@
     },
     {
       "name": "Dungeon Delvers",
-      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "desc": "Hardened explorers descend beneath ruined keeps with ropes, rations and an unreasonable amount of optimism.",
       "baseCost": "4.36e+18",
       "baseIncome": "3.76e+16",
       "alias": "HACK",
@@ -137,7 +137,7 @@
     },
     {
       "name": "Crystal Caverns",
-      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "desc": "Miners harvest luminous crystals from caverns where every footstep rings like a distant bell.",
       "baseCost": "1.55e+20",
       "baseIncome": "1.46e+18",
       "alias": "SMRT",
@@ -146,7 +146,7 @@
     },
     {
       "name": "Starfall Observatory",
-      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "desc": "Astronomers track falling stars and chart celestial omens from a lonely tower above the clouds.",
       "baseCost": "2.39e+24",
       "baseIncome": "1.76e+20",
       "alias": "ATDB",
@@ -155,7 +155,7 @@
     },
     {
       "name": "Void Researchers",
-      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "desc": "Scholars probe tears in the void, cataloguing what comes through and ensuring the door opens only one way.",
       "baseCost": "4.33e+27",
       "baseIncome": "4.72e+23",
       "alias": "WARL",
@@ -164,7 +164,7 @@
     },
     {
       "name": "Celestial Armory",
-      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "desc": "Master armorers temper starlit metals beneath constellations, forging weapons that shimmer with the night sky.",
       "baseCost": "1.63e+29",
       "baseIncome": "3.23e+25",
       "alias": "FATL",
@@ -173,7 +173,7 @@
     },
     {
       "name": "Arcane Citadel",
-      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "desc": "High above the valley, an arcane citadel channels ley-line energy through its spiraling towers.",
       "baseCost": "4.37e+32",
       "baseIncome": "2.28e+28",
       "alias": "CORN",
@@ -182,7 +182,7 @@
     },
     {
       "name": "Abyss Watchers",
-      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "desc": "Silent sentinels guard the abyssal frontier, watching for creatures that move between the shadows.",
       "baseCost": "1.49e+35",
       "baseIncome": "4.20e+31",
       "alias": "MCFT",
@@ -191,7 +191,7 @@
     },
     {
       "name": "Stormguard Keep",
-      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "desc": "Stormguard defenders hold the mountain keep as thunder crashes against its lightning-struck battlements.",
       "baseCost": "4.68e+38",
       "baseIncome": "4.15e+35",
       "alias": "GOPN",
@@ -200,7 +200,7 @@
     },
     {
       "name": "Titan Excavators",
-      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "desc": "Colossal excavators carve through ancient stone, uncovering buried machinery from an age of giants.",
       "baseCost": "4.85e+41",
       "baseIncome": "4.55e+38",
       "alias": "BCTL",
@@ -209,7 +209,7 @@
     },
     {
       "name": "Forgotten Gateway",
-      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "desc": "A sealed archway stirs in the wilderness. Explorers study its runes for clues to the realm beyond.",
       "baseCost": "1.44e+44",
       "baseIncome": "3.24e+41",
       "alias": "JACK",
@@ -218,7 +218,7 @@
     },
     {
       "name": "Mythic Forge",
-      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "desc": "Master smiths weave rare ore and captured starfire into relics fit for legendary champions.",
       "baseCost": "4.16e+49",
       "baseIncome": "4.43e+44",
       "alias": "PBG",
@@ -227,7 +227,7 @@
     },
     {
       "name": "Dungeon Nexus",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "The Dungeon Nexus binds distant labyrinths together, sending explorers toward doors that never appear twice.",
       "baseCost": "3.95e+53",
       "baseIncome": "3.81e+48",
       "alias": "POST",
@@ -236,7 +236,7 @@
     },
     {
       "name": "Soulbound Atelier",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "Soulbound artisans shape enchanted artifacts, each carrying an echo of the spirit that forged it.",
       "baseCost": "4.99e+56",
       "baseIncome": "4.57e+51",
       "alias": "SKYP",
@@ -245,7 +245,7 @@
     },
     {
       "name": "Astral Rift Explorers",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "Riftwalkers navigate constellations torn apart by astral storms, returning with fragments of impossible worlds.",
       "baseCost": "1.21e+60",
       "baseIncome": "1.95e+55",
       "alias": "FROG",
@@ -254,7 +254,7 @@
     },
     {
       "name": "Sky Fortress",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "A fortress rides the upper winds, its watchtowers keeping vigil over lands far below the clouds.",
       "baseCost": "4.33e+64",
       "baseIncome": "2.17e+59",
       "alias": "GRAV",
@@ -263,7 +263,7 @@
     },
     {
       "name": "Dragon Dominion",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "Dragon lords govern volcanic territories where wingbeats shake valleys and treasure caravans never travel alone.",
       "baseCost": "3.49e+68",
       "baseIncome": "1.22e+63",
       "alias": "SENG",
@@ -272,7 +272,7 @@
     },
     {
       "name": "Silverguard Legion",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "The Silverguard Legion marches beneath polished banners, holding the line against threats from forgotten kingdoms.",
       "baseCost": "1.68e+72",
       "baseIncome": "2.25e+67",
       "alias": "BRUS",
@@ -281,7 +281,7 @@
     },
     {
       "name": "Arcane Council",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "The Arcane Council debates the laws of magic behind sealed doors. Their latest motion: more meetings about fewer meetings.",
       "baseCost": "4.38e+77",
       "baseIncome": "1.58e+73",
       "alias": "DYST",
@@ -290,7 +290,7 @@
     },
     {
       "name": "Sunstone Kingdom",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "Sunstone monarchs gather light into golden halls, sustaining a realm that glows through the longest winter.",
       "baseCost": "2.08e+83",
       "baseIncome": "2.06e+77",
       "alias": "GOAT",
@@ -299,7 +299,7 @@
     },
     {
       "name": "Chrono Sanctuary",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "Chronomancers preserve moments inside a hidden sanctuary, keeping lost histories from slipping out of time.",
       "baseCost": "4.19e+88",
       "baseIncome": "2.29e+82",
       "alias": "WMDS",
@@ -308,7 +308,7 @@
     },
     {
       "name": "Elysian Vault",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "The Elysian Vault protects treasures so ancient that even its guardians have forgotten what some keys unlock.",
       "baseCost": "4.98e+93",
       "baseIncome": "4.85e+87",
       "alias": "RMSG",
@@ -317,7 +317,7 @@
     },
     {
       "name": "Rune Singularity",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "Runes converge into a brilliant singularity, concentrating raw magic until ordinary measures lose all meaning.",
       "baseCost": "4.99e+98",
       "baseIncome": "3.86e+92",
       "alias": "PLUT",
@@ -326,7 +326,7 @@
     },
     {
       "name": "Ember Sovereigns",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "Ember-crowned sovereigns rule a sea of fire, shaping molten rivers into engines of ancient power.",
       "baseCost": "3.13e+103",
       "baseIncome": "3.58e+97",
       "alias": "ARRW",
@@ -335,7 +335,7 @@
     },
     {
       "name": "Elder Titans",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "Elder Titans awaken beneath the mountains, lending their colossal strength to reshape entire landscapes.",
       "baseCost": "3.95e+108",
       "baseIncome": "1.81e+102",
       "alias": "MARS",
@@ -344,7 +344,7 @@
     },
     {
       "name": "Nightmare Foundry",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "The Nightmare Foundry smelts fear into blackened steel. Its workers swear the furnace sometimes knows their names.",
       "baseCost": "3.94e+113",
       "baseIncome": "2.12e+107",
       "alias": "VIPA",
@@ -353,7 +353,7 @@
     },
     {
       "name": "Celestial Realm",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "Within the Celestial Realm, radiant cities drift through the heavens on currents of pure magic.",
       "baseCost": "2.61e+119",
       "baseIncome": "4.95e+113",
       "alias": "SSDO",
@@ -362,7 +362,7 @@
     },
     {
       "name": "Eternal Throne",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "An eternal throne commands armies across the ages, its court unchanged while empires rise and fall.",
       "baseCost": "3.92e+126",
       "baseIncome": "3.60e+118",
       "alias": "SOML",
@@ -371,7 +371,7 @@
     },
     {
       "name": "Infinite Labyrinth",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "The Infinite Labyrinth rearranges itself after every expedition. The cartographers have stopped asking for refunds.",
       "baseCost": "1.26e+132",
       "baseIncome": "2.24e+125",
       "alias": "ACAT",
@@ -380,7 +380,7 @@
     },
     {
       "name": "Worldseed Nexus",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "At the Worldseed Nexus, ancient roots connect distant realities, nurturing new lands from fragments of creation.",
       "baseCost": "4.50e+138",
       "baseIncome": "3.45e+131",
       "alias": "YOUV",
@@ -389,7 +389,7 @@
     },
     {
       "name": "Elemental Empire",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "The Elemental Empire commands fire, frost, stone and storm through a network of living citadels.",
       "baseCost": "2.32e+144",
       "baseIncome": "4.75e+137",
       "alias": "CATI",
@@ -398,7 +398,7 @@
     },
     {
       "name": "Fabled Pantheon",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "The Fabled Pantheon lends divine favor to champions whose names are etched into the skies.",
       "baseCost": "1.72e+150",
       "baseIncome": "1.77e+143",
       "alias": "JNUT",
@@ -407,7 +407,7 @@
     },
     {
       "name": "Quantum Legion",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "Quantum soldiers occupy several battlefronts at once. Their commander asks everyone to stop being both present and absent.",
       "baseCost": "4.25e+157",
       "baseIncome": "1.96e+150",
       "alias": "LOST",
@@ -416,7 +416,7 @@
     },
     {
       "name": "Primal Nebula",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "A primal nebula breathes new stars into existence, feeding distant worlds with the first sparks of light.",
       "baseCost": "4.91e+163",
       "baseIncome": "1.59e+156",
       "alias": "SCAT",
@@ -425,7 +425,7 @@
     },
     {
       "name": "Timekeeper's Gate",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "Gatekeepers guard every century. Your request will be handled in five minutes, but they won't say which timeline.",
       "baseCost": "2.46e+170",
       "baseIncome": "4.61e+163",
       "alias": "FBCS",
@@ -434,7 +434,7 @@
     },
     {
       "name": "Forbidden Archive",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "Forbidden archivists study names erased from history, locking dangerous knowledge behind silent wards.",
       "baseCost": "1.34e+179",
       "baseIncome": "1.44e+170",
       "alias": "JAZA",
@@ -443,7 +443,7 @@
     },
     {
       "name": "Phoenix Ascendant",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "A phoenix rises above the ashes of fallen empires, its flame reigniting forgotten roads and ruined cities.",
       "baseCost": "3.31e+186",
       "baseIncome": "3.27e+177",
       "alias": "BOTH",
@@ -452,7 +452,7 @@
     },
     {
       "name": "Grand ARVEE Citadel",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "The Grand ARVEE Citadel unites far-flung strongholds, drawing wealth and knowledge into its towering heart.",
       "baseCost": "2.51e+193",
       "baseIncome": "1.42e+184",
       "alias": "HAMO",
@@ -461,7 +461,7 @@
     },
     {
       "name": "Immortal Dynasty",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "An immortal dynasty passes its crown through endless generations, ruling with wisdom older than recorded history.",
       "baseCost": "2.13e+200",
       "baseIncome": "4.06e+192",
       "alias": "KING",
@@ -470,7 +470,7 @@
     },
     {
       "name": "Realmforge Engine",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "The Realmforge Engine reshapes raw existence into whole continents, leaving stardust in the gears.",
       "baseCost": "2.74e+207",
       "baseIncome": "2.60e+199",
       "alias": "FOBL",
@@ -479,7 +479,7 @@
     },
     {
       "name": "Cosmic Arbiter",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "A cosmic arbiter weighs the fate of worlds, settling disputes with laws written into the stars.",
       "baseCost": "3.09e+215",
       "baseIncome": "4.17e+207",
       "alias": "JUJU",
@@ -488,7 +488,7 @@
     },
     {
       "name": "Genesis Architects",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "Genesis Architects draft blueprints for newborn realities, placing oceans and constellations with a careful hand.",
       "baseCost": "3.29e+222",
       "baseIncome": "1.01e+214",
       "alias": "AICC",
@@ -497,7 +497,7 @@
     },
     {
       "name": "ARVEE Core",
-      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "desc": "At the heart of everything, ARVEE Core keeps the realms running. Someone found the 'numbers go up' lever. Nobody dared turn it off.",
       "baseCost": "4.29e+230",
       "baseIncome": "1.53e+222",
       "alias": "FRBR",

@@ -44,16 +44,17 @@ async function transact(ids, action) {
         prestige: player.prestige, rate, generators,
         mineXp: player.mine_xp, lastMine: player.last_mine_at,
         lastDaily: player.last_daily_at, lastSettledAt: passive.settledAt,
-        pickaxeTier: player.pickaxe_tier, mineBonus: dec(player.next_mine_multiplier), orbs: player.orb_count, perks: playerPerks
+        pickaxeTier: player.pickaxe_tier, mineBonus: dec(player.next_mine_multiplier), orbs: player.orb_count, perks: playerPerks,
+        pickaxeName: player.pickaxe_name, pickaxeStyle: player.pickaxe_style, profileTag: player.profile_tag
       });
     }
     const result = await action(client, states);
     for (const state of states.values()) {
       await client.query(
-        "UPDATE players SET balance=$2, total_earned=$3, prestige=$4, mine_xp=$5, last_mine_at=$6, last_daily_at=$7, last_settled_at=$8, pickaxe_tier=$9, next_mine_multiplier=$10, orb_count=$11, updated_at=now() WHERE user_id=$1",
+        "UPDATE players SET balance=$2, total_earned=$3, prestige=$4, mine_xp=$5, last_mine_at=$6, last_daily_at=$7, last_settled_at=$8, pickaxe_tier=$9, next_mine_multiplier=$10, orb_count=$11, pickaxe_name=$12, pickaxe_style=$13, profile_tag=$14, updated_at=now() WHERE user_id=$1",
         [state.id, state.balance.toFixed(0), state.totalEarned.toFixed(0), state.prestige,
           state.mineXp, state.lastMine, state.lastDaily, state.lastSettledAt,
-          state.pickaxeTier, state.mineBonus.toString(), state.orbs]
+          state.pickaxeTier, state.mineBonus.toString(), state.orbs, state.pickaxeName, state.pickaxeStyle, state.profileTag]
       );
     }
     await client.query("COMMIT");
@@ -310,11 +311,22 @@ async function openLootbox(userId, quantity, boxType = "lootbox") {
     for (let i = 0; i < quantity; i++) {
       const roll = Math.random();
       const item = boxType === "legendary_lootbox" ?
-        (roll < 0.10 ? "orb_of_almanac" : roll < 0.23 ? "gem" : roll < 0.43 ? "pickperk" : roll < 0.65 ? "tinkers_gizmo" : "strange_matter") :
+        (roll < 0.10 ? "orb_of_almanac" : roll < 0.23 ? "gem" : roll < 0.43 ? "pickperk" : roll < 0.65 ? "tinkers_gizmo" : roll >= 0.995 ? "creditus_deletus" : "strange_matter") :
         boxType === "rare_lootbox" ?
         (roll < 0.04 ? "gem" : roll < 0.18 ? "pickperk" : roll < 0.40 ? "gold" : roll < 0.60 ? "starfruit" : "strange_matter") :
         (roll < 0.01 ? "pickperk" : roll < 0.04 ? "gold" : roll < 0.16 ? "silver" : roll < 0.25 ? "apple" : roll < 0.36 ? "bread" : roll < 0.45 ? "cola" : roll < 0.55 ? "cookie" : "ore");
       drops[item] = (drops[item] || 0) + 1;
+      // Optional bonus finds never replace standard rewards from the existing loot pools.
+      const bonusPool = boxType === "legendary_lootbox" ?
+        ["gnome", "pick_skin", "tag", "genreset"] :
+        boxType === "rare_lootbox" ?
+        ["arthurs_tablet", "mine_alert", "nametag", "stat_card"] :
+        ["kingstones_stone", "reward", "payment", "crafting_materials"];
+      const bonusChance = boxType === "legendary_lootbox" ? 0.05 : boxType === "rare_lootbox" ? 0.04 : 0.02;
+      if (Math.random() < bonusChance) {
+        const extra = bonusPool[Math.floor(Math.random() * bonusPool.length)];
+        drops[extra] = (drops[extra] || 0) + 1;
+      }
     }
     for (const [item, amount] of Object.entries(drops)) await addItem(db, userId, item, amount);
     await event(db, userId, "open_lootbox", 0, { quantity, drops, boxType });
@@ -406,7 +418,14 @@ async function getListing(id) {
   if (!row || row.status !== "active") throw new Error("That listing is no longer active.");
   return row;
 }
-async function useItem(userId, itemId) {
+function cosmeticName(raw) {
+  const name = String(raw || "").trim().replace(/\s+/g, " ");
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9 '\-]{0,23}$/.test(name)) {
+    throw new Error("Names must be 1-24 letters, numbers, spaces, hyphens or apostrophes.");
+  }
+  return name;
+}
+async function useItem(userId, itemId, chosenName = "") {
   const item = items[itemId];
   if (!item || !item.effect) throw new Error("This item cannot be consumed.");
   return transact([userId], async (db, states) => {
@@ -415,6 +434,20 @@ async function useItem(userId, itemId) {
     if (e.orb && state.orbs >= 20) throw new Error("Orb limit reached (20).");
     if (e.nextMine && state.mineBonus.times(e.nextMine).gt(20)) throw new Error("You already have the maximum next-mine boost.");
     if (e.xp && state.mineXp + e.xp > 100000000) throw new Error("Mining XP cap reached.");
+    const name = e.renamePickaxe || e.tag ? cosmeticName(chosenName) : "";
+    if (e.crew) {
+      const current = state.generators.find((g) => g.generator_id === e.crew);
+      if (Number(current?.quantity || 0) >= 10000) throw new Error("Rookie Adventurer ownership limit reached.");
+    }
+    if (e.timer || e.stats) {
+      const owned = await db.query("SELECT quantity FROM inventory WHERE user_id=$1 AND item_id=$2", [userId,itemId]);
+      if (!owned.rows[0] || owned.rows[0].quantity < 1) throw new Error("Item not owned.");
+      if (e.stats) return { itemId, message: "Your lifetime records are ready.", showStats: true };
+      const ready = activity.playerReadiness(state).mine;
+      return { itemId, message: ready.ready ?
+        "Mining is ready. Use /idle mine." :
+        "Mining recharges <t:" + ready.readyAt + ":R>. No ping is scheduled; this is a reusable timer." };
+    }
     await removeItem(db, userId, itemId, 1);
     let message = "";
     if (e.bp) {
@@ -438,6 +471,40 @@ async function useItem(userId, itemId) {
     if (e.grant) {
       await addItem(db, userId, e.grant, e.grantAmount || 1);
       message = "Received " + (e.grantAmount || 1) + "× " + items[e.grant].name + ".";
+    }
+    if (e.materials) {
+      for (const [part, quantity] of Object.entries(e.materials)) await addItem(db,userId,part,quantity);
+      message = "Unpacked 4 Rune Ore and 2 Moonsteel.";
+    }
+    if (e.cooldownReset) {
+      state.lastMine = null;
+      message += " Mining cooldown reset. Ready now.";
+    }
+    if (e.renamePickaxe) {
+      state.pickaxeName = name;
+      message = "Your pickaxe is now named " + name + ".";
+    }
+    if (e.tag) {
+      state.profileTag = name;
+      message = "Profile title set to " + name + ".";
+    }
+    if (e.skin) {
+      const styles = ["Copper", "Obsidian", "Astral"];
+      state.pickaxeStyle = styles[(styles.indexOf(state.pickaxeStyle) + 1) % styles.length];
+      message = "Pickaxe finish changed to " + state.pickaxeStyle + ".";
+    }
+    if (e.crew) {
+      await db.query("INSERT INTO player_generators (user_id,generator_id,quantity) VALUES($1,$2,1) " +
+        "ON CONFLICT(user_id,generator_id) DO UPDATE SET quantity=player_generators.quantity+1",[userId,e.crew]);
+      const owned = state.generators.find((g)=>g.generator_id === e.crew);
+      if (owned) owned.quantity = Number(owned.quantity)+1;
+      else state.generators.push({generator_id:e.crew,quantity:1});
+      state.rate = generatorRate(state.generators,state.prestige,state.orbs,perkLevel(state,"investor"));
+      message = "One Rookie Adventurer joined your crew. Existing operations are untouched.";
+    }
+    if (e.prank) {
+      message = "CREDITUS DELETUS! Your entire wallet vanishes in a puff of smoke... " +
+        "Wait. It's back. **0 IC lost.** The spell was a prank.";
     }
     await event(db, userId, "use_item", 0, { itemId });
     return { itemId, message };
