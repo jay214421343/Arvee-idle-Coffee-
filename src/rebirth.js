@@ -17,7 +17,7 @@ const MILESTONES=Object.freeze([
   {tier:100,name:"Eternal Prospector",detail:"Unlock 0.05% chance of an Astral Egg through normal mining"}
 ].map(x=>Object.freeze(x)));
 const ADVANCED=Object.freeze([
-  Object.freeze({id:"RNFG",name:"Runeforge Crew",description:"Elite runesmiths unlocked by Rebirth 35.",
+  Object.freeze({id:"RNFG",name:"Runeforge Crew",description:"Elite runesmiths channel ancient ore into powerful autonomous crews. Unlocked at Rebirth 35.",
     cost:"4.5e10",income:"4.0e8",prestigeRequired:35}),
   Object.freeze({id:"VDXC",name:"Void Excavators",description:"Void-powered mining operation unlocked by Rebirth 50.",
     cost:"2.5e14",income:"3.0e12",prestigeRequired:50}),
