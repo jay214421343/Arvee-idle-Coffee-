@@ -192,8 +192,8 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
       assert.equal(parallel.reduce((sum, r) => sum + r.grants.length, 0), 1);
       assert.ok((await store.profile(a)).balance.gte(beforeReward.plus(200)));
       assert.equal((await store.claimSeasonRewards(a, 1)).grants.length, 0);
-      await assert.rejects(() => store.claimSeasonRewards(a, 21), /Invalid season tier/);
-      await assert.rejects(() => store.claimSeasonRewards(a, 20), /Earn .*Season XP/);
+      await assert.rejects(() => store.claimSeasonRewards(a, 101), /Invalid season tier/);
+      await assert.rejects(() => store.claimSeasonRewards(a, 21), /Earn .*Season XP/);
       await store.pool.query("UPDATE players SET balance=100000000000,total_earned=100000000000 WHERE user_id=$1", [a]);
       for (let i = 0; i < 8; i++) await store.buyGenerator(a, "MSPS", 5);
       const advanced = await store.seasonStatus(a);

@@ -18,6 +18,14 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.12 — 100-Tier Founders' Journey and Owner Administration
+
+Founders' Journey now has **100 fully free tiers** instead of 20. Each tier requires 250 Season XP, for 25,000 XP total. The original 20 rewards, season ID and dates, all prior earned XP and claimed tiers remain unchanged. Tiers 21–100 offer stronger IC and material rewards, more Supply Caches, Rune Fragments, companions eggs, specialty charms, and occasional permanent Astral Sigils. The 25 four-tier pages have a direct tier-range jump menu for mobile. No daily XP limit has returned.
+
+**Owner administration:** a separate `/admin` command is registered only in Discord server `1391028658835034243` and accessible only to user `801148038269763644`. Owner authorization and the server boundary are verified for every action, with ephemeral replies and permanent PostgreSQL audit records. Admin actions manage player credits, items, operations, game progression, companion ownership/XP, talents/perks, Season XP, cooldowns and account suspensions. This is application-level control, not unrestricted SQL or remote code execution. The publicly available `/idle` command remains unchanged.
+
+**Deployment after review/merge:** `npm ci && npm run db:migrate && npm run register && npm run mac:restart`. The migration extends the historical claim tier constraint, creates owner audit/suspension tables and retains existing player and season data. Slash registration keeps `/idle` in its current scope and creates `/admin` **only** in the designated guild.
+
 ## ARVEE Idle 2.11.2 — Contextual Mining Reset
 
 The mining cooldown receipt now offers **Use Campfire Brew** (or another owned, compatible cooldown-reset consumable) only when mining is genuinely resting **and** the player has the item. It prefers a common Campfire Brew before rarer tonics, caps the receipt at two buttons, and preserves the View Pickaxe fallback when no reset is eligible. The button labels the exact item that will be consumed. After a valid one-click reset, the receipt offers **Mine now**.
