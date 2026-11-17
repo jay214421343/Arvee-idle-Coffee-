@@ -14,7 +14,7 @@ const PETS = Object.freeze([
   Object.freeze({ id: "tempest_roc", name: "Tempest Roc", role: "Expedition", rarity: "Epic", description: "Faster world-map expeditions.", effect: "expedition_speed", starter: false, power: 1.2 }),
   Object.freeze({ id: "gem_serpent", name: "Gem Serpent", role: "Treasure", rarity: "Epic", description: "Bring back more expedition materials.", effect: "expedition_loot", starter: false, power: 1.3 }),
   Object.freeze({ id: "void_moth", name: "Void Moth", role: "Boss", rarity: "Epic", description: "Shorten World Boss attack cooldown.", effect: "boss_haste", starter: false, power: 1 }),
-  Object.freeze({ id: "rune_gecko", name: "Rune Gecko", role: "Runes", rarity: "Epic", description: "Earn Rune Fragment milestones faster while mining.", effect: "rune_progress", starter: false, power: 1 }),
+  Object.freeze({ id: "rune_gecko", name: "Rune Gecko", role: "Runes", rarity: "Epic", description: "Senses hidden Supply Caches while mining.", effect: "cache_luck", starter: false, power: 1 }),
   Object.freeze({ id: "phoenix_drake", name: "Phoenix Drake", role: "Mining", rarity: "Legendary", description: "Empower mining rewards and World Boss attacks.", effect: "mine_income", starter: false, power: 1.3 }),
   Object.freeze({ id: "runebound_golem", name: "Runebound Golem", role: "Boss", rarity: "Legendary", description: "Deal more World Boss damage.", effect: "boss_power", starter: false, power: 1.35 }),
   Object.freeze({ id: "star_stag", name: "Star Stag", role: "Expedition", rarity: "Legendary", description: "Protect expeditions from setbacks.", effect: "expedition_success", starter: false, power: 1.25 }),
@@ -25,7 +25,6 @@ const STARTERS = Object.freeze(PETS.filter((pet) => pet.starter));
 const RARITY_WEIGHTS = Object.freeze({ Common: 60, Uncommon: 40, Rare: 25, Epic: 12, Legendary: 5, Mythic: 2 });
 const MAX_LEVEL = 30;
 const MAX_XP = 50 * MAX_LEVEL * (MAX_LEVEL - 1);
-const FRAGMENT_GOAL = 20;
 function xpFor(level) {
   if (!Number.isInteger(level) || level < 1 || level > MAX_LEVEL) throw new Error("Invalid companion level.");
   return 50 * level * (level - 1);
@@ -48,7 +47,6 @@ function effectPct(pet, effect) {
   const pct = boostPct(pet.level) * type.power;
   return Math.round(Math.min(effect === "boss_haste" ? 20 : 25, pct) * 100) / 100;
 }
-function runeProgress(pet) { return effectPct(pet, "rune_progress") > 0 ? 2 : 1; }
 function bonus(pet) {
   const type = pet && byId.get(pet.id);
   if (!type) return null;
@@ -61,7 +59,7 @@ function bonus(pet) {
     boss_haste: "-" + pct + "% World Boss attack cooldown",
     expedition_success: "+" + Math.round(pct / 2 * 100) / 100 + " percentage points expedition success",
     egg_luck: "+" + Math.round(pct / 2 * 100) / 100 + " percentage points egg discovery",
-    rune_progress: "2 progress per mine toward guaranteed Rune Fragments"
+    cache_luck: "+" + Math.round(pct / 3 * 100) / 100 + " percentage points Supply Cache chance"
   };
   return { role: type.role, percent: pct, description: desc[type.effect] };
 }
@@ -93,5 +91,5 @@ function hatch(owned = [], rng = (limit) => crypto.randomInt(limit)) {
   }
   throw new Error("Could not hatch companion.");
 }
-module.exports = { PETS, STARTERS, byId, RARITY_WEIGHTS, MAX_LEVEL, MAX_XP, FRAGMENT_GOAL,
-  xpFor, level, stage, bonus, boostPct, effectPct, runeProgress, eventXp, eggDrop, hatch };
+module.exports = { PETS, STARTERS, byId, RARITY_WEIGHTS, MAX_LEVEL, MAX_XP,
+  xpFor, level, stage, bonus, boostPct, effectPct, eventXp, eggDrop, hatch };

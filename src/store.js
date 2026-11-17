@@ -252,7 +252,7 @@ async function mine(userId) {
     const remaining = activity.readiness(state.lastMine, activity.miningCooldownMs(state.perks), now);
     if (!remaining.ready) return { cooldown: remaining.seconds };
     const pet = await activeCompanion(db,userId);
-    const petBonus = pet?.id === "ember_fox" ? dec(1).plus(dec(companions.boostPct(pet.level)).div(100)) : dec(1);
+    const petBonus = dec(1).plus(dec(companions.effectPct(pet, "mine_income")).div(100));
     const guildTier = await guildStore.perkTier(db,userId);
     // The existing base mining economy is unchanged; charged boosts spend one charge only on a committed dig.
     const gross = Decimal.max(150, state.rate.times(30))
@@ -290,7 +290,10 @@ async function mine(userId) {
       roll < 0.35 + fortune * 0.025 ? "silver" : "ore";
     const dropQuantity = drop === "ore" ? 3 : drop === "silver" ? 2 : 1;
     await addItem(db, userId, drop, dropQuantity);
-    const box = Math.random() < 0.04 + 0.03 * perkLevel(state, "scavenger");
+    // Supply Caches remain random: 7% base instead of 4%, with existing perk scaling.
+    const cacheChance = Math.min(0.5, 0.07 + 0.03 * perkLevel(state, "scavenger") +
+      companions.effectPct(pet, "cache_luck") / 300);
+    const box = Math.random() < cacheChance;
     if (box) await addItem(db, userId, "lootbox", 1);
     await event(db, userId, "mine", reward, { drop });
     return { reward, baseReward, bonusReward, multiplier: multiplier.toString(),
@@ -784,7 +787,7 @@ async function startExpedition(userId, regionId) {
       throw new Error("Region locked. Recruit " + region.crew + " adventurers and earn " + region.xp + " exploration XP.");
     const seconds = exploration.duration(region, info.gear, info.companion);
     const rewards = exploration.reward(region, info.gear, undefined, info.companion);
-    const egg = companions.eggDrop(region.id,rewards.outcome === "success");
+    const egg = companions.eggDrop(region.id,rewards.outcome === "success", undefined, info.companion);
     const clock = (await db.query("SELECT clock_timestamp() AS now")).rows[0].now;
     const finishes = new Date(new Date(clock).getTime() + seconds * 1000);
     const result = (await db.query(

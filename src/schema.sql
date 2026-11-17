@@ -30,8 +30,6 @@ ALTER TABLE players ADD COLUMN IF NOT EXISTS mine_boost_multiplier NUMERIC NOT N
 ALTER TABLE players ADD COLUMN IF NOT EXISTS mine_boost_charges INTEGER NOT NULL DEFAULT 0 CHECK (mine_boost_charges BETWEEN 0 AND 6);
 ALTER TABLE players ADD COLUMN IF NOT EXISTS mine_boost_source TEXT NOT NULL DEFAULT '' CHECK (length(mine_boost_source) <= 64);
 ALTER TABLE players ADD COLUMN IF NOT EXISTS next_mine_source TEXT NOT NULL DEFAULT '' CHECK (length(next_mine_source) <= 64);
--- Count only successfully committed digs; never grant fragments on cooldown failures.
-ALTER TABLE players ADD COLUMN IF NOT EXISTS mine_fragment_progress INTEGER NOT NULL DEFAULT 0 CHECK (mine_fragment_progress BETWEEN 0 AND 19);
 
 
 CREATE TABLE IF NOT EXISTS player_generators (

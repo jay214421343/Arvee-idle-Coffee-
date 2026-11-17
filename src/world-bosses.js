@@ -28,11 +28,13 @@ function attackPower(state, pet = null) {
   const tier = Math.min(10, Math.max(0, Number(state.pickaxeTier) || 0));
   const prestige = Math.min(15, Math.max(0, Number(state.prestige) || 0));
   const base = Math.min(320, 45 + mining + tier * 14 + prestige * 10);
-  return pet?.id === "ember_fox" ? Math.floor(base * (1 + companions.boostPct(pet.level) / 100)) : base;
+  const pct = Math.max(companions.effectPct(pet, "mine_income"), companions.effectPct(pet, "boss_power"));
+  return Math.floor(base * (1 + pct / 100));
 }
 function attackCooldownMs(pet = null) {
-  return Math.round(COOLDOWN_MS * (pet?.id === "moss_wisp"
-    ? 1 - companions.boostPct(pet.level) / 100 : 1));
+  const pct = pet?.id === "moss_wisp" ? companions.effectPct(pet, "expedition_speed") :
+    companions.effectPct(pet, "boss_haste");
+  return Math.round(COOLDOWN_MS * (1 - pct / 100));
 }
 function eligibility(boss, damage, attacks) {
   const minDamage = Math.max(80, Math.ceil(boss.hp * 0.015));
