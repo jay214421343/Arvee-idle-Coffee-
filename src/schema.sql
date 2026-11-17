@@ -1,8 +1,8 @@
--- PostgreSQL schema. Migration is additive: safe to rerun on an existing Coffee v1 database.
+-- ARVEE Idle PostgreSQL schema. Additive: existing inventories and balances remain intact.
 CREATE TABLE IF NOT EXISTS players (
   user_id TEXT PRIMARY KEY CHECK (user_id ~ '^[0-9]{15,22}$'),
-  balance NUMERIC NOT NULL DEFAULT 10 CHECK (balance >= 0),
-  total_earned NUMERIC NOT NULL DEFAULT 10 CHECK (total_earned >= 0),
+  balance NUMERIC NOT NULL DEFAULT 500 CHECK (balance >= 0),
+  total_earned NUMERIC NOT NULL DEFAULT 500 CHECK (total_earned >= 0),
   prestige INTEGER NOT NULL DEFAULT 0 CHECK (prestige >= 0),
   last_settled_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_mine_at TIMESTAMPTZ,
@@ -11,6 +11,9 @@ CREATE TABLE IF NOT EXISTS players (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- Changes to defaults apply only to newly created accounts; existing players are not reset.
+ALTER TABLE players ALTER COLUMN balance SET DEFAULT 500;
+ALTER TABLE players ALTER COLUMN total_earned SET DEFAULT 500;
 ALTER TABLE players ADD COLUMN IF NOT EXISTS pickaxe_tier INTEGER NOT NULL DEFAULT 0 CHECK (pickaxe_tier BETWEEN 0 AND 10);
 ALTER TABLE players ADD COLUMN IF NOT EXISTS next_mine_multiplier NUMERIC NOT NULL DEFAULT 1 CHECK (next_mine_multiplier BETWEEN 1 AND 20);
 ALTER TABLE players ADD COLUMN IF NOT EXISTS orb_count INTEGER NOT NULL DEFAULT 0 CHECK (orb_count BETWEEN 0 AND 20);
@@ -55,3 +58,26 @@ CREATE TABLE IF NOT EXISTS economy_events (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS economy_events_user_idx ON economy_events(user_id, created_at DESC);
+
+-- Season Journey: permanent claims and per-UTC-day XP caps; migrations are additive.
+CREATE TABLE IF NOT EXISTS season_progress (
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  season_id TEXT NOT NULL,
+  xp BIGINT NOT NULL DEFAULT 0 CHECK (xp >= 0),
+  PRIMARY KEY(user_id, season_id)
+);
+CREATE TABLE IF NOT EXISTS season_xp_daily (
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  season_id TEXT NOT NULL,
+  day DATE NOT NULL,
+  xp INTEGER NOT NULL DEFAULT 0 CHECK (xp >= 0),
+  PRIMARY KEY(user_id, season_id, day)
+);
+CREATE TABLE IF NOT EXISTS season_claims (
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  season_id TEXT NOT NULL,
+  tier INTEGER NOT NULL CHECK(tier BETWEEN 1 AND 20),
+  claimed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(user_id, season_id, tier)
+);
+CREATE INDEX IF NOT EXISTS season_claims_owner_idx ON season_claims(user_id,season_id);

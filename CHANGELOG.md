@@ -1,3 +1,24 @@
+# 2.1.0 — season journey, quieter interface, and easier progression (unreleased)
+
+- Added the **Founders' Journey** season with 20 free tiers, activity XP, daily cap, contracts, 7-day claim grace, and atomic rewards in PostgreSQL.
+- Made the UI calmer: one ARVEE-purple accent, neutral rarity markers, and no decorative green buttons; red remains for destructive confirmations.
+- Rebuilt the Rune Talents page with fragment counts and a disabled upgrade dropdown when the player has no tokens.
+- Preserved season rewards during prestige resets, corrected the pickaxe Quick Hands cooldown description, and fixed prestige's starter balance to 500 IC.
+- Added season progress and claim tests, including concurrent duplicate-claim prevention and daily XP limits.
+
+- Inspired by the supplied Discord UI references: rebuilt the Satchel with compact rarity-coded rows, a right-aligned Filters button, sorting and an Inspect dropdown; streamlined the Expeditions board with context filters and inline Inspect actions.
+- Added a ten-destination emoji navigation dropdown to the Command Center while keeping daily actions in one prominent horizontal button row.
+- The Forge now has a dynamic Craftable-only menu and contextual action rows; the Player Exchange also uses a compact listing picker.
+
+- Reworked inventory, operations and forging into individual Components V2 cards with buttons, filtering, sorting and pagination.
+- Pickaxe upgrades now show owned/required material counts and disable the upgrade action until affordable, avoiding misleading errors.
+- Made the early game less grindy: 500 IC starting balance, 150 IC mine minimum, 90-second mining cooldown, 750 IC daily credits, larger material drops and cheaper starter pickaxe tiers.
+- Renamed lingering user-facing item names, achievements, help and slash-command descriptions while keeping database IDs compatible.
+- Added simple Mac setup/PM2 scripts matched to the existing PM2 6.0.14 daemon and isolated to arvee-idle.
+- CI now uses ARVEE_IDLE_TEST_DATABASE_URL and arvee_idle_test.
+
+---
+
 # 2.0.0 — ARVEE Idle rebrand and independent service (unreleased)
 
 - Rebranded the Coffee bot as ARVEE Idle; its public Discord command is now /idle and the separate currency is **Idle Credits (IC)**.

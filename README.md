@@ -6,6 +6,35 @@ Website: https://arvee.world/
 
 Originally forked from the MIT-licensed Coffee idle game by Daniel Tran. The old generator aliases and economy progression are retained for compatibility, but the 56 operations, consumables and interface now use ARVEE-themed names. The source repository is still named Coffee until its owner chooses to rename it on GitHub.
 
+## Fast start on macOS
+
+With your dedicated PostgreSQL database and .env configured, run from the ARVEE Idle directory:
+
+    export PATH="/Users/gabberjay/Documents/arvee/.runtime/node-v22.23.5-darwin-x64/bin:$PATH"
+    npm ci
+    npm run setup
+    npm run mac:start
+    npm run mac:logs
+
+The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
+
+## Season Journey — Founders' Journey
+
+Season 01 runs **17 November 2026–15 January 2027 (UTC)**. Players may claim earned rewards until **23 January 2027 00:00 UTC**.
+
+- `/idle season` opens a free 20-tier journey with **Claim All**, personal XP, daily contracts, and reward previews.
+- Earn XP through mining, daily claims, recruiting expeditions, crafting, opening caches, pickaxe/perk upgrades, and prestige. The cap is **500 XP per UTC day**; a tier unlocks every **250 XP**.
+- Claims are written atomically in PostgreSQL; reconnects or repeated clicks cannot duplicate rewards.
+- Your season journey is separate from prestige, and installing this migration does not wipe existing characters or items.
+- **No paid pass or Prime purchase is activated.** Paid rewards would require an explicit Discord SKU/entitlement integration with the *ARVEE Idle* Discord application.
+
+## Easier gameplay
+
+- New players get **500 IC** at account creation (no reset of existing accounts).
+- Your first operation costs **100 IC**.
+- Mining begins at **150 IC**, with a **90-second** cooldown and scaling rewards.
+- Daily rewards grant **750 IC**, three Supply Caches, Campfire Brew, Rune Ore and Moonsteel.
+- Early pickaxe upgrades start at **8 Rune Ore and 2 Moonsteel**.
 ## What it includes
 
 - **/idle** slash commands with a modern interactive command center, owner-bound buttons and dropdowns, dashboard avatar and clear progression.
@@ -65,7 +94,7 @@ All gameplay lives under /idle:
 | Items | inventory, craft, use, open, give |
 | Exchange | market browse, market sell, market buy, market cancel |
 
-Most screens also offer actions without repeated slash commands. You can navigate operations, purchase upgrades, open supply caches, craft, trade and review progress from the Components V2 interface.
+Expeditions use interactive Components V2 Section cards and contextual Filters; Satchel uses compact rarity-coded rows with a right-aligned Filters button, sort control and Inspect dropdown; Command Center uses an emoji navigation menu with direct action buttons. The Forge shows owned/required material counts. Most screens also offer actions without repeated slash commands. You can navigate operations, purchase upgrades, open supply caches, craft, trade and review progress from the Components V2 interface.
 
 ## Operational safety
 

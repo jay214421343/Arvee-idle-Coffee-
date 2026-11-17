@@ -2,6 +2,7 @@
 const { Pool } = require("pg");
 const { items, recipes, byId, perks } = require("./catalog");
 const { Decimal, dec, generatorRate, purchaseCost, settle, PRESTIGE_REQUIREMENT, prestigeMultiplier } = require("./economy");
+const season = require("./season");
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 10, connectionTimeoutMillis: 10000, idleTimeoutMillis: 30000 });
 pool.on("error", (error) => console.error("[Postgres] Idle connection error", error));
@@ -56,8 +57,33 @@ async function transact(ids, action) {
     client.release();
   }
 }
+async function grantSeasonXp(db, userId, type, metadata = {}) {
+  if (season.phase() !== "active") return 0;
+  const amount = season.eventXp(type, metadata);
+  if (!amount) return 0;
+  const key = [userId, season.SEASON.id];
+  const previous = (await db.query(
+    "SELECT xp FROM season_xp_daily WHERE user_id=$1 AND season_id=$2 AND day=(now() AT TIME ZONE 'UTC')::date FOR UPDATE",
+    key
+  )).rows[0]?.xp || 0;
+  const earned = Math.max(0, Math.min(amount, season.SEASON.dailyXpCap - previous));
+  if (!earned) return 0;
+  await db.query(
+    "INSERT INTO season_xp_daily(user_id,season_id,day,xp) VALUES($1,$2,(now() AT TIME ZONE 'UTC')::date,$3) " +
+      "ON CONFLICT(user_id,season_id,day) DO UPDATE SET xp=season_xp_daily.xp+EXCLUDED.xp",
+    [...key, earned]
+  );
+  await db.query(
+    "INSERT INTO season_progress(user_id,season_id,xp) VALUES($1,$2,$3) " +
+      "ON CONFLICT(user_id,season_id) DO UPDATE SET xp=season_progress.xp+EXCLUDED.xp",
+    [...key, earned]
+  );
+  return earned;
+}
 async function event(db, userId, type, amount, metadata = {}) {
-  await db.query("INSERT INTO economy_events(user_id, event_type, amount, metadata) VALUES($1,$2,$3,$4)", [userId, type, dec(amount).toFixed(0), JSON.stringify(metadata)]);
+  await db.query("INSERT INTO economy_events(user_id, event_type, amount, metadata) VALUES($1,$2,$3,$4)",
+    [userId, type, dec(amount).toFixed(0), JSON.stringify(metadata)]);
+  await grantSeasonXp(db, userId, type, metadata);
 }
 async function addItem(db, userId, itemId, quantity) {
   assertItem(itemId);
@@ -87,7 +113,7 @@ async function profile(userId) {
 async function buyGenerator(userId, generatorId, quantity) {
   assertQuantity(quantity);
   const entry = byId.get(String(generatorId).toUpperCase());
-  if (!entry) throw new Error("Generator not found. Use /coffee shop.");
+  if (!entry) throw new Error("Operation not found. Try /idle shop.");
   return transact([userId], async (db, states) => {
     const state = stateOf(states, userId);
     const current = (await db.query("SELECT quantity FROM player_generators WHERE user_id=$1 AND generator_id=$2", [userId, entry.id])).rows[0];
@@ -112,10 +138,10 @@ async function mine(userId) {
   return transact([userId], async (db, states) => {
     const state = stateOf(states, userId);
     const now = Date.now();
-    const cooldown = Math.max(45000, (300 - 15 * perkLevel(state, "sprinter")) * 1000);
+    const cooldown = Math.max(30000, (90 - 6 * perkLevel(state, "sprinter")) * 1000);
     const remaining = state.lastMine ? cooldown - (now - new Date(state.lastMine).getTime()) : 0;
     if (remaining > 0) return { cooldown: Math.ceil(remaining / 1000) };
-    const reward = Decimal.max(25, state.rate.times(15))
+    const reward = Decimal.max(150, state.rate.times(30))
       .times(dec(1).plus(dec(state.pickaxeTier).times("0.25")))
       .times(dec(1).plus(dec(perkLevel(state, "miner")).times("0.10")))
       .times(state.mineBonus).floor();
@@ -130,11 +156,12 @@ async function mine(userId) {
       roll < 0.05 + fortune * 0.012 ? "gold" :
       roll < 0.08 + fortune * 0.017 ? "strange_matter" :
       roll < 0.35 + fortune * 0.025 ? "silver" : "ore";
-    await addItem(db, userId, drop, 1);
+    const dropQuantity = drop === "ore" ? 3 : drop === "silver" ? 2 : 1;
+    await addItem(db, userId, drop, dropQuantity);
     const box = Math.random() < 0.04 + 0.03 * perkLevel(state, "scavenger");
     if (box) await addItem(db, userId, "lootbox", 1);
     await event(db, userId, "mine", reward, { drop });
-    return { reward, drop, mineXp: state.mineXp, box };
+    return { reward, drop, dropQuantity, mineXp: state.mineXp, box };
   });
 }
 async function daily(userId) {
@@ -145,10 +172,15 @@ async function daily(userId) {
     const remaining = state.lastDaily ? cooldown - (now - new Date(state.lastDaily).getTime()) : 0;
     if (remaining > 0) return { cooldown: Math.ceil(remaining / 1000) };
     state.lastDaily = new Date(now);
-    await addItem(db, userId, "lootbox", 2);
+    const credits = dec(750);
+    state.balance = state.balance.plus(credits);
+    state.totalEarned = state.totalEarned.plus(credits);
+    await addItem(db, userId, "lootbox", 3);
     await addItem(db, userId, "coffee", 1);
-    await event(db, userId, "daily", 0);
-    return { received: ["2 Lootboxes", "1 Coffee"] };
+    await addItem(db, userId, "ore", 4);
+    await addItem(db, userId, "silver", 2);
+    await event(db, userId, "daily", credits);
+    return { received: ["750 IC", "3 Supply Caches", "1 Campfire Brew", "4 Rune Ore", "2 Moonsteel"] };
   });
 }
 async function craft(userId, itemId, quantity) {
@@ -163,7 +195,7 @@ async function craft(userId, itemId, quantity) {
 }
 async function openLootbox(userId, quantity, boxType = "lootbox") {
   assertQuantity(quantity, 20);
-  if (!["lootbox", "rare_lootbox", "legendary_lootbox"].includes(boxType)) throw new Error("Unknown lootbox type.");
+  if (!["lootbox", "rare_lootbox", "legendary_lootbox"].includes(boxType)) throw new Error("Unknown supply cache type.");
   return transact([userId], async (db) => {
     await removeItem(db, userId, boxType, quantity);
     const drops = {};
@@ -197,8 +229,8 @@ async function prestige(userId) {
     const state = stateOf(states, userId);
     if (state.balance.lt(PRESTIGE_REQUIREMENT)) throw new Error("You need 1B IC to prestige.");
     state.prestige += 1;
-    state.balance = dec(10);
-    state.totalEarned = dec(10);
+    state.balance = dec(500);
+    state.totalEarned = dec(500);
     state.rate = dec(0);
     state.generators = [];
     await db.query("DELETE FROM player_generators WHERE user_id=$1", [userId]);
@@ -307,9 +339,9 @@ async function upgradePickaxe(userId) {
   return transact([userId], async (db, states) => {
     const state = stateOf(states, userId);
     if (state.pickaxeTier >= 10) throw new Error("Your pickaxe is already maximum tier.");
-    const costOre = 20 * (state.pickaxeTier + 1);
-    const costSilver = 5 * (state.pickaxeTier + 1);
-    const costGold = state.pickaxeTier >= 2 ? state.pickaxeTier : 0;
+    const costOre = 8 * (state.pickaxeTier + 1);
+    const costSilver = 2 * (state.pickaxeTier + 1);
+    const costGold = state.pickaxeTier >= 3 ? Math.ceil(state.pickaxeTier / 2) : 0;
     await removeItem(db, userId, "ore", costOre);
     await removeItem(db, userId, "silver", costSilver);
     if (costGold) await removeItem(db, userId, "gold", costGold);
@@ -360,8 +392,8 @@ async function getStats(userId) {
   )).rows;
   const counts = Object.fromEntries(rows.map((row) => [row.event_type, row.count]));
   const achievements = [
-    { name: "Coffee Lover", achieved: (counts.daily || 0) >= 1, goal: "Claim a daily reward" },
-    { name: "Mine Apprentice", achieved: (counts.mine || 0) >= 25, goal: "Mine 25 times" },
+    { name: "First Expedition", achieved: (counts.daily || 0) >= 1, goal: "Claim your first daily supplies" },
+    { name: "Prospector", achieved: (counts.mine || 0) >= 10, goal: "Mine 10 times" },
     { name: "Crafting Artisan", achieved: (counts.craft || 0) >= 10, goal: "Craft 10 times" },
     { name: "Merchant", achieved: (counts.market_sell || 0) >= 1, goal: "List an item for sale" },
     { name: "Shopping Spree", achieved: (counts.generator_purchase || 0) >= 20, goal: "Buy generators 20 times" },
@@ -369,6 +401,66 @@ async function getStats(userId) {
   ];
   return { ...player, counts, achievements };
 }
-module.exports = { pool, transact, profile, buyGenerator, mine, daily, craft, openLootbox, giveItem,
+
+async function seasonStatus(userId) {
+  return transact([userId], async (db) => {
+    const progress = (await db.query("SELECT xp FROM season_progress WHERE user_id=$1 AND season_id=$2",
+      [userId, season.SEASON.id])).rows[0];
+    const claimed = (await db.query("SELECT tier FROM season_claims WHERE user_id=$1 AND season_id=$2 ORDER BY tier",
+      [userId, season.SEASON.id])).rows.map((r) => Number(r.tier));
+    const daily = (await db.query(
+      "SELECT xp FROM season_xp_daily WHERE user_id=$1 AND season_id=$2 AND day=(now() AT TIME ZONE 'UTC')::date",
+      [userId, season.SEASON.id])).rows[0]?.xp || 0;
+    const counts = (await db.query(
+      "SELECT event_type,count(*)::integer AS n FROM economy_events WHERE user_id=$1 " +
+      "AND created_at >= date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' " +
+      "AND event_type=ANY($2::text[]) GROUP BY event_type",
+      [userId, season.missions.map((m) => m.event)]
+    )).rows;
+    const activities = Object.fromEntries(counts.map((r) => [r.event_type, Number(r.n)]));
+    return {
+      xp: Number(progress?.xp || 0), claimed, dailyXp: Number(daily),
+      unlocked: season.unlocked(Number(progress?.xp || 0)),
+      activities, phase: season.phase()
+    };
+  });
+}
+async function claimSeasonRewards(userId, requested = "all") {
+  if (requested !== "all" && (!Number.isInteger(requested) || requested < 1 || requested > season.rewards.length))
+    throw new Error("Invalid season tier.");
+  if (!["active", "claim_only"].includes(season.phase()))
+    throw new Error("Season rewards are not available to claim now.");
+  return transact([userId], async (db, states) => {
+    const state = stateOf(states, userId);
+    const earned = (await db.query("SELECT xp FROM season_progress WHERE user_id=$1 AND season_id=$2",
+      [userId, season.SEASON.id])).rows[0]?.xp || 0;
+    const unlocked = season.unlocked(Number(earned));
+    if (requested !== "all" && requested > unlocked)
+      throw new Error("Earn " + season.tierNeeded(requested) + " Season XP to unlock this tier.");
+    const tiers = requested === "all" ?
+      Array.from({ length: unlocked }, (_, n) => n + 1) : [requested];
+    const grants = [];
+    for (const tier of tiers) {
+      const inserted = (await db.query(
+        "INSERT INTO season_claims(user_id,season_id,tier) VALUES($1,$2,$3) " +
+          "ON CONFLICT(user_id,season_id,tier) DO NOTHING RETURNING tier",
+        [userId, season.SEASON.id, tier]
+      )).rows;
+      if (!inserted.length) continue;
+      const reward = season.rewards[tier - 1];
+      if (reward.kind === "ic") {
+        state.balance = state.balance.plus(reward.amount);
+        state.totalEarned = state.totalEarned.plus(reward.amount);
+      } else if (reward.kind === "item") {
+        await addItem(db, userId, reward.item, reward.quantity);
+      }
+      await event(db, userId, "season_reward_claim", 0, { season: season.SEASON.id, tier, reward });
+      grants.push({ tier, reward: season.label(reward) });
+    }
+    return { grants, unlocked };
+  });
+}
+
+module.exports = { pool, transact, profile, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
   prestige, leaderboard, browseMarket, sellItem, buyListing, cancelListing, getListing, useItem, upgradePickaxe, upgradePerk,
   respecPerks, getStats };

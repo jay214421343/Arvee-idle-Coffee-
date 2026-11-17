@@ -31,7 +31,7 @@ test("Components V2 identifiers are owner-bound and compact", () => {
   assert.throws(() => ui.custom(owner, "weird action", ""));
 });
 test("all game dashboard views serialize as native Components V2", () => {
-  const user = { username: "CoffeeFan", displayAvatarURL: () => "https://cdn.discordapp.com/embed/avatars/0.png" };
+  const user = { username: "ARVEEFan", displayAvatarURL: () => "https://cdn.discordapp.com/embed/avatars/0.png" };
   const views = [
     ui.home(owner, user, sample),
     ui.shop(owner, 1),
@@ -46,7 +46,7 @@ test("all game dashboard views serialize as native Components V2", () => {
     ui.pickaxe(owner, sample),
     ui.perks(owner, sample, perks),
     ui.leaderboard(owner, [{ user_id: owner, total_earned: "10", prestige: 0 }]),
-    ui.stats(owner, { ...sample, counts: { mine: 4, daily: 1 }, achievements: [{ name: "Coffee Lover", achieved: true, goal: "Claim a reward" }] }),
+    ui.stats(owner, { ...sample, counts: { mine: 4, daily: 1 }, achievements: [{ name: "First Expedition", achieved: true, goal: "Claim a reward" }] }),
     ui.perkRespec(owner),
     ui.help(owner),
     ui.message("Test", "Hello", owner)
@@ -88,4 +88,28 @@ test("authorized paging updates a Components V2 message without using a database
   assert.equal(await handleComponent(interaction), true);
   assert.equal(deferred, true);
   assert.equal(payload.components[0].toJSON().type, 17);
+});
+
+test("navigation dropdown opens field guide without requiring database access", async () => {
+  let edited=null, deferred=false;
+  const interaction={
+    customId:ui.custom(owner,"navigate"),
+    user:{id:owner}, isButton:()=>false,isStringSelectMenu:()=>true,
+    values:["help"],
+    deferUpdate:async()=>{deferred=true;},
+    editReply:async(v)=>{edited=v;}
+  };
+  assert.equal(await handleComponent(interaction),true);
+  assert.equal(deferred,true);
+  assert.match(JSON.stringify(edited.components[0].toJSON()),/WELCOME TO ARVEE IDLE/);
+});
+test("filter accessory opens a category picker without database calls", async () => {
+  let edited=null;
+  const interaction={
+    customId:ui.custom(owner,"inventory_filters","2_materials_quantity"),
+    user:{id:owner}, isButton:()=>true,isStringSelectMenu:()=>false,
+    deferUpdate:async()=>{},editReply:async(v)=>{edited=v;}
+  };
+  assert.equal(await handleComponent(interaction),true);
+  assert.match(JSON.stringify(edited.components[0].toJSON()),/inventory_filter_set/);
 });

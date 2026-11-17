@@ -5,7 +5,7 @@ validateDatabaseUrl();
 validateDiscord();
 const { Client, GatewayIntentBits, Events } = require("discord.js");
 const { pool } = require("./store");
-const { respond, handleComponent } = require("./commands");
+const { respond, handleAutocomplete, handleComponent } = require("./commands");
 const brand = require("./brand");
 
 async function main() {
@@ -40,7 +40,8 @@ async function main() {
   });
   client.on(Events.InteractionCreate, (interaction) => {
     if (closing) return;
-    const runner = interaction.isButton() || interaction.isStringSelectMenu() ? handleComponent(interaction) : respond(interaction);
+    const runner = interaction.isAutocomplete() ? handleAutocomplete(interaction) :
+      interaction.isButton() || interaction.isStringSelectMenu() ? handleComponent(interaction) : respond(interaction);
     void runner.catch(async (error) => {
       console.error("[ARVEE Idle] Interaction failed:", error.message);
       if (!interaction.deferred && !interaction.replied) {
