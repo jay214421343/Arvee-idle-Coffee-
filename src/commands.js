@@ -376,9 +376,14 @@ async function handleComponent(interaction) {
       else throw new Error("Unknown navigation destination.");
     } else if (action === "season") {
       view = ui.season(owner, await store.seasonStatus(owner), Number(argument) || 1);
+    } else if (action === "season_jump") {
+      const page = Number(selected);
+      if (!Number.isInteger(page) || page < 1 || page > Math.ceil(require("./season").rewards.length/4))
+        throw new Error("Invalid season page.");
+      view = ui.season(owner, await store.seasonStatus(owner), page);
     } else if (action === "season_claim") {
       const tier = Number(argument);
-      if (!Number.isInteger(tier) || tier < 1 || tier > 20) throw new Error("Invalid season tier.");
+      if (!Number.isInteger(tier) || tier < 1 || tier > require("./season").rewards.length) throw new Error("Invalid season tier.");
       result = await store.claimSeasonRewards(owner, tier);
       view = ui.season(owner, await store.seasonStatus(owner), Math.ceil(tier / 4),
         result.grants.length ? "Tier " + tier + " reward claimed!" : "Already collected.");

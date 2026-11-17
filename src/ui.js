@@ -1060,7 +1060,7 @@ function season(owner, progress, page = 1, note = "") {
   const ended = progress.phase === "finished" || progress.phase === "upcoming";
   const c = container("ARVEE IDLE  /  SEASON JOURNEY",
     "**Founders' Journey · Season 01**\n" + SEASON.subtitle +
-    "\nFree reward track · 20 tiers · " +
+    "\nFree reward track · " + rewards.length + " tiers · " +
     (progress.phase === "active" ? "Ends 16 Jan 2027" :
       progress.phase === "claim_only" ? "Claim grace until 23 Jan 2027" :
       progress.phase === "upcoming" ? "Coming soon" : "Season finished"));
@@ -1088,6 +1088,12 @@ function season(owner, progress, page = 1, note = "") {
         String(tier), ButtonStyle.Secondary, !ready));
     c.addSectionComponents(section);
   }
+  // Direct selection keeps 25 pages manageable on small Discord screens.
+  c.addActionRowComponents(selector(owner, "season_jump", "", "Jump to a tier range",
+    Array.from({length:total},(_,i)=>{
+      const start=i*4+1, end=Math.min(rewards.length,start+3);
+      return {label:"Tiers "+start+"–"+end,value:String(i+1),default:i+1===page};
+    })));
   c.addActionRowComponents(row([
     button(owner, "season", "◀", String(page - 1), ButtonStyle.Secondary, page === 1),
     button(owner, "season_claim_all", claimable > 0 && !ended ? "Claim all (" + claimable + ")" : "Nothing to claim",

@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS economy_events (
 );
 CREATE INDEX IF NOT EXISTS economy_events_user_idx ON economy_events(user_id, created_at DESC);
 
--- Season Journey: permanent claims and per-UTC-day XP caps; migrations are additive.
+-- Season Journey: persistent XP and one-time tier claims; migrations are additive.
 CREATE TABLE IF NOT EXISTS season_progress (
   user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
   season_id TEXT NOT NULL,
@@ -90,10 +90,13 @@ CREATE TABLE IF NOT EXISTS season_xp_daily (
 CREATE TABLE IF NOT EXISTS season_claims (
   user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
   season_id TEXT NOT NULL,
-  tier INTEGER NOT NULL CHECK(tier BETWEEN 1 AND 20),
+  tier INTEGER NOT NULL CHECK(tier BETWEEN 1 AND 100),
   claimed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY(user_id, season_id, tier)
 );
+-- Migrate existing 20-tier databases without dropping stored claims or XP.
+ALTER TABLE season_claims DROP CONSTRAINT IF EXISTS season_claims_tier_check;
+ALTER TABLE season_claims ADD CONSTRAINT season_claims_tier_check CHECK (tier BETWEEN 1 AND 100);
 CREATE INDEX IF NOT EXISTS season_claims_owner_idx ON season_claims(user_id,season_id);
 
 -- Per-player UI preferences are shared across Discord clients and PM2 restarts.
