@@ -27,12 +27,12 @@ test("restored Coffee items function transactionally and cosmetics survive prest
     await assert.rejects(()=>store.useItem(user,"nametag","<everyone>"),/Names must/);
     assert.equal((await store.profile(user)).inventory.find(x=>x.item_id==="nametag").quantity,1);
     assert.match((await store.useItem(user,"nametag","Moonshard")).message,/Moonshard/);
-    assert.match((await store.useItem(user,"tag","Coffee Veteran")).message,/Coffee Veteran/);
+    assert.match((await store.useItem(user,"tag","ARVEE Veteran")).message,/ARVEE Veteran/);
     await store.useItem(user,"pick_skin");
     const decorated=await store.profile(user);
     assert.equal(decorated.pickaxeName,"Moonshard");
     assert.equal(decorated.pickaxeStyle,"I Skin");
-    assert.equal(decorated.profileTag,"Coffee Veteran");
+    assert.equal(decorated.profileTag,"ARVEE Veteran");
     await store.useItem(user,"arthurs_tablet");
     await store.useItem(user,"kingstones_stone");
     assert.equal((await store.profile(user)).mineXp,before.mineXp+37);
@@ -65,7 +65,7 @@ test("restored Coffee items function transactionally and cosmetics survive prest
     const retained=await store.profile(user);
     assert.equal(retained.pickaxeName,"Moonshard");
     assert.equal(retained.pickaxeStyle,"I Skin");
-    assert.equal(retained.profileTag,"Coffee Veteran");
+    assert.equal(retained.profileTag,"ARVEE Veteran");
     assert.equal(retained.generators.length,0);
     assert.equal(retained.inventory.find(x=>x.item_id==="rebirth_cocktail").quantity,1);
     assert.equal(retained.inventory.find(x=>x.item_id==="mine_alert").quantity,1);

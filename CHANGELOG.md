@@ -1,3 +1,15 @@
+# 2.10.0 — Companion Diversity & Supply Cache Improvements (pending review)
+
+- Expand companions from 3 to 18 distinct pets with six rarity tiers and build-oriented mining, expedition, boss, egg and cache effects.
+- Keep the three original starters, one active pet, existing player collection and XP persistence, weighted hatching and duplicate XP.
+- Increase successful-mine Supply Cache base chance from 4% to 7%. Keep existing Scavenger scaling and add Rune Gecko's non-guaranteed bonus.
+- No guaranteed Rune Fragments and no direct mining fragment rewards; retain all current cache loot tables and odds.
+- Show rarity and concise effect in a compact Companion collection; make Rune Fragment sources explicit in the talents view.
+- Replace developer-facing Coffee references in player item lore and profile title options with ARVEE-world wording.
+- Extend companion PostgreSQL CHECK constraints additively; migration is required before bot restart.
+
+---
+
 # 2.9.4 — Animated Silver Emoji Fix (pending review)
 
 - Correct Moonsteel/Silver's registered application emoji from static `<:silver:1572284313511141477>` to animated `<a:silver:1572284313511141477>`.

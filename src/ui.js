@@ -498,7 +498,7 @@ function inventoryPreview(owner, user, player) {
 
 const CUSTOM_PRESETS = Object.freeze({
   nametag: ["Moonshard", "Sunbreaker", "Cinderpick"],
-  tag: ["Trailblazer", "Coffee Veteran", "Astral Cartographer"]
+  tag: ["Trailblazer", "ARVEE Veteran", "Astral Cartographer"]
 });
 function customization(owner, id) {
   const names = CUSTOM_PRESETS[id];
@@ -588,14 +588,16 @@ function companionCollection(owner, state, note = "") {
   const owned = new Map(state.owned.map((pet) => [pet.id, pet]));
   const selected = owned.get(state.activeId);
   const c = container("ARVEE IDLE  /  COMPANIONS",
-    "**" + state.owned.length + " / 3 discovered**  ·  **" + state.eggs + " eggs**\n" +
-    "One active companion shares your adventures. No feeding or paid upgrades.");
+    "**" + state.owned.length + " / " + companions.PETS.length +
+    " discovered**  ·  **" + state.eggs + " eggs**\n" +
+    "One active companion supports your chosen build. No feeding or paid upgrades.");
   if (selected) {
     const next = selected.level === companions.MAX_LEVEL ? companions.MAX_XP : selected.nextXp;
     const progress = next === selected.startXp ? 10 :
       Math.floor(10 * (selected.xp - selected.startXp) / (next - selected.startXp));
     c.addTextDisplayComponents(text("### ACTIVE COMPANION\n" +
-      "**" + companions.byId.get(selected.id).name + "**  ·  Level " + selected.level +
+      "**" + companions.byId.get(selected.id).name + "**  ·  " +
+      companions.byId.get(selected.id).rarity + "  ·  Level " + selected.level +
       "  ·  " + selected.stage + "\n" + selected.bonus.description +
       "\n" + "▰".repeat(Math.min(10, progress)) + "▱".repeat(10 - Math.min(10, progress)) +
       "  " + (selected.level === companions.MAX_LEVEL ? "Max level" : selected.xp + " / " + next + " XP")));
@@ -603,20 +605,26 @@ function companionCollection(owner, state, note = "") {
     c.addTextDisplayComponents(text("### YOUR FIRST COMPANION\nChoose a starter companion below. It is free, permanent and can be changed later."));
   }
   divider(c);
-  c.addTextDisplayComponents(text("**COLLECTION**\n" + companions.PETS.map((pet) => {
-    const p = owned.get(pet.id);
-    return (p ? (state.activeId === pet.id ? "● " : "○ ") : "– ") +
-      "**" + pet.name + "**  ·  " + (p ? "Lv " + p.level + " · " + p.stage : "Undiscovered") +
-      "\n   " + (p ? p.bonus.description : pet.description);
-  }).join("\n\n")));
+  const rarities = ["Common","Uncommon","Rare","Epic","Legendary","Mythic"];
+  const collection = state.owned.map((p) => {
+    const def = companions.byId.get(p.id);
+    return (state.activeId === p.id ? "● " : "○ ") + "**" + def.name + "**  ·  " +
+      def.rarity + " · Lv " + p.level + "\n   " + p.bonus.description;
+  });
+  const summary = rarities.map((rarity) => {
+    const group = companions.PETS.filter((pet) => pet.rarity === rarity);
+    return rarity + " " + group.filter((pet) => owned.has(pet.id)).length + "/" + group.length;
+  }).join(" · ");
+  c.addTextDisplayComponents(text("**COLLECTION**  " + summary +
+    "\n" + (collection.length ? collection.join("\n") : "Discover companions through expeditions and eggs.")));
   c.addActionRowComponents(selector(owner,
     state.starterClaimed ? "companion_select" : "companion_adopt",
     "",
     state.starterClaimed ? "Choose your active companion" : "Choose your free starter",
-    (state.starterClaimed ? state.owned.map((pet) => companions.byId.get(pet.id)) : companions.PETS)
+    (state.starterClaimed ? state.owned.map((pet) => companions.byId.get(pet.id)) : companions.STARTERS)
       .map((pet) => ({
         label: pet.name, value: pet.id,
-        description: pet.description.slice(0,100),
+        description: (pet.rarity + " · " + pet.description).slice(0,100),
         ...(state.starterClaimed ? { default: state.activeId === pet.id } : {})
       }))
   ));
@@ -1124,7 +1132,7 @@ function perks(owner, p, defs) {
   const fragments = p.inventory?.find((r) => r.item_id === "pickperk")?.quantity || 0;
   const equipped = p.perks?.length || 0;
   const c = container("ARVEE IDLE  /  RUNIC TALENTS",
-    "Spend Rune Fragments on lasting mining abilities. Choose up to 3 different talents.");
+    "Spend Rune Fragments on permanent talents. Find them in Supply Caches (regular 1%, rare 14%, mythic 20%).");
   c.addTextDisplayComponents(text("**Rune Fragments:** " + fragments + "  ·  **Talents:** " + equipped + " / 3"));
   divider(c);
   c.addTextDisplayComponents(text(Object.entries(defs).map(([id, def]) => {
