@@ -6,6 +6,7 @@
 - Expedition rewards are calculated server-side at launch and saved in PostgreSQL; concurrent claims are transactional and idempotent.
 - Exploration completion now contributes to the Season Journey and rotating daily/weekly Adventurer Contracts.
 - Added additive database tables, rendering tests, economy integration tests, and preserved progress through prestige resets.
+- Standardized every large IC amount, generator cost/income, and market price to compact suffixes beyond decillion, including alphabetic tiers past 10^222; gameplay precision is unchanged.
 
 ---
 # 2.2.0 — Saved filters and Adventurer Contracts (unreleased)

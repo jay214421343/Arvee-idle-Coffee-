@@ -2,7 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { byId, generators, recipes } = require("../src/catalog");
-const { dec, purchaseCost, settle, generatorRate, prestigeMultiplier, pretty } = require("../src/economy");
+const { dec, purchaseCost, settle, generatorRate, prestigeMultiplier, pretty, magnitudeSuffix } = require("../src/economy");
 test("ARVEE operation catalogue retains stable database IDs", () => {
   assert.ok(generators.length > 20);
   assert.equal(byId.size, generators.length);
@@ -43,6 +43,30 @@ test("crafting recipes refer to defined items", () => {
     for (const [part, amount] of Object.entries(ingredients)) {
       assert.ok(items[part]);
       assert.ok(amount > 0);
+    }
+  }
+});
+
+test("all large numbers display compact prefixes instead of e+ notation", () => {
+  const cases = [
+    ["0", "0"], ["999", "999"], ["1000", "1K"], ["1234567", "1.23M"],
+    ["1e9", "1B"], ["1e12", "1T"], ["1e30", "1No"],
+    ["1e33", "1aa"], ["1e36", "1ab"], ["1e108", "1az"],
+    ["3.29e222", "3.29cl"], ["-3.29e222", "-3.29cl"],
+    ["1e2061", "1aaa"], ["1e2100", "1aan"]
+  ];
+  for (const [input, expected] of cases) assert.equal(pretty(input), expected, input);
+  assert.equal(magnitudeSuffix(74), "cl");
+  assert.equal(magnitudeSuffix(11), "aa");
+  assert.throws(() => magnitudeSuffix(0), /Invalid magnitude/);
+});
+test("all operation costs, incomes and prices use readable suffixes", () => {
+  for (const g of generators) {
+    for (const amount of [g.cost, g.income, purchaseCost(g.cost, 100, 1)]) {
+      const displayed = pretty(amount);
+      assert.ok(displayed.length < 25, "oversized display: " + g.id);
+      assert.doesNotMatch(displayed, /e[+-]?[0-9]+/i, "scientific notation: " + g.id);
+      assert.match(displayed, /^-?[0-9]+(?:\.[0-9]+)?[A-Za-z]*$/);
     }
   }
 });

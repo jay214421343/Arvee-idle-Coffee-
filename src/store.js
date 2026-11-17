@@ -1,7 +1,7 @@
 "use strict";
 const { Pool } = require("pg");
 const { items, recipes, byId, perks } = require("./catalog");
-const { Decimal, dec, generatorRate, purchaseCost, settle, PRESTIGE_REQUIREMENT, prestigeMultiplier } = require("./economy");
+const { Decimal, dec, generatorRate, purchaseCost, settle, PRESTIGE_REQUIREMENT, prestigeMultiplier, pretty } = require("./economy");
 const season = require("./season");
 const challenges = require("./challenges");
 const exploration = require("./exploration");
@@ -122,7 +122,7 @@ async function buyGenerator(userId, generatorId, quantity) {
     const owned = current ? current.quantity : 0;
     if (owned + quantity > 10000) throw new Error("Generator ownership limit reached (10,000 per type).");
     const cost = purchaseCost(entry.cost, owned, quantity);
-    if (state.balance.lt(cost)) throw new Error("Not enough IC. Need " + cost.toSignificantDigits(5).toString() + " IC.");
+    if (state.balance.lt(cost)) throw new Error("Not enough IC. Need " + pretty(cost) + " IC.");
     state.balance = state.balance.minus(cost);
     await db.query(
       "INSERT INTO player_generators(user_id,generator_id,quantity) VALUES($1,$2,$3) ON CONFLICT(user_id,generator_id) DO UPDATE SET quantity=player_generators.quantity + EXCLUDED.quantity",

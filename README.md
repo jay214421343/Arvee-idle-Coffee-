@@ -30,6 +30,7 @@ The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They on
 - **Equipment:** `/idle equipment` upgrades the Trailblazer's Kit (shorter missions), Astral Compass (better loot quantity), and Guardian Ward (higher success chance) using IC and ordinary crafting materials. No paid-only gear.
 - **Connected progression:** collecting missions awards Season Journey XP and can satisfy rotating daily/weekly contracts. Simply starting a mission does not award season XP.
 - **Safety:** expedition rewards and outcomes are rolled only when starting a mission, stored before the timer begins and granted atomically on claim; repeated clicks or concurrent PM2 instances cannot claim twice.
+- **Readable huge numbers:** IC, operation costs, rates, and exchange prices use K/M/B/T/Qa/.../No, then an unlimited alphabetic suffix (`aa`, `ab`, ..., `cl` for 10²²², `aaa` and beyond). Examples: `3.29e+222` displays as `3.29cl`. Internal values remain precise PostgreSQL/Decimal numbers.
 
 ### Deployment
 
