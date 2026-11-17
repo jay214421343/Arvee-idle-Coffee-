@@ -18,11 +18,18 @@ const PETS = Object.freeze([
   Object.freeze({ id: "phoenix_drake", name: "Phoenix Drake", role: "Mining", rarity: "Legendary", description: "Empower mining rewards and World Boss attacks.", effect: "mine_income", starter: false, power: 1.3 }),
   Object.freeze({ id: "runebound_golem", name: "Runebound Golem", role: "Boss", rarity: "Legendary", description: "Deal more World Boss damage.", effect: "boss_power", starter: false, power: 1.35 }),
   Object.freeze({ id: "star_stag", name: "Star Stag", role: "Expedition", rarity: "Legendary", description: "Protect expeditions from setbacks.", effect: "expedition_success", starter: false, power: 1.25 }),
-  Object.freeze({ id: "hatchling_drake", name: "Hatchling Drake", role: "Eggs", rarity: "Mythic", description: "Increase companion egg discovery chances.", effect: "egg_luck", starter: false, power: 1.4 })
+  Object.freeze({ id: "hatchling_drake", name: "Hatchling Drake", role: "Eggs", rarity: "Mythic", description: "Increase companion egg discovery chances.", effect: "egg_luck", starter: false, power: 1.4 }),
+  Object.freeze({ id: "twilight_lynx", name: "Twilight Lynx", role: "Omni", rarity: "Mythic", description: "Balanced boosts to every companion stat and passive IC income.", effect: "all_stats", starter: false, power: 0.45 }),
+  Object.freeze({ id: "aurora_gryphon", name: "Aurora Gryphon", role: "Omni", rarity: "Mythic", description: "Strong boosts to every companion stat and passive IC income.", effect: "all_stats", starter: false, power: 0.65 }),
+  Object.freeze({ id: "eclipse_leviathan", name: "Eclipse Leviathan", role: "Omni", rarity: "Mythic", description: "The strongest all-round Mythic, empowering every stat and passive IC income.", effect: "all_stats", starter: false, power: 0.9 }),
+  Object.freeze({ id: "eternal_sovereign", name: "Eternal Sovereign", role: "Omni", rarity: "Secret", description: "A nearly impossible legend whose power strengthens every stat.", effect: "all_stats", starter: false, power: 1.6 })
 ]);
 const byId = new Map(PETS.map((pet) => [pet.id, pet]));
 const STARTERS = Object.freeze(PETS.filter((pet) => pet.starter));
-const RARITY_WEIGHTS = Object.freeze({ Common: 60, Uncommon: 40, Rare: 25, Epic: 12, Legendary: 5, Mythic: 2 });
+const RARITY_WEIGHTS = Object.freeze({ Common: 60, Uncommon: 40, Rare: 25, Epic: 12, Legendary: 5, Mythic: 2, Secret: 0 });
+const SECRET_POOL = 1000000;
+const ALL_EFFECTS = Object.freeze(["mine_income","idle_income","expedition_speed","expedition_loot",
+  "expedition_success","boss_power","boss_haste","egg_luck","cache_luck"]);
 const TALENTS = Object.freeze({
   focus: Object.freeze({name:"Focus",description:"Stronger natural companion ability"}),
   tracker: Object.freeze({name:"Tracker",description:"Better Supply Cache and companion egg discovery"}),
@@ -34,9 +41,9 @@ const CHARMS = Object.freeze({
   warcaller_charm: Object.freeze({name:"Warcaller Charm",effect:"boss_power",power:5})
 });
 const EGG_TIERS = Object.freeze({
-  companion_egg: Object.freeze({name:"Companion Egg",weights:{Common:1,Uncommon:1,Rare:1,Epic:1,Legendary:1,Mythic:1}}),
-  rare_companion_egg: Object.freeze({name:"Enchanted Egg",weights:{Common:0,Uncommon:0.2,Rare:1.5,Epic:3,Legendary:3,Mythic:2}}),
-  mythic_companion_egg: Object.freeze({name:"Astral Egg",weights:{Common:0,Uncommon:0,Rare:0.2,Epic:2,Legendary:5,Mythic:10}})
+  companion_egg: Object.freeze({name:"Companion Egg",weights:{Common:1,Uncommon:1,Rare:1,Epic:1,Legendary:1,Mythic:1,Secret:0},secretChance:10}),
+  rare_companion_egg: Object.freeze({name:"Enchanted Egg",weights:{Common:0,Uncommon:0.2,Rare:1.5,Epic:3,Legendary:3,Mythic:2,Secret:0},secretChance:40}),
+  mythic_companion_egg: Object.freeze({name:"Astral Egg",weights:{Common:0,Uncommon:0,Rare:0.2,Epic:2,Legendary:5,Mythic:10,Secret:0},secretChance:200})
 });
 const MAX_LEVEL = 30;
 const MAX_XP = 50 * MAX_LEVEL * (MAX_LEVEL - 1);
@@ -59,9 +66,11 @@ function boostPct(lvl) {
 function effectPct(pet, effect) {
   const type = pet && byId.get(pet.id);
   if (!type) return 0;
-  let pct = type.effect === effect ? boostPct(pet.level) * type.power : 0;
+  let pct = type.effect === effect || (type.effect === "all_stats" && ALL_EFFECTS.includes(effect)) ?
+    boostPct(pet.level) * type.power : 0;
   const mastery = pet.level >= 20 ? 2 : pet.level >= 10 ? 1 : 0;
-  if (mastery && pet.talentId === "focus" && type.effect === effect)
+  if (mastery && pet.talentId === "focus" &&
+      (type.effect === effect || (type.effect === "all_stats" && ALL_EFFECTS.includes(effect))))
     pct *= mastery === 2 ? 1.35 : 1.2;
   if (mastery && pet.talentId === "tracker" && (effect === "cache_luck" || effect === "egg_luck"))
     pct += mastery === 2 ? 12 : 6;
@@ -74,7 +83,7 @@ function effectPct(pet, effect) {
 function bonus(pet) {
   const type = pet && byId.get(pet.id);
   if (!type) return null;
-  const pct = effectPct(pet, type.effect);
+  const pct = effectPct(pet, type.effect === "all_stats" ? "mine_income" : type.effect);
   const desc = {
     mine_income: "+" + pct + "% mined IC and World Boss power",
     expedition_speed: "-" + pct + "% expedition duration",
@@ -89,8 +98,12 @@ function bonus(pet) {
     pet.level >= 10 && TALENTS[pet.talentId] ? "Talent: " + TALENTS[pet.talentId].name : "",
     CHARMS[pet.charmId] ? "Charm: " + CHARMS[pet.charmId].name : ""
   ].filter(Boolean).join(" · ");
+  const allRound = type.effect === "all_stats" ?
+    "All 9 buffs · +" + pct + "% mining, idle income, loot and boss power · -" +
+    effectPct(pet,"boss_haste") + "% boss cooldown · faster expeditions and more luck" :
+    desc[type.effect];
   return { role: type.role, percent: pct,
-    description: desc[type.effect] + (suffix ? " · " + suffix : "") };
+    description: allRound + (suffix ? " · " + suffix : "") };
 }
 function eventXp(type, metadata = {}) {
   if (type === "mine") return 10;
@@ -117,6 +130,12 @@ function hatch(owned = [], rng = (limit) => crypto.randomInt(limit), eggType = "
   const total = weights.reduce((sum,[,weight]) => sum + weight,0);
   const roll = rng(total);
   if (!Number.isInteger(roll) || roll < 0 || roll >= total) throw new Error("Invalid companion egg roll.");
+  // A separate, unbiased Secret roll does not increase through duplicate protection.
+  // Common 1/100,000; Enchanted 1/25,000; Astral 1/5,000.
+  const secretRoll = rng(SECRET_POOL);
+  if (!Number.isInteger(secretRoll) || secretRoll < 0 || secretRoll >= SECRET_POOL)
+    throw new Error("Invalid secret egg roll.");
+  if (secretRoll >= SECRET_POOL - tier.secretChance) return byId.get("eternal_sovereign");
   let left = roll;
   for (const [pet, weight] of weights) {
     if (left < weight) return pet;
@@ -124,5 +143,5 @@ function hatch(owned = [], rng = (limit) => crypto.randomInt(limit), eggType = "
   }
   throw new Error("Could not hatch companion.");
 }
-module.exports = { PETS, STARTERS, byId, RARITY_WEIGHTS, TALENTS, CHARMS, EGG_TIERS, MAX_LEVEL, MAX_XP,
+module.exports = { PETS, STARTERS, byId, RARITY_WEIGHTS, SECRET_POOL, ALL_EFFECTS, TALENTS, CHARMS, EGG_TIERS, MAX_LEVEL, MAX_XP,
   xpFor, level, stage, bonus, boostPct, effectPct, eventXp, eggDrop, hatch };
