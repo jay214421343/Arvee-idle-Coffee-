@@ -12,8 +12,8 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
   const c = "999997000000" + suffix;
   try {
     const original = await store.profile(a);
-    assert.equal(original.balance.toString(), "10");
-    await assert.rejects(() => store.buyGenerator(a, "MSPS", 1), /Not enough IC/);
+    assert.equal(original.balance.toString(), "500");
+    assert.equal((await store.buyGenerator(a, "MSPS", 1)).cost.toString(), "100");
     await store.pool.query("UPDATE players SET balance=1000000,total_earned=1000000 WHERE user_id=$1", [a]);
     const both = await Promise.all([store.buyGenerator(a, "MSPS", 1), store.buyGenerator(a, "MSPS", 1)]);
     assert.equal(both.length, 2);
@@ -24,7 +24,9 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
     const secondMine = await store.mine(a);
     assert.ok(firstMine.reward.gt(0));
     assert.ok(secondMine.cooldown > 0);
-    assert.ok((await store.daily(a)).received.length);
+    const beforeDaily = (await store.profile(a)).balance;
+    assert.ok((await store.daily(a)).received.includes("750 IC"));
+    assert.ok((await store.profile(a)).balance.gte(beforeDaily.plus(750)));
     assert.ok((await store.daily(a)).cooldown > 0);
     await store.giveItem(a, b, "coffee", 1);
     const listing = await store.sellItem(b, "coffee", 1, "250");
@@ -74,7 +76,7 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
     assert.equal(reset.generators.length, 0);
     assert.equal(reset.perks.find((p) => p.perk_id === "miner").level, 1);
     const stats = await store.getStats(a);
-    assert.ok(stats.achievements.find((x) => x.name === "Coffee Lover").achieved);
+    assert.ok(stats.achievements.find((x) => x.name === "First Expedition").achieved);
     assert.ok(stats.achievements.find((x) => x.name === "Rising Star").achieved);
     await store.pool.query(
       "INSERT INTO inventory(user_id,item_id,quantity) VALUES($1,'strange_matter',5) ON CONFLICT(user_id,item_id) DO UPDATE SET quantity=inventory.quantity+EXCLUDED.quantity",
