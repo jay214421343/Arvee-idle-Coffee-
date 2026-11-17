@@ -183,7 +183,7 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
     if (season.phase() === "active") {
       const progress = await store.seasonStatus(a);
       assert.ok(progress.xp >= 250, "normal gameplay should unlock the first tier");
-      assert.ok(progress.dailyXp <= season.SEASON.dailyXpCap);
+      assert.equal(Object.hasOwn(progress,"dailyXp"),false,"no daily XP limit is exposed");
       assert.ok(progress.activities.mine >= 2);
       const beforeReward = (await store.profile(a)).balance;
       const parallel = await Promise.all([
@@ -196,13 +196,16 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
       await assert.rejects(() => store.claimSeasonRewards(a, 20), /Earn .*Season XP/);
       await store.pool.query("UPDATE players SET balance=100000000000,total_earned=100000000000 WHERE user_id=$1", [a]);
       for (let i = 0; i < 8; i++) await store.buyGenerator(a, "MSPS", 5);
-      const capped = await store.seasonStatus(a);
-      assert.equal(capped.dailyXp, season.SEASON.dailyXpCap);
+      const advanced = await store.seasonStatus(a);
+      assert.ok(advanced.xp > progress.xp,"progress continues past the old daily limit");
+      assert.equal(Object.hasOwn(advanced,"dailyXp"),false);
       const both = await Promise.all([
         store.claimSeasonRewards(a, "all"), store.claimSeasonRewards(a, "all")
       ]);
-      assert.equal(both.reduce((sum, r) => sum + r.grants.length, 0), 1);
-      assert.deepEqual((await store.seasonStatus(a)).claimed, [1, 2]);
+      const unlocked = season.unlocked(advanced.xp);
+      assert.equal(both.reduce((sum, r) => sum + r.grants.length, 0), unlocked-1);
+      assert.deepEqual((await store.seasonStatus(a)).claimed,
+        Array.from({length:unlocked},(_,i)=>i+1));
     }
     await assert.rejects(() => store.useItem(a, "ore"), /cannot be consumed/);
     // Double-purchase race: at most one buyer gets the same listing.

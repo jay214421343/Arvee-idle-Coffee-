@@ -38,7 +38,7 @@ test("new pets modify only their designated gameplay system",()=>{
   assert.equal(bosses.attackCooldownMs({id:"ember_fox",level:10}),bosses.attackCooldownMs());
 });
 test("egg rolls favor undiscovered pets and Mythic species are possible but rare",()=>{
-  const weights=pets.PETS.map(p=>pets.RARITY_WEIGHTS[p.rarity]*2);
+  const weights=pets.PETS.map(p=>Math.round(pets.RARITY_WEIGHTS[p.rarity]*10)*2);
   let cumulative=0, target=-1;
   for(let i=0;i<pets.PETS.length;i++){
     if(pets.PETS[i].id==="hatchling_drake"){target=cumulative;break;}
