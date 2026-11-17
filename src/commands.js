@@ -18,6 +18,8 @@ idle.addSubcommand((c) => c.setName("mine").setDescription("Mine Idle Credits an
 idle.addSubcommand((c) => c.setName("daily").setDescription("Claim your daily Idle Credits and supply caches"));
 idle.addSubcommand((c) => c.setName("season").setDescription("Season Journey: tiers, challenges and free rewards"));
 idle.addSubcommand((c) => c.setName("challenges").setDescription("Daily and weekly adventurer contracts with rewards"));
+idle.addSubcommand((c) => c.setName("explore").setDescription("World Map: send your crew on timed expeditions"));
+idle.addSubcommand((c) => c.setName("equipment").setDescription("Upgrade permanent expedition equipment"));
 idle.addSubcommand((c) => c.setName("settings").setDescription("View and reset your saved filter preferences"));
 idle.addSubcommand((c) => c.setName("inventory").setDescription("Check collected items").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
 idle.addSubcommand((c) => c.setName("craft").setDescription("Craft an item")
@@ -112,6 +114,8 @@ async function respond(interaction) {
         "**Economy:** /idle shop, /idle buy, /idle leaderboard, /idle prestige",
         "**Season:** /idle season to unlock 20 free reward tiers",
         "**Contracts:** /idle challenges for daily and weekly rewards",
+        "**World Map:** /idle explore to send crew on timed expeditions",
+        "**Equipment:** /idle equipment to boost expedition rewards",
         "**Preferences:** /idle settings to view and reset your saved filters",
         "**Activities:** /idle mine, /idle daily, /idle craft, /idle open",
         "**Items:** /idle inventory, /idle give, /idle market",
@@ -132,6 +136,10 @@ async function respond(interaction) {
       view = ui.challengeBoard(id, await store.getChallenges(id));
     } else if (command === "settings") {
       view = ui.preferences(id, await store.getPreferences(id));
+    } else if (command === "explore") {
+      view = ui.expeditionMap(id, await store.getExploration(id));
+    } else if (command === "equipment") {
+      view = ui.expeditionGear(id, await store.getExploration(id));
     } else if (command === "shop") {
       view = await savedShop(id, opts.getInteger("page") || 1);
       content = shop(opts.getInteger("page") || 1);
@@ -245,6 +253,8 @@ async function handleComponent(interaction) {
       else if (selected === "season") view = ui.season(owner, await store.seasonStatus(owner));
       else if (selected === "challenges") view = ui.challengeBoard(owner, await store.getChallenges(owner));
       else if (selected === "settings") view = ui.preferences(owner, await store.getPreferences(owner));
+      else if (selected === "explore") view = ui.expeditionMap(owner, await store.getExploration(owner));
+      else if (selected === "equipment") view = ui.expeditionGear(owner, await store.getExploration(owner));
       else if (selected === "market") view = ui.market(owner, await store.browseMarket());
       else if (selected === "pickaxe") view = ui.pickaxe(owner, await store.profile(owner));
       else if (selected === "perks") view = ui.perks(owner, await store.profile(owner), require("./catalog").perks);
@@ -279,6 +289,26 @@ async function handleComponent(interaction) {
       view = ui.preferences(owner, await store.getPreferences(owner));
     } else if (action === "preferences_reset") {
       view = ui.preferences(owner, await store.resetPreferences(owner), "Defaults restored. New filters save automatically.");
+    } else if (action === "explore") {
+      view = ui.expeditionMap(owner, await store.getExploration(owner));
+    } else if (action === "region_view") {
+      view = ui.expeditionRegion(owner, await store.getExploration(owner), argument);
+    } else if (action === "expedition_start") {
+      result = await store.startExpedition(owner, argument);
+      view = ui.expeditionMap(owner, await store.getExploration(owner),
+        result.region + " expedition started. Your rewards will be ready when the timer ends.");
+    } else if (action === "expedition_collect") {
+      result = await store.collectExpedition(owner);
+      view = ui.expeditionMap(owner, await store.getExploration(owner),
+        (result.outcome === "success" ? "Mission successful! " : "A setback, but the crew returned. ") +
+        "+" + pretty(result.credits) + " IC, +" + result.experience + " exploration XP, " +
+        result.quantity + "× " + labelItem(result.itemId) + ".");
+    } else if (action === "equipment") {
+      view = ui.expeditionGear(owner, await store.getExploration(owner));
+    } else if (action === "equipment_upgrade") {
+      result = await store.upgradeExpeditionGear(owner, argument);
+      view = ui.expeditionGear(owner, await store.getExploration(owner),
+        result.equipment + " upgraded to level " + result.level + "!");
     } else if (action === "profile") {
       view = ui.home(owner, interaction.user, await store.profile(owner));
     } else if (action === "shop") {

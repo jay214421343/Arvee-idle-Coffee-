@@ -7,6 +7,7 @@ const { generators, byId, items, recipes } = require("./catalog");
 const { pretty, dec, purchaseCost, PRESTIGE_REQUIREMENT, Decimal } = require("./economy");
 const brand = require("./brand");
 const challengeData = require("./challenges");
+const exploration = require("./exploration");
 const { SEASON, rewards, missions, label, tierNeeded } = require("./season");
 
 const ACCENT = brand.theme.primary;
@@ -52,6 +53,8 @@ function navigation(owner) {
     { label: "The Forge", value: "craft", emoji: "⚒️", description: "Forge artifacts from gathered materials" },
     { label: "Season Journey", value: "season", emoji: "📜", description: "Earn Season XP and unlock 20 free rewards" },
     { label: "Adventurer Contracts", value: "challenges", emoji: "📋", description: "Daily and weekly challenges with claimable rewards" },
+    { label: "World Map", value: "explore", emoji: "🗺️", description: "Send a crew on timed missions to discover loot" },
+    { label: "Expedition Gear", value: "equipment", emoji: "🧭", description: "Upgrade your kit, compass and protective ward" },
     { label: "Saved Preferences", value: "settings", emoji: "⚙️", description: "View or reset your personal filters" },
     { label: "Pickaxe & Runes", value: "pickaxe", emoji: "⛏️", description: "Upgrade mining and permanent perks" },
     { label: "Player Exchange", value: "market", emoji: "💱", description: "Trade with other adventurers" },
@@ -361,6 +364,97 @@ function recipe(owner, id, p = null) {
   return c;
 }
 
+function expeditionMap(owner, status, note = "") {
+  const c = container("ARVEE IDLE  /  WORLD MAP",
+    "Explore new regions with your recruited adventurers. Missions continue while offline.");
+  c.addTextDisplayComponents(text("**YOUR CREW**  " + status.crew + " recruited" +
+    "   ·   **EXPLORATION XP**  " + status.xp + "\n" +
+    "Upgrade equipment to improve rewards, duration and reliability."));
+  if (status.active) {
+    const r = exploration.regionById.get(status.active.regionId);
+    c.addTextDisplayComponents(text("**ACTIVE EXPEDITION**\n" +
+      (r?.icon || "⚔️") + " " + (r?.name || "Expedition") +
+      "   ·   " + (status.active.ready ? "**Ready to collect**" :
+        "Returns <t:" + Math.floor(Date.parse(status.active.finishesAt) / 1000) + ":R>") +
+      "\nStart another mission after claiming these rewards."));
+  }
+  divider(c);
+  for (const region of exploration.REGIONS) {
+    const unlocked = exploration.unlocked(region, status.crew, status.xp);
+    const duration = exploration.duration(region, status.gear);
+    const description = (unlocked ? "Available" : "Requires " + region.crew +
+      " crew and " + region.xp + " XP") + "  ·  " + Math.ceil(duration / 60) + " min" +
+      "  ·  Base reward " + region.credits.toLocaleString("en-US") + " IC";
+    c.addSectionComponents(entrySection(owner, "region_view", region.id,
+      (unlocked ? "◇ " : "🔒 ") + region.icon + " " + region.name,
+      description, "Inspect"));
+  }
+  c.addActionRowComponents(row([
+    button(owner, "expedition_collect", status.active?.ready ? "Collect rewards" : "Nothing to collect",
+      "", ButtonStyle.Primary, !status.active?.ready),
+    button(owner, "equipment", "Equipment"),
+    button(owner, "profile", "Command Center")
+  ]));
+  if (note) c.addTextDisplayComponents(text("**" + note.slice(0, 280) + "**"));
+  return c;
+}
+function expeditionRegion(owner, status, regionId) {
+  const region = exploration.regionById.get(regionId);
+  if (!region) throw new Error("Unknown exploration region.");
+  const unlocked = exploration.unlocked(region, status.crew, status.xp);
+  const rate = Math.round(exploration.chance(region, status.gear) * 100);
+  const seconds = exploration.duration(region, status.gear);
+  const c = container(region.icon + "  " + region.name.toUpperCase(),
+    region.description);
+  divider(c);
+  c.addTextDisplayComponents(text("### EXPEDITION BRIEFING\n" +
+    "**Unlock:** " + region.crew + " recruited crew · " + region.xp + " exploration XP\n" +
+    "**Your progress:** " + status.crew + " crew · " + status.xp + " XP\n" +
+    "**Duration:** " + Math.ceil(seconds / 60) + " minutes  ·  **Success:** " + rate + "%\n" +
+    "**Potential payout:** up to " + region.credits.toLocaleString("en-US") + " IC and materials\n" +
+    "**Possible finds:** " + region.drops.map((drop) => items[drop.id]?.name || drop.id).join(" · ") +
+    "\n\n" + (status.active ? "One expedition is already in progress." :
+      unlocked ? "Your crew is ready to explore." : "Recruit more crew and explore easier regions to unlock this route.")));
+  c.addActionRowComponents(row([
+    button(owner, "expedition_start", unlocked ? "Start expedition" : "Region locked",
+      region.id, ButtonStyle.Primary, !unlocked || !!status.active),
+    button(owner, "explore", "World Map"),
+    button(owner, "equipment", "Equipment")
+  ]));
+  return c;
+}
+function expeditionGear(owner, status, note = "") {
+  const c = container("ARVEE IDLE  /  EXPEDITION GEAR",
+    "Permanent adventure upgrades. Your equipment survives prestige and bot restarts.");
+  c.addTextDisplayComponents(text("**Available IC:** " + pretty(status.balance) +
+    "  ·  **Exploration XP:** " + status.xp));
+  for (const g of exploration.GEAR) {
+    const level = status.gear[g.id] || 0;
+    const max = level >= g.max;
+    const cost = max ? null : exploration.upgradeCost(g.id, level);
+    const parts = cost ? Object.entries(cost.materials).map(([id, qty]) => {
+      const owned = status.inventory.find((row) => row.item_id === id)?.quantity || 0;
+      return (owned >= qty ? "✓ " : "· ") + qty + "× " + items[id].name;
+    }).join(", ") : "";
+    const affordable = !!cost && status.balance.gte(cost.credits) &&
+      Object.entries(cost.materials).every(([id, quantity]) =>
+        (status.inventory.find((r) => r.item_id === id)?.quantity || 0) >= quantity);
+    const section = new SectionBuilder().addTextDisplayComponents(text(
+      "**" + g.icon + " " + g.name + "  ·  Lv " + level + "/" + g.max + "**\n" +
+      g.description + "\n" +
+      (max ? "Fully upgraded." : "**Next:** " + cost.credits + " IC + " + parts)
+    )).setButtonAccessory(button(owner, "equipment_upgrade", max ? "Maxed" : "Upgrade",
+      g.id, ButtonStyle.Secondary, !affordable));
+    c.addSectionComponents(section);
+  }
+  c.addActionRowComponents(row([
+    button(owner, "explore", "World Map", "", ButtonStyle.Primary),
+    button(owner, "profile", "Command Center")
+  ]));
+  if (note) c.addTextDisplayComponents(text("**" + note.slice(0, 280) + "**"));
+  return c;
+}
+
 function preferences(owner, p, note = "") {
   const c = container("ARVEE IDLE  /  SAVED PREFERENCES",
     "Your personal filters are remembered on every Discord device and after bot restarts.");
@@ -625,6 +719,6 @@ function payload(view) {
   return { components: [view], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 module.exports = {
-  custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, preferences, challengeBoard, message, home, shop, generator, inventory, item, crafting, recipe, season, market, listing,
+  custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, preferences, challengeBoard, message, home, shop, generator, inventory, item, crafting, recipe, season, market, listing,
   prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, SUCCESS, WARN, ERROR
 };

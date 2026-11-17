@@ -7,14 +7,16 @@ const DAILY = Object.freeze([
   { id: "camp_supplies", label: "Prepare the Camp", event: "daily", metric: "count", goal: 1, reward: { kind: "ic", amount: 300 } },
   { id: "cache_hunt", label: "Open Supply Caches", event: "open_lootbox", metric: "quantity", goal: 2, reward: { kind: "item", item: "ore", quantity: 5 } },
   { id: "forge_order", label: "Forge an Artifact", event: "craft", metric: "quantity", goal: 1, reward: { kind: "ic", amount: 450 } },
-  { id: "deep_mining", label: "Deep Mining", event: "mine", metric: "count", goal: 6, reward: { kind: "item", item: "silver", quantity: 2 } }
+  { id: "deep_mining", label: "Deep Mining", event: "mine", metric: "count", goal: 6, reward: { kind: "item", item: "silver", quantity: 2 } },
+  { id: "trail_explorer", label: "Map the Wilderness", event: "expedition_complete", metric: "count", goal: 2, reward: { kind: "item", item: "lootbox", quantity: 2 } }
 ].map((x) => Object.freeze(x)));
 const WEEKLY = Object.freeze([
   { id: "weekly_prospector", label: "Expedition Prospector", event: "mine", metric: "count", goal: 20, reward: { kind: "ic", amount: 2000 } },
   { id: "weekly_recruitment", label: "Expand the Guild", event: "generator_purchase", metric: "quantity", goal: 10, reward: { kind: "item", item: "rare_lootbox", quantity: 1 } },
   { id: "weekly_provisions", label: "Keep the Camp Supplied", event: "daily", metric: "count", goal: 4, reward: { kind: "ic", amount: 2500 } },
   { id: "weekly_caches", label: "Uncover Relics", event: "open_lootbox", metric: "quantity", goal: 6, reward: { kind: "item", item: "gold", quantity: 2 } },
-  { id: "weekly_forge", label: "Supply the Vanguard", event: "craft", metric: "quantity", goal: 4, reward: { kind: "ic", amount: 1800 } }
+  { id: "weekly_forge", label: "Supply the Vanguard", event: "craft", metric: "quantity", goal: 4, reward: { kind: "ic", amount: 1800 } },
+  { id: "weekly_explorer", label: "World Pathfinder", event: "expedition_complete", metric: "count", goal: 6, reward: { kind: "item", item: "rare_lootbox", quantity: 1 } }
 ].map((x) => Object.freeze(x)));
 function cycle(scope, now = new Date()) {
   if (scope !== "daily" && scope !== "weekly") throw new Error("Invalid challenge period.");

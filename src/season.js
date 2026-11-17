@@ -59,6 +59,8 @@ function eventXp(type, metadata = {}) {
   if (type === "pickaxe_upgrade") return 75;
   if (type === "perk_upgrade") return 40;
   if (type === "prestige") return 250;
+  if (type === "expedition_complete") return 60;
+  if (type === "expedition_gear_upgrade") return 35;
   return 0;
 }
 function label(reward) {

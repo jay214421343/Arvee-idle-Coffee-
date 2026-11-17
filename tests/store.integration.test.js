@@ -60,12 +60,46 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
       assert.equal(starting.xp, 0);
       assert.deepEqual(starting.claimed, []);
     }
+    assert.equal((await store.getExploration(a)).crew,0);
+    await assert.rejects(()=>store.startExpedition(a,"forest"),/Region locked/);
+    await assert.rejects(()=>store.startExpedition(a,"unknown"),/Unknown region/);
     assert.equal((await store.buyGenerator(a, "MSPS", 1)).cost.toString(), "100");
+    assert.equal((await store.getExploration(a)).crew,1);
+    const firstExpedition = await store.startExpedition(a,"forest");
+    assert.equal(firstExpedition.region,"Whispering Forest");
+    await assert.rejects(()=>store.startExpedition(a,"forest"),/current expedition/);
+    await assert.rejects(()=>store.collectExpedition(a),/expedition returns/);
+    await store.pool.query(
+      "UPDATE expedition_missions SET started_at=now()-interval '10 minutes', " +
+      "finishes_at=now()-interval '1 second' WHERE id=$1",[firstExpedition.id]);
+    const beforeExpedition = (await store.profile(a)).balance;
+    const concurrentClaims = await Promise.allSettled([
+      store.collectExpedition(a),store.collectExpedition(a)
+    ]);
+    assert.equal(concurrentClaims.filter(r=>r.status==="fulfilled").length,1);
+    assert.equal(concurrentClaims.filter(r=>r.status==="rejected").length,1);
+    assert.ok((await store.profile(a)).balance.gt(beforeExpedition));
+    assert.ok((await store.getExploration(a)).xp>=17 && (await store.getExploration(a)).xp<=35);
+    assert.equal((await store.getExploration(a)).active,null);
+    assert.equal((await store.getExploration(a)).regions.find(x=>x.id==="mines").unlocked,false);
     await store.pool.query("UPDATE players SET balance=1000000,total_earned=1000000 WHERE user_id=$1", [a]);
     const both = await Promise.all([store.buyGenerator(a, "MSPS", 1), store.buyGenerator(a, "MSPS", 1)]);
     assert.equal(both.length, 2);
     const after = await store.profile(a);
     assert.equal(after.generators.find((g) => g.generator_id === "MSPS").quantity, 3);
+    const secondExpedition = await store.startExpedition(a,"forest");
+    await store.pool.query(
+      "UPDATE expedition_missions SET started_at=now()-interval '10 minutes', " +
+      "finishes_at=now()-interval '1 second' WHERE id=$1",[secondExpedition.id]);
+    assert.ok((await store.collectExpedition(a)).experience>0);
+    const world = await store.getExploration(a);
+    assert.ok(world.xp>=34 && world.xp<=70);
+    // The second mission can have a setback, so bring the character to the
+    // threshold deterministically to test later region gates.
+    await store.pool.query(
+      "INSERT INTO exploration_progress(user_id,xp) VALUES($1,70) " +
+      "ON CONFLICT(user_id) DO UPDATE SET xp=GREATEST(exploration_progress.xp,70)",[a]);
+    assert.equal((await store.getExploration(a)).regions.find(x=>x.id==="mines").unlocked,true);
     assert.ok(after.balance.gte(0));
     const firstMine = await store.mine(a);
     const secondMine = await store.mine(a);
@@ -87,6 +121,22 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
       [a]
     );
     assert.equal((await store.upgradePickaxe(a)).tier, 1);
+    const upgrade = await store.upgradeExpeditionGear(a,"kit");
+    assert.equal(upgrade.level,1);
+    assert.equal((await store.getExploration(a)).gear.kit,1);
+    await assert.rejects(()=>store.upgradeExpeditionGear(a,"invalid"),/Unknown expedition equipment/);
+    const minesMission=await store.startExpedition(a,"mines");
+    const timing=(await store.pool.query(
+      "SELECT EXTRACT(EPOCH FROM finishes_at-started_at)::integer AS seconds " +
+      "FROM expedition_missions WHERE id=$1",[minesMission.id]
+    )).rows[0];
+    assert.equal(Number(timing.seconds),447);
+    await store.pool.query(
+      "UPDATE expedition_missions SET started_at=now()-interval '20 minutes', " +
+      "finishes_at=now()-interval '1 second' WHERE id=$1",[minesMission.id]);
+    const collectedMines=await store.collectExpedition(a);
+    assert.equal(collectedMines.regionId,"mines");
+    assert.ok((await store.getExploration(a)).xp>=100);
     const perk = await store.upgradePerk(a, "miner");
     assert.equal(perk.level, 1);
     assert.equal((await store.profile(a)).perks.find((p) => p.perk_id === "miner").level, 1);
@@ -145,6 +195,11 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
     assert.equal(reset.prestige, 1);
     assert.equal(reset.pickaxeTier, 1);
     assert.equal(reset.generators.length, 0);
+    const afterPrestige = await store.getExploration(a);
+    assert.equal(afterPrestige.gear.kit,1);
+    assert.ok(afterPrestige.xp>=100);
+    assert.equal(afterPrestige.regions.find(x=>x.id==="forest").unlocked,false);
+    assert.equal(afterPrestige.active,null);
     assert.equal(reset.perks.find((p) => p.perk_id === "miner").level, 1);
     const stats = await store.getStats(a);
     assert.ok(stats.achievements.find((x) => x.name === "First Expedition").achieved);
