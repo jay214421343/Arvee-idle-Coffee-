@@ -18,6 +18,16 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.10 — Companion Variety & Better Supply Caches
+
+Expanded the permanent companion collection to **18 species** spanning Common, Uncommon, Rare, Epic, Legendary and Mythic. The original three starters are still free to choose from; additional pets are discovered by hatching expedition eggs with weighted rarity odds and a bias toward undiscovered species. One pet remains active at a time and supports specialized builds: mining power, expedition duration, expedition loot, success chance, World Boss strength/cooldown, extra eggs or Supply Cache discovery. Old companion IDs, XP and collection records remain valid; no monetized pet mechanics.
+
+**Supply Caches** now drop from successful mining with a **7% base chance** instead of 4%; each Scavenger level adds the existing +3 percentage points. Rune Gecko can increase the chance further by about 1.7–6.5 percentage points based on level. Caches, including daily and crafted sources, contain the same random loot tables as before. **Rune Fragments are not guaranteed** and are never granted directly as a mining milestone: regular caches offer a 1% chance, Rare 14%, Mythic 20%. The Runic Talents menu now explains those sources.
+
+Updated a few player-facing item descriptions and the profile title preset to use ARVEE worldbuilding rather than referencing development sources. Proper third-party software attribution remains in the project documentation.
+
+**Deployment:** after reviewing/merging, run `npm ci && npm run db:migrate && npm run register && npm run mac:restart`. Database migration expands allowed pet IDs in existing CHECK constraints (no balances, eggs or companions are deleted). No additional player progress columns are needed.
+
 ## ARVEE Idle 2.9.4 — Animated Silver Emoji Fix
 
 Moonsteel/Silver is an animated application emoji and must be rendered with `<a:silver:1572284313511141477>` instead of the static emoji syntax; this corrects the literal `:silver:` shown on the item card. Other uploaded artwork mappings are unchanged until their animation flags are verified. No database migration, slash command re-registration or balance changes are needed.

@@ -56,11 +56,11 @@ test("nametag and profile tag have owner-bound presets and keep simple UI",()=>{
   assert.throws(()=>ui.customization(owner,"payment"),/no naming options/);
 });
 test("profiles show escaped saved cosmetics and pickaxe finish",()=>{
-  const p=sample({profileTag:"Coffee Veteran",pickaxeName:"Moonshard",pickaxeStyle:"Astral"});
+  const p=sample({profileTag:"ARVEE Veteran",pickaxeName:"Moonshard",pickaxeStyle:"Astral"});
   const ownerView=ui.home(owner,{username:"Ranger",displayAvatarURL:()=>"https://cdn.discordapp.com/embed/avatars/0.png"},p).toJSON();
-  assert.match(JSON.stringify(ownerView),/Coffee Veteran/);
+  assert.match(JSON.stringify(ownerView),/ARVEE Veteran/);
   const otherView=ui.home(owner,{username:"Ranger",displayAvatarURL:()=>"https://cdn.discordapp.com/embed/avatars/0.png"},p,true).toJSON();
-  assert.match(JSON.stringify(otherView),/Coffee Veteran/);
+  assert.match(JSON.stringify(otherView),/ARVEE Veteran/);
   const pick=ui.pickaxe(owner,p).toJSON();
   assert.match(JSON.stringify(pick),/Moonshard/);
   assert.match(JSON.stringify(pick),/Astral/);

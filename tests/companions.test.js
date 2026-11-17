@@ -9,7 +9,11 @@ const { dec } = require("../src/economy");
 const owner = "123456789012345678";
 const empty = { starterClaimed:false,activeId:null,eggs:0,owned:[] };
 test("companions have consistent levels, stage transitions and capped bonuses", () => {
-  assert.deepEqual(pets.PETS.map(p=>p.id),["ember_fox","moss_wisp","moon_owl"]);
+  assert.equal(pets.PETS.length,18);
+  assert.deepEqual(pets.STARTERS.map(p=>p.id),["ember_fox","moss_wisp","moon_owl"]);
+  assert.equal(new Set(pets.PETS.map(p=>p.id)).size,18);
+  assert.deepEqual(new Set(pets.PETS.map(p=>p.rarity)),
+    new Set(["Common","Uncommon","Rare","Epic","Legendary","Mythic"]));
   assert.equal(pets.level(0),1);
   assert.equal(pets.level(99),1);
   assert.equal(pets.level(100),2);
@@ -32,13 +36,18 @@ test("companion XP comes from real gameplay only", () => {
 });
 test("egg drops are pre-rolled at expedition start and hatch favors unowned pets", () => {
   assert.equal(pets.eggDrop("forest",true,()=>0),true);
-  assert.equal(pets.eggDrop("forest",true,()=>99),false);
+  assert.equal(pets.eggDrop("forest",true,()=>9999),false);
   assert.equal(pets.eggDrop("forest",false,()=>0),false);
-  assert.equal(pets.eggDrop("ruins",true,()=>24),true);
-  assert.equal(pets.eggDrop("ruins",true,()=>25),false);
+  assert.equal(pets.eggDrop("ruins",true,()=>2499),true);
+  assert.equal(pets.eggDrop("ruins",true,()=>2500),false);
+  assert.equal(pets.eggDrop("ruins",true,()=>2500,{id:"hatchling_drake",level:30}),true);
   assert.throws(()=>pets.eggDrop("unknown",true,()=>0),/Unknown egg/);
   assert.equal(pets.hatch([],()=>0).id,"ember_fox");
-  assert.equal(pets.hatch(["ember_fox"],()=>41).id,"moss_wisp");
+  assert.equal(pets.hatch(["ember_fox"],()=>41).id,"ember_fox");
+  assert.ok(pets.PETS.some(p=>p.id==="hatchling_drake"&&p.rarity==="Mythic"));
+  assert.equal(pets.effectPct({id:"rune_gecko",level:1},"cache_luck"),5);
+  assert.equal(pets.effectPct({id:"rune_gecko",level:30},"cache_luck"),19.5);
+  assert.equal(pets.effectPct({id:"ember_fox",level:1},"cache_luck"),0);
   assert.throws(()=>pets.hatch([],()=>-1),/Invalid companion egg/);
 });
 test("Moss Wisp affects expedition duration and Moon Owl improves material loot", () => {
