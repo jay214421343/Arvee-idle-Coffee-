@@ -7,7 +7,7 @@ const { dec } = require("../src/economy");
 const ui = require("../src/ui");
 const owner = "123456789012345678";
 test("application artwork uses exact uploaded emoji IDs with unknown as fallback", () => {
-  assert.equal(itemArt("silver"), "<:silver:1572284313511141477>");
+  assert.equal(itemArt("silver"), "<a:silver:1572284313511141477>");
   assert.equal(itemArt("lootbox"), "<:lootbox:1572285929358368799>");
   assert.equal(UNKNOWN, "<:unknown:1572286729048821953>");
   assert.equal(pickaxeArt("I Skin"), "<:i_skin:1572286343055151254>");
@@ -31,7 +31,7 @@ test("unknown art is shown in item details but the satchel stays compact", () =>
   };
   const card = JSON.stringify(ui.item(owner,"coffee",2).toJSON());
   assert.match(card, /<:unknown:1572286729048821953>/);
-  assert.match(JSON.stringify(ui.item(owner,"silver",3).toJSON()), /<:silver:1572284313511141477>/);
+  assert.match(JSON.stringify(ui.item(owner,"silver",3).toJSON()), /<a:silver:1572284313511141477>/);
   const inventory = JSON.stringify(ui.inventory(owner,profile).toJSON());
   assert.doesNotMatch(inventory,/<:unknown:/);
   assert.doesNotMatch(inventory,/<:silver:/);

@@ -18,6 +18,10 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.9.4 — Animated Silver Emoji Fix
+
+Moonsteel/Silver is an animated application emoji and must be rendered with `<a:silver:1572284313511141477>` instead of the static emoji syntax; this corrects the literal `:silver:` shown on the item card. Other uploaded artwork mappings are unchanged until their animation flags are verified. No database migration, slash command re-registration or balance changes are needed.
+
 ## ARVEE Idle 2.9.3 — Coffee-style Mining, Rebirth Cocktail & Item Artwork
 
 Mining receipts now have a compact Coffee-style prospector narrative and **base IC**, **real bonus IC**, boost source, remaining charges, found materials, XP and cosmetic pickaxe details.
