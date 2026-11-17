@@ -18,6 +18,8 @@ idle.addSubcommand((c) => c.setName("mine").setDescription("Mine Idle Credits an
 idle.addSubcommand((c) => c.setName("daily").setDescription("Claim your daily Idle Credits and supply caches"));
 idle.addSubcommand((c) => c.setName("season").setDescription("Season Journey: tiers, challenges and free rewards"));
 idle.addSubcommand((c) => c.setName("challenges").setDescription("Daily and weekly adventurer contracts with rewards"));
+idle.addSubcommand((c) => c.setName("explore").setDescription("World Map: send your crew on timed expeditions"));
+idle.addSubcommand((c) => c.setName("equipment").setDescription("Upgrade permanent expedition equipment"));
 idle.addSubcommand((c) => c.setName("settings").setDescription("View and reset your saved filter preferences"));
 idle.addSubcommand((c) => c.setName("inventory").setDescription("Check collected items").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
 idle.addSubcommand((c) => c.setName("craft").setDescription("Craft an item")
@@ -112,6 +114,8 @@ async function respond(interaction) {
         "**Economy:** /idle shop, /idle buy, /idle leaderboard, /idle prestige",
         "**Season:** /idle season to unlock 20 free reward tiers",
         "**Contracts:** /idle challenges for daily and weekly rewards",
+        "**World Map:** /idle explore to send crew on timed expeditions",
+        "**Equipment:** /idle equipment to boost expedition rewards",
         "**Preferences:** /idle settings to view and reset your saved filters",
         "**Activities:** /idle mine, /idle daily, /idle craft, /idle open",
         "**Items:** /idle inventory, /idle give, /idle market",
@@ -132,6 +136,10 @@ async function respond(interaction) {
       view = ui.challengeBoard(id, await store.getChallenges(id));
     } else if (command === "settings") {
       view = ui.preferences(id, await store.getPreferences(id));
+    } else if (command === "explore") {
+      view = ui.expeditionMap(id, await store.getExploration(id));
+    } else if (command === "equipment") {
+      view = ui.expeditionGear(id, await store.getExploration(id));
     } else if (command === "shop") {
       view = await savedShop(id, opts.getInteger("page") || 1);
       content = shop(opts.getInteger("page") || 1);
@@ -142,11 +150,11 @@ async function respond(interaction) {
     } else if (command === "mine") {
       const result = await store.mine(id);
       content = result.cooldown ? "Your pickaxe is resting. Try again in " + result.cooldown + " seconds." :
-        "⛏️ Mined **" + pretty(result.reward) + " IC** and found **" + (result.dropQuantity || 1) + "× " + labelItem(result.drop) + "**! Mining XP: " + result.mineXp;
+        "Mined **" + pretty(result.reward) + " IC** and found **" + (result.dropQuantity || 1) + "× " + labelItem(result.drop) + "**! Mining XP: " + result.mineXp;
     } else if (command === "daily") {
       const result = await store.daily(id);
       content = result.cooldown ? "Daily reward available in " + Math.ceil(result.cooldown / 60) + " minutes." :
-        "🎁 Daily reward claimed: " + result.received.join(", ") + "!";
+        "Daily reward claimed: " + result.received.join(", ") + "!";
     } else if (command === "inventory") {
       const target = opts.getUser("user") || interaction.user;
       const p = await store.profile(target.id);
@@ -165,7 +173,7 @@ async function respond(interaction) {
       }
     } else if (command === "open") {
       const drops = await store.openLootbox(id, opts.getInteger("amount") || 1, opts.getString("type") || "lootbox");
-      content = "📦 Opened supply caches: " + Object.entries(drops).map(([item, n]) => n + " " + labelItem(item)).join(", ") + ".";
+      content = "Opened supply caches: " + Object.entries(drops).map(([item, n]) => n + " " + labelItem(item)).join(", ") + ".";
     } else if (command === "give") {
       const recipient = opts.getUser("user", true);
       if (recipient.bot) throw new Error("You cannot send items to bots.");
@@ -184,7 +192,7 @@ async function respond(interaction) {
         content = "Prestige costs **" + pretty(PRESTIGE_REQUIREMENT) + " IC**. It resets your IC and generators (not inventory) and adds +25% permanent production per prestige.\nRun /idle prestige confirm:true when ready.";
       } else {
         const result = await store.prestige(id);
-        content = "🌟 Prestige **" + result.prestige + "**! Permanent production multiplier: " + result.multiplier.toString() + "×.";
+        content = "Prestige **" + result.prestige + "**! Permanent production multiplier: " + result.multiplier.toString() + "×.";
       }
     } else if (command === "pickaxe") {
       view = ui.pickaxe(id, await store.profile(id));
@@ -245,6 +253,8 @@ async function handleComponent(interaction) {
       else if (selected === "season") view = ui.season(owner, await store.seasonStatus(owner));
       else if (selected === "challenges") view = ui.challengeBoard(owner, await store.getChallenges(owner));
       else if (selected === "settings") view = ui.preferences(owner, await store.getPreferences(owner));
+      else if (selected === "explore") view = ui.expeditionMap(owner, await store.getExploration(owner));
+      else if (selected === "equipment") view = ui.expeditionGear(owner, await store.getExploration(owner));
       else if (selected === "market") view = ui.market(owner, await store.browseMarket());
       else if (selected === "pickaxe") view = ui.pickaxe(owner, await store.profile(owner));
       else if (selected === "perks") view = ui.perks(owner, await store.profile(owner), require("./catalog").perks);
@@ -279,6 +289,27 @@ async function handleComponent(interaction) {
       view = ui.preferences(owner, await store.getPreferences(owner));
     } else if (action === "preferences_reset") {
       view = ui.preferences(owner, await store.resetPreferences(owner), "Defaults restored. New filters save automatically.");
+    } else if (action === "explore") {
+      view = ui.expeditionMap(owner, await store.getExploration(owner));
+    } else if (action === "region_view") {
+      view = ui.expeditionRegion(owner, await store.getExploration(owner), argument);
+    } else if (action === "expedition_start") {
+      result = await store.startExpedition(owner, argument);
+      view = ui.expeditionMap(owner, await store.getExploration(owner),
+        result.region + " expedition started. Your rewards will be ready when the timer ends.");
+    } else if (action === "expedition_collect") {
+      result = await store.collectExpedition(owner);
+      view = ui.expeditionMap(owner, await store.getExploration(owner),
+        (result.outcome === "success" ? "Mission successful! " : "A setback, but the crew returned. ") +
+        "+" + pretty(result.credits) + " IC, +" + result.experience + " exploration XP, " +
+        result.quantity + "× " + labelItem(result.itemId) + ".");
+    } else if (action === "equipment") {
+      view = ui.expeditionGear(owner, await store.getExploration(owner));
+    } else if (action === "equipment_select" || action === "equipment_upgrade") {
+      const gearId = action === "equipment_select" ? selected : argument;
+      result = await store.upgradeExpeditionGear(owner, gearId);
+      view = ui.expeditionGear(owner, await store.getExploration(owner),
+        result.equipment + " upgraded to level " + result.level + "!");
     } else if (action === "profile") {
       view = ui.home(owner, interaction.user, await store.profile(owner));
     } else if (action === "shop") {
@@ -312,13 +343,13 @@ async function handleComponent(interaction) {
       view = ui.generator(owner, argument, page, await store.profile(owner), "Purchased " + amount + " for " + pretty(result.cost) + " IC.");
     } else if (action === "mine") {
       result = await store.mine(owner);
-      view = ui.message(result.cooldown ? "⏳ Pickaxe cooling down" : "⛏ Mining complete",
+      view = ui.message(result.cooldown ? "Pickaxe cooling down" : "Mining complete",
         result.cooldown ? "You can mine again in " + result.cooldown + " seconds." :
           "**+" + pretty(result.reward) + " IC** and **" + (result.dropQuantity || 1) + "× " + labelItem(result.drop) + "**" + (result.box ? " · Bonus Supply Cache!" : ""),
         owner, { color: result.cooldown ? ui.WARN : ui.SUCCESS });
     } else if (action === "daily") {
       result = await store.daily(owner);
-      view = ui.message(result.cooldown ? "⏳ Daily claimed" : "🎁 Daily reward",
+      view = ui.message(result.cooldown ? "Daily claimed" : "Daily reward",
         result.cooldown ? "Available again in " + Math.ceil(result.cooldown / 60) + " minutes." : result.received.join(" · "),
         owner, { color: result.cooldown ? ui.WARN : ui.SUCCESS });
     } else if (action === "inventory") {
@@ -349,10 +380,10 @@ async function handleComponent(interaction) {
       view = ui.item(owner, selected, quantity, argument);
     } else if (action === "use_item") {
       result = await store.useItem(owner, argument);
-      view = ui.message("✨ Item used", "**" + labelItem(result.itemId) + "** · " + result.message, owner, { color: ui.SUCCESS });
+      view = ui.message("Item used", "**" + labelItem(result.itemId) + "** · " + result.message, owner, { color: ui.SUCCESS });
     } else if (action === "open_one") {
       const drops = await store.openLootbox(owner, 1, argument);
-      view = ui.message("📦 Supply Cache opened", Object.entries(drops).map(([id, n]) => n + "× " + labelItem(id)).join(" · "), owner, { color: ui.SUCCESS });
+      view = ui.message("Supply Cache opened", Object.entries(drops).map(([id, n]) => n + "× " + labelItem(id)).join(" · "), owner, { color: ui.SUCCESS });
     } else if (action === "craft") {
       const { page, filter } = ui.parseCraftState(argument);
       const prefs = await store.getPreferences(owner);
@@ -368,29 +399,29 @@ async function handleComponent(interaction) {
     } else if (action === "craft_one" || action === "craft_five") {
       const quantity = action === "craft_five" ? 5 : 1;
       await store.craft(owner, argument, quantity);
-      view = ui.message("🛠 Crafted successfully", quantity + "× " + labelItem(argument), owner, { color: ui.SUCCESS });
+      view = ui.message("Crafted successfully", quantity + "× " + labelItem(argument), owner, { color: ui.SUCCESS });
     } else if (action === "market") {
       view = ui.market(owner, await store.browseMarket());
     } else if (action === "listing_select") {
       view = ui.listing(owner, await store.getListing(selected));
     } else if (action === "listing_buy") {
       result = await store.buyListing(owner, argument);
-      view = ui.message("✅ Purchase completed", result.quantity + "× " + labelItem(result.item) + " for " + pretty(result.price) + " IC.", owner, { color: ui.SUCCESS });
+      view = ui.message("Purchase completed", result.quantity + "× " + labelItem(result.item) + " for " + pretty(result.price) + " IC.", owner, { color: ui.SUCCESS });
     } else if (action === "listing_cancel") {
       result = await store.cancelListing(owner, argument);
-      view = ui.message("✅ Listing cancelled", result.quantity + "× " + labelItem(result.item) + " returned.", owner, { color: ui.SUCCESS });
+      view = ui.message("Listing cancelled", result.quantity + "× " + labelItem(result.item) + " returned.", owner, { color: ui.SUCCESS });
     } else if (action === "leaderboard") {
       view = ui.leaderboard(owner, await store.leaderboard());
     } else if (action === "prestige") {
       view = ui.prestige(owner, await store.profile(owner));
     } else if (action === "prestige_confirm") {
       result = await store.prestige(owner);
-      view = ui.message("🌟 Prestige complete", "You are now **Prestige " + result.prestige + "**!", owner, { color: ui.SUCCESS });
+      view = ui.message("Prestige complete", "You are now **Prestige " + result.prestige + "**!", owner, { color: ui.SUCCESS });
     } else if (action === "pickaxe") {
       view = ui.pickaxe(owner, await store.profile(owner));
     } else if (action === "pickaxe_upgrade") {
       result = await store.upgradePickaxe(owner);
-      view = ui.message("⛏ Pickaxe upgraded", "Tier **" + result.tier + "** unlocked!", owner, { color: ui.SUCCESS });
+      view = ui.message("Pickaxe upgraded", "Tier **" + result.tier + "** unlocked!", owner, { color: ui.SUCCESS });
     } else if (action === "perks") {
       view = ui.perks(owner, await store.profile(owner), require("./catalog").perks);
     } else if (action === "stats") {
@@ -399,10 +430,10 @@ async function handleComponent(interaction) {
       view = ui.perkRespec(owner);
     } else if (action === "perk_respec_confirm") {
       result = await store.respecPerks(owner);
-      view = ui.message("✨ Perks reset", "Removed " + result.removed + " perk(s). You can unlock new ones.", owner, { color: ui.SUCCESS });
+      view = ui.message("Perks reset", "Removed " + result.removed + " perk(s). You can unlock new ones.", owner, { color: ui.SUCCESS });
     } else if (action === "perk_select") {
       result = await store.upgradePerk(owner, selected);
-      view = ui.message("✨ Perk upgraded", require("./catalog").perks[result.perkId].name + " is now level **" + result.level + "**.", owner, { color: ui.SUCCESS });
+      view = ui.message("Perk upgraded", require("./catalog").perks[result.perkId].name + " is now level **" + result.level + "**.", owner, { color: ui.SUCCESS });
     } else return true;
     await interaction.editReply({ components: [view], allowedMentions: { parse: [] } });
   } catch (error) {

@@ -1,9 +1,10 @@
 "use strict";
 const { Pool } = require("pg");
 const { items, recipes, byId, perks } = require("./catalog");
-const { Decimal, dec, generatorRate, purchaseCost, settle, PRESTIGE_REQUIREMENT, prestigeMultiplier } = require("./economy");
+const { Decimal, dec, generatorRate, purchaseCost, settle, PRESTIGE_REQUIREMENT, prestigeMultiplier, pretty } = require("./economy");
 const season = require("./season");
 const challenges = require("./challenges");
+const exploration = require("./exploration");
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 10, connectionTimeoutMillis: 10000, idleTimeoutMillis: 30000 });
 pool.on("error", (error) => console.error("[Postgres] Idle connection error", error));
@@ -121,7 +122,7 @@ async function buyGenerator(userId, generatorId, quantity) {
     const owned = current ? current.quantity : 0;
     if (owned + quantity > 10000) throw new Error("Generator ownership limit reached (10,000 per type).");
     const cost = purchaseCost(entry.cost, owned, quantity);
-    if (state.balance.lt(cost)) throw new Error("Not enough IC. Need " + cost.toSignificantDigits(5).toString() + " IC.");
+    if (state.balance.lt(cost)) throw new Error("Not enough IC. Need " + pretty(cost) + " IC.");
     state.balance = state.balance.minus(cost);
     await db.query(
       "INSERT INTO player_generators(user_id,generator_id,quantity) VALUES($1,$2,$3) ON CONFLICT(user_id,generator_id) DO UPDATE SET quantity=player_generators.quantity + EXCLUDED.quantity",
@@ -514,6 +515,111 @@ async function claimChallenge(userId, scope, periodKey, challengeId) {
 }
 
 
+async function readExploration(db, userId, state) {
+  const [progress, equipment, current, clock, inventory] = await Promise.all([
+    db.query("SELECT xp FROM exploration_progress WHERE user_id=$1", [userId]),
+    db.query("SELECT gear_id,level FROM expedition_equipment WHERE user_id=$1 ORDER BY gear_id", [userId]),
+    db.query("SELECT * FROM expedition_missions WHERE user_id=$1 AND claimed_at IS NULL ORDER BY id DESC LIMIT 1", [userId]),
+    db.query("SELECT clock_timestamp() AS now"),
+    db.query("SELECT item_id,quantity FROM inventory WHERE user_id=$1 AND quantity>0", [userId])
+  ]);
+  const xp = Number(progress.rows[0]?.xp || 0);
+  const gear = exploration.levels(equipment.rows);
+  const crew = state.generators.reduce((sum, g) => sum + g.quantity, 0);
+  const now = new Date(clock.rows[0].now);
+  const row = current.rows[0];
+  const active = row ? {
+    id: String(row.id), regionId: row.region_id, startedAt: row.started_at.toISOString(),
+    finishesAt: row.finishes_at.toISOString(), ready: now >= row.finishes_at,
+    outcome: row.outcome, credits: dec(row.reward_ic), experience: row.reward_xp,
+    itemId: row.reward_item_id, quantity: row.reward_quantity
+  } : null;
+  return { xp, gear, crew, balance: state.balance, inventory: inventory.rows, active,
+    regions: exploration.REGIONS.map((region) => ({
+      id: region.id, unlocked: exploration.unlocked(region, crew, xp)
+    })) };
+}
+async function getExploration(userId) {
+  return transact([userId], async (db, states) => readExploration(db, userId, stateOf(states, userId)));
+}
+async function startExpedition(userId, regionId) {
+  const region = exploration.regionById.get(String(regionId));
+  if (!region) throw new Error("Unknown region.");
+  return transact([userId], async (db, states) => {
+    const state = stateOf(states, userId);
+    const info = await readExploration(db, userId, state);
+    if (info.active) throw new Error("Finish or collect your current expedition first.");
+    if (!exploration.unlocked(region, info.crew, info.xp))
+      throw new Error("Region locked. Recruit " + region.crew + " adventurers and earn " + region.xp + " exploration XP.");
+    const seconds = exploration.duration(region, info.gear);
+    const rewards = exploration.reward(region, info.gear);
+    const clock = (await db.query("SELECT clock_timestamp() AS now")).rows[0].now;
+    const finishes = new Date(new Date(clock).getTime() + seconds * 1000);
+    const result = (await db.query(
+      "INSERT INTO expedition_missions(user_id,region_id,started_at,finishes_at,outcome,reward_ic,reward_xp,reward_item_id,reward_quantity) " +
+      "VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id,finishes_at",
+      [userId, region.id, clock, finishes, rewards.outcome, rewards.credits, rewards.experience,
+        rewards.itemId, rewards.quantity]
+    )).rows[0];
+    await event(db, userId, "expedition_start", 0, { region: region.id });
+    return { id: String(result.id), region: region.name, finishesAt: result.finishes_at.toISOString() };
+  });
+}
+async function collectExpedition(userId) {
+  return transact([userId], async (db, states) => {
+    const row = (await db.query(
+      "SELECT * FROM expedition_missions WHERE user_id=$1 AND claimed_at IS NULL FOR UPDATE", [userId]
+    )).rows[0];
+    if (!row) throw new Error("No expedition rewards to collect. Visit the World Map to start one.");
+    const time = (await db.query("SELECT clock_timestamp() AS now")).rows[0].now;
+    if (new Date(time) < row.finishes_at) throw new Error("Your expedition returns <t:" +
+      Math.floor(row.finishes_at.getTime() / 1000) + ":R>.");
+    const updated = await db.query(
+      "UPDATE expedition_missions SET claimed_at=$3 WHERE id=$1 AND user_id=$2 AND claimed_at IS NULL RETURNING id",
+      [row.id, userId, time]
+    );
+    if (!updated.rowCount) throw new Error("That expedition was already collected.");
+    const state = stateOf(states, userId);
+    const credits = dec(row.reward_ic);
+    state.balance = state.balance.plus(credits);
+    state.totalEarned = state.totalEarned.plus(credits);
+    await addItem(db, userId, row.reward_item_id, row.reward_quantity);
+    await db.query(
+      "INSERT INTO exploration_progress(user_id,xp) VALUES($1,$2) " +
+      "ON CONFLICT(user_id) DO UPDATE SET xp=exploration_progress.xp+EXCLUDED.xp",
+      [userId, row.reward_xp]
+    );
+    await event(db, userId, "expedition_complete", credits,
+      { region: row.region_id, outcome: row.outcome, xp: row.reward_xp });
+    return { regionId: row.region_id, outcome: row.outcome, credits,
+      experience: row.reward_xp, itemId: row.reward_item_id, quantity: row.reward_quantity };
+  });
+}
+async function upgradeExpeditionGear(userId, gearId) {
+  const equipment = exploration.gearById.get(String(gearId));
+  if (!equipment) throw new Error("Unknown expedition equipment.");
+  return transact([userId], async (db, states) => {
+    const state = stateOf(states, userId);
+    const current = (await db.query(
+      "SELECT level FROM expedition_equipment WHERE user_id=$1 AND gear_id=$2", [userId, gearId]
+    )).rows[0]?.level || 0;
+    const cost = exploration.upgradeCost(gearId, Number(current));
+    if (state.balance.lt(cost.credits)) throw new Error("Not enough IC to upgrade " + equipment.name + ".");
+    for (const [itemId, quantity] of Object.entries(cost.materials)) {
+      await removeItem(db, userId, itemId, quantity);
+    }
+    state.balance = state.balance.minus(cost.credits);
+    await db.query(
+      "INSERT INTO expedition_equipment(user_id,gear_id,level) VALUES($1,$2,$3) " +
+      "ON CONFLICT(user_id,gear_id) DO UPDATE SET level=EXCLUDED.level",
+      [userId, gearId, Number(current) + 1]
+    );
+    await event(db, userId, "expedition_gear_upgrade", -cost.credits,
+      { equipment: gearId, level: Number(current) + 1 });
+    return { equipment: equipment.name, level: Number(current) + 1, cost };
+  });
+}
+
 async function seasonStatus(userId) {
   return transact([userId], async (db) => {
     const progress = (await db.query("SELECT xp FROM season_progress WHERE user_id=$1 AND season_id=$2",
@@ -573,6 +679,6 @@ async function claimSeasonRewards(userId, requested = "all") {
   });
 }
 
-module.exports = { pool, transact, profile, getPreferences, setPreferences, resetPreferences, getChallenges, claimChallenge, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
+module.exports = { pool, transact, profile, getExploration, startExpedition, collectExpedition, upgradeExpeditionGear, getPreferences, setPreferences, resetPreferences, getChallenges, claimChallenge, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
   prestige, leaderboard, browseMarket, sellItem, buyListing, cancelListing, getListing, useItem, upgradePickaxe, upgradePerk,
   respecPerks, getStats };

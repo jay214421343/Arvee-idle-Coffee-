@@ -42,14 +42,27 @@ function settle(balance, totalEarned, rate, lastSettledAt, now) {
     settledAt: new Date(new Date(lastSettledAt).getTime() + seconds * 1000)
   };
 }
+// From 1e33 onward, use the alphabetic notation common in idle games:
+// 1e33 = 1aa, 1e36 = 1ab, ... 1e222 = 1cl. Extends to aaa, aab, etc.
+const SHORT_SUFFIXES = Object.freeze(["K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No"]);
+function magnitudeSuffix(group) {
+  if (!Number.isSafeInteger(group) || group < 1) throw new Error("Invalid magnitude");
+  if (group <= SHORT_SUFFIXES.length) return SHORT_SUFFIXES[group - 1];
+  let column = group + 16; // Excel-style: column 27 = aa, column 90 = cl.
+  let letters = "";
+  while (column > 0) {
+    column -= 1;
+    letters = String.fromCharCode(97 + column % 26) + letters;
+    column = Math.floor(column / 26);
+  }
+  return letters;
+}
 function pretty(value) {
   const n = dec(value);
   const abs = n.abs();
   if (abs.lt(1000)) return n.floor().toFixed(0);
-  const suffixes = ["K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No"];
-  const exponent = abs.e;
-  const group = Math.floor(exponent / 3);
-  if (group <= suffixes.length) return n.div(new Decimal(1000).pow(group)).toDecimalPlaces(2).toString() + suffixes[group - 1];
-  return n.toExponential(3);
+  const group = Math.floor(abs.e / 3);
+  const scaled = n.div(new Decimal(1000).pow(group)).toDecimalPlaces(2);
+  return scaled.toString() + magnitudeSuffix(group);
 }
-module.exports = { Decimal, dec, asInteger, prestigeMultiplier, generatorRate, purchaseCost, settle, pretty, PRESTIGE_REQUIREMENT };
+module.exports = { Decimal, dec, asInteger, prestigeMultiplier, generatorRate, purchaseCost, settle, pretty, magnitudeSuffix, PRESTIGE_REQUIREMENT };

@@ -1,3 +1,15 @@
+# 2.3.0 — Expeditions 2.0 (unreleased)
+
+- Added three persistent explorable regions with progression gates, mission timers, loot tables, outcomes and exploration XP.
+- Introduced persistent, upgradeable Trailblazer's Kit, Astral Compass and Guardian Ward with real item/IC costs and meaningful mission effects.
+- New `/idle explore` and `/idle equipment` command screens, contextual Discord Components V2 buttons, region inspection and owner-locked actions.
+- Reduced decorative emoji density across the Command Center, navigation menus, filters, shop, Forge, World Map, equipment, contracts, exchange, achievements and operation responses. Neutral text and rarity symbols remain; item art appears in detail inspection.
+- Expedition rewards are calculated server-side at launch and saved in PostgreSQL; concurrent claims are transactional and idempotent.
+- Exploration completion now contributes to the Season Journey and rotating daily/weekly Adventurer Contracts.
+- Added additive database tables, rendering tests, economy integration tests, and preserved progress through prestige resets.
+- Standardized every large IC amount, generator cost/income, and market price to compact suffixes beyond decillion, including alphabetic tiers past 10^222; gameplay precision is unchanged.
+
+---
 # 2.2.0 — Saved filters and Adventurer Contracts (unreleased)
 
 - Remember Expedition and Satchel category + sort, and Forge craftability preferences per user across bot restarts through PostgreSQL.

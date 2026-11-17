@@ -101,3 +101,32 @@ CREATE TABLE IF NOT EXISTS challenge_claims (
   claimed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id,scope,period_key,challenge_id)
 );
+
+-- Exploration uses separate additive tables: prestige does not reset world progress or gear.
+CREATE TABLE IF NOT EXISTS exploration_progress (
+  user_id TEXT PRIMARY KEY REFERENCES players(user_id) ON DELETE CASCADE,
+  xp INTEGER NOT NULL DEFAULT 0 CHECK (xp BETWEEN 0 AND 1000000000)
+);
+CREATE TABLE IF NOT EXISTS expedition_equipment (
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  gear_id TEXT NOT NULL CHECK (gear_id IN ('kit','compass','ward')),
+  level INTEGER NOT NULL CHECK (level BETWEEN 1 AND 5),
+  PRIMARY KEY (user_id, gear_id)
+);
+CREATE TABLE IF NOT EXISTS expedition_missions (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  region_id TEXT NOT NULL CHECK (region_id IN ('forest','mines','ruins')),
+  started_at TIMESTAMPTZ NOT NULL,
+  finishes_at TIMESTAMPTZ NOT NULL,
+  claimed_at TIMESTAMPTZ,
+  outcome TEXT NOT NULL CHECK (outcome IN ('success','setback')),
+  reward_ic NUMERIC NOT NULL CHECK (reward_ic >= 0),
+  reward_xp INTEGER NOT NULL CHECK (reward_xp > 0),
+  reward_item_id TEXT NOT NULL,
+  reward_quantity INTEGER NOT NULL CHECK (reward_quantity BETWEEN 1 AND 1000),
+  CHECK (finishes_at > started_at)
+);
+-- One unclaimed mission per player, including missions waiting for collection.
+CREATE UNIQUE INDEX IF NOT EXISTS expedition_missions_active ON expedition_missions(user_id) WHERE claimed_at IS NULL;
+CREATE INDEX IF NOT EXISTS expedition_missions_recent ON expedition_missions(user_id, id DESC);

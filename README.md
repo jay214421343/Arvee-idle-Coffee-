@@ -18,6 +18,26 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.3 — Expeditions 2.0
+
+**World Map:** `/idle explore` shows three regions with distinct requirements, timers, outcomes, and loot tables.
+
+**Visual language:** restrained ARVEE purple and plain-text navigation; minimal decorative emoji. Item icons appear when inspecting a specific item instead of repeating through lists and dropdowns. Its Inspect buttons show requirements and rewards before launching.
+
+- **Whispering Forest:** requires 1 recruited adventurer; roughly 2-minute expedition; starter forging materials and Idle Credits.
+- **Forgotten Mines:** requires 3 adventurers and 70 exploration XP; roughly 8-minute expedition; Moonsteel, Sunforged Gold and rare caches.
+- **Ancient Ruins:** requires 8 adventurers and 210 exploration XP; roughly 25-minute expedition; Void Essence, gold and a chance at Astral Gems.
+- **One mission at a time:** a mission persists in PostgreSQL while you are offline. Start using the region's Inspect screen, then claim its stored outcome from the World Map after the timer expires.
+- **Progression and failure:** successful expeditions provide more IC, XP and loot, while setbacks still grant partial rewards. Exploration XP and permanently upgraded gear survive prestige; you still need to rebuild the required crew afterward.
+- **Equipment:** `/idle equipment` upgrades the Trailblazer's Kit (shorter missions), Astral Compass (better loot quantity), and Guardian Ward (higher success chance) using IC and ordinary crafting materials. No paid-only gear.
+- **Connected progression:** collecting missions awards Season Journey XP and can satisfy rotating daily/weekly contracts. Simply starting a mission does not award season XP.
+- **Safety:** expedition rewards and outcomes are rolled only when starting a mission, stored before the timer begins and granted atomically on claim; repeated clicks or concurrent PM2 instances cannot claim twice.
+- **Readable huge numbers:** IC, operation costs, rates, and exchange prices use K/M/B/T/Qa/.../No, then an unlimited alphabetic suffix (`aa`, `ab`, ..., `cl` for 10²²², `aaa` and beyond). Examples: `3.29e+222` displays as `3.29cl`. Internal values remain precise PostgreSQL/Decimal numbers.
+
+### Deployment
+
+After approval, update the ARVEE Idle `master` clone, run `npm ci`, `npm run setup` (additive PostgreSQL migration plus registration), and `npm run mac:restart` to restart only ARVEE Idle. No existing balances, inventory, season rewards or settings are reset.
+
 ## ARVEE Idle 2.2 — persistent preferences and Adventurer Contracts
 
 - **Saved filters:** Expeditions category/sort, Satchel category/sort, and Forge craftability filter now persist per Discord account in PostgreSQL across PM2 restarts and devices. Opening an existing screen automatically restores your last choices. Use /idle settings to view or reset them.
