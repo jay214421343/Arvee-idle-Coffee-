@@ -9,11 +9,11 @@ const { dec } = require("../src/economy");
 const owner = "123456789012345678";
 const empty = { starterClaimed:false,activeId:null,eggs:0,owned:[] };
 test("companions have consistent levels, stage transitions and capped bonuses", () => {
-  assert.equal(pets.PETS.length,18);
+  assert.equal(pets.PETS.length,22);
   assert.deepEqual(pets.STARTERS.map(p=>p.id),["ember_fox","moss_wisp","moon_owl"]);
-  assert.equal(new Set(pets.PETS.map(p=>p.id)).size,18);
+  assert.equal(new Set(pets.PETS.map(p=>p.id)).size,22);
   assert.deepEqual(new Set(pets.PETS.map(p=>p.rarity)),
-    new Set(["Common","Uncommon","Rare","Epic","Legendary","Mythic"]));
+    new Set(["Common","Uncommon","Rare","Epic","Legendary","Mythic","Secret"]));
   assert.equal(pets.level(0),1);
   assert.equal(pets.level(99),1);
   assert.equal(pets.level(100),2);

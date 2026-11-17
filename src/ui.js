@@ -23,7 +23,7 @@ const ERROR = brand.theme.error;
 const LIMIT = 8;
 const PAGE_SIZE = 4;
 const INVENTORY_PAGE_SIZE = 8;
-const SORT_RARITY = Object.freeze({ Common: 0, Uncommon: 1, Rare: 2, Epic: 3, Legendary: 4, Mythic: 5 });
+const SORT_RARITY = Object.freeze({ Common: 0, Uncommon: 1, Rare: 2, Epic: 3, Legendary: 4, Mythic: 5, Secret: 6 });
 const BOX_IDS = new Set(["lootbox", "rare_lootbox", "legendary_lootbox", "lunchbox"]);
 function category(id) {
   if (BOX_IDS.has(id)) return "caches";
@@ -48,7 +48,7 @@ function entrySection(owner, action, id, heading, detail, label = "View") {
     .setButtonAccessory(button(owner, action, label, id, ButtonStyle.Secondary));
 }
 function rarityMark(rarity) {
-  return ({ Common: "◇", Uncommon: "◆", Rare: "✦", Epic: "✧", Legendary: "★" })[rarity] || "◇";
+  return ({ Common: "◇", Uncommon: "◆", Rare: "✦", Epic: "✧", Legendary: "★", Mythic:"✶", Secret:"✺" })[rarity] || "◇";
 }
 
 const NAVIGATION = Object.freeze([
@@ -635,7 +635,7 @@ function companionCollection(owner, state, note = "") {
     c.addTextDisplayComponents(text("### YOUR FIRST COMPANION\nChoose a starter companion below. It is free, permanent and can be changed later."));
   }
   divider(c);
-  const rarities = ["Common","Uncommon","Rare","Epic","Legendary","Mythic"];
+  const rarities = ["Common","Uncommon","Rare","Epic","Legendary","Mythic","Secret"];
   const collection = state.owned.map((p) => {
     const def = companions.byId.get(p.id);
     return (state.activeId === p.id ? "● " : "○ ") + "**" + def.name + "**  ·  " +
@@ -643,6 +643,7 @@ function companionCollection(owner, state, note = "") {
   });
   const summary = rarities.map((rarity) => {
     const group = companions.PETS.filter((pet) => pet.rarity === rarity);
+    if (rarity === "Secret" && !group.some((pet)=>owned.has(pet.id))) return "Secret ?";
     return rarity + " " + group.filter((pet) => owned.has(pet.id)).length + "/" + group.length;
   }).join(" · ");
   c.addTextDisplayComponents(text("**COLLECTION**  " + summary +
@@ -674,7 +675,7 @@ function companionEggs(owner, state, note = "") {
   const c=container("ARVEE IDLE  /  HATCHERY", "Hatch one egg. New discoveries unlock companion build options. Duplicate pets gain XP.");
   c.addTextDisplayComponents(text("**YOUR EGGS**\n" +
     Object.entries(companions.EGG_TIERS).map(([id,t])=>t.name+"  ×"+(counts[id]||0)).join("\n") +
-    "\n\nEnchanted and Astral Eggs favor higher rarities. Both can be forged from ordinary eggs."));
+    "\n\nEnchanted and Astral Eggs favor higher rarities. A secret companion may hide in any egg."));
   if(available.length)c.addActionRowComponents(selector(owner,"companion_hatch","","Choose an egg to hatch",
     available.map(([id,t])=>({label:t.name,value:id,description:"Owned ×"+counts[id]}))));
   if(note)c.addTextDisplayComponents(text("**"+note.slice(0,240)+"**"));

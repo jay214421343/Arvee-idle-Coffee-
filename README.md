@@ -18,6 +18,23 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.13 — Three All-Round Mythics & One Secret
+
+Four discoverable companions expand the collection from **18 to 22 species**. Three new **Mythic** companions boost **all nine** supported systems, with ascending strength:
+
+| Pet | Lv 1 all-stat strength | Lv 30 all-stat strength |
+|---|---:|---:|
+| Twilight Lynx | +2.25% | +8.78% |
+| Aurora Gryphon | +3.25% | +12.68% |
+| Eclipse Leviathan | +4.5% | +17.55% |
+| **Secret: ???** | **+8%** | **up to +25%** |
+
+Each raises passive generator IC, mined IC, World Boss damage, expedition loot and both kinds of discovery luck; it also shortens expedition/boss cooldowns and increases expedition success. The nominal strength is converted to percentage-point benefits for loot discovery/success using existing safety caps. Boss cooldown reduction is capped at 20%, other base modifiers at 25%; charm and talent choices remain supported. Existing specialized pets still offer useful targeted builds.
+
+**The Secret is an exceptionally rare independent hatch result**, not part of the normal rarity-weighted pool. Chance per egg: **1 in 100,000 Companion Eggs**, **1 in 25,000 Enchanted Eggs**, **1 in 5,000 Astral Eggs**. The hidden species is shown as `Secret ?` until discovered; its name is revealed only on a successful hatch. Secret odds do **not** improve with unowned-species weighting, and the pet cannot be purchased, crafted or obtained through automatic pity rewards. Duplicate hatch XP still follows the established rules.
+
+One active companion, one charm and one mastery talent are unchanged. Existing companion XP, egg inventory, collection and server-wide PostgreSQL progress are preserved. This is an additive migration widening the two companion ID CHECK constraints; run `npm run db:migrate` before restarting. No slash-command registration required.
+
 ## ARVEE Idle 2.12 — 100-Tier Founders' Journey and Owner Administration
 
 Founders' Journey now has **100 fully free tiers** instead of 20. Each tier requires 250 Season XP, for 25,000 XP total. The original 20 rewards, season ID and dates, all prior earned XP and claimed tiers remain unchanged. Tiers 21–100 offer stronger IC and material rewards, more Supply Caches, Rune Fragments, companions eggs, specialty charms, and occasional permanent Astral Sigils. The 25 four-tier pages have a direct tier-range jump menu for mobile. No daily XP limit has returned.

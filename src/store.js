@@ -37,7 +37,7 @@ async function transact(ids, action, options = {}) {
       const generators = (await client.query("SELECT generator_id, quantity FROM player_generators WHERE user_id = $1", [id])).rows;
       const playerPerks = (await client.query("SELECT perk_id, level FROM player_perks WHERE user_id=$1", [id])).rows;
       const investor = playerPerks.find((p) => p.perk_id === "investor")?.level || 0;
-      const rate = generatorRate(generators, player.prestige, player.orb_count, investor);
+      const rate = await effectiveGeneratorRate(client,id,generators,player.prestige,player.orb_count,investor);
       const passive = settle(player.balance, player.total_earned, rate, player.last_settled_at, time);
       states.set(id, {
         id, balance: passive.balance, totalEarned: passive.totalEarned,
@@ -90,6 +90,11 @@ async function activeCompanion(db, userId) {
   return row ? { id: row.pet_id, xp: Number(row.xp), level: companions.level(Number(row.xp)),
     talentId: row.talent_id, charmId: Number(row.charm_owned || 0) > 0 ? row.equipped_charm_id : null } : null;
 }
+async function effectiveGeneratorRate(db,userId,generators,prestige,orbs,investor=0) {
+  const base=generatorRate(generators,prestige,orbs,investor);
+  const active=await activeCompanion(db,userId);
+  return base.times(dec(1).plus(dec(companions.effectPct(active,"idle_income")).div(100)));
+}
 async function grantCompanionXp(db, userId, type, metadata = {}) {
   const amount = companions.eventXp(type, metadata);
   if (!amount) return;
@@ -131,6 +136,8 @@ async function getCompanions(userId) {
 async function adoptCompanion(userId, petId) {
   const pet = companions.byId.get(String(petId));
   if (!pet) throw new Error("Unknown companion.");
+  // Player-supplied component IDs must not unlock non-starter species for free.
+  if (!pet.starter) throw new Error("Choose one of the three free starter companions.");
   return transact([userId], async (db) => {
     await db.query("INSERT INTO companion_settings(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING", [userId]);
     const settings = (await db.query(
@@ -279,7 +286,7 @@ async function buyGenerator(userId, generatorId, quantity) {
     const existing = state.generators.find((g) => g.generator_id === entry.id);
     if (existing) existing.quantity = Number(existing.quantity) + amount;
     else state.generators.push({ generator_id: entry.id, quantity: amount });
-    state.rate = generatorRate(state.generators, state.prestige, state.orbs, perkLevel(state, "investor"));
+    state.rate = await effectiveGeneratorRate(db,userId,state.generators,state.prestige,state.orbs,perkLevel(state,"investor"));
     await event(db, userId, "generator_purchase", cost.neg(), { generator: entry.id, quantity: amount });
     return { generator: entry, quantity: amount, cost, owned: owned + amount, balance: state.balance, rate: state.rate };
   });
@@ -578,7 +585,7 @@ async function useItem(userId, itemId, chosenName = "", options = {}) {
     }
     if (e.orb) {
       state.orbs += e.orb;
-      state.rate = generatorRate(state.generators, state.prestige, state.orbs, perkLevel(state, "investor"));
+      state.rate = await effectiveGeneratorRate(db,userId,state.generators,state.prestige,state.orbs,perkLevel(state,"investor"));
       message = "Permanent +10% generator income. Total orbs: " + state.orbs + ".";
     }
     if (e.grant) {
@@ -624,7 +631,7 @@ async function useItem(userId, itemId, chosenName = "", options = {}) {
       const owned = state.generators.find((g)=>g.generator_id === e.crew);
       if (owned) owned.quantity = Number(owned.quantity)+1;
       else state.generators.push({generator_id:e.crew,quantity:1});
-      state.rate = generatorRate(state.generators,state.prestige,state.orbs,perkLevel(state,"investor"));
+      state.rate = await effectiveGeneratorRate(db,userId,state.generators,state.prestige,state.orbs,perkLevel(state,"investor"));
       message = "One Rookie Adventurer joined your crew. Existing operations are untouched.";
     }
     if (e.prank) {
@@ -666,7 +673,7 @@ async function upgradePerk(userId, perkId) {
     const prior = state.perks.find((p) => p.perk_id === perkId);
     if (prior) prior.level = level;
     else state.perks.push({ perk_id: perkId, level });
-    if (perkId === "investor") state.rate = generatorRate(state.generators, state.prestige, state.orbs, level);
+    if (perkId === "investor") state.rate = await effectiveGeneratorRate(db,userId,state.generators,state.prestige,state.orbs,level);
     await event(db, userId, "perk_upgrade", 0, { perkId, level });
     return { perkId, level };
   });
@@ -679,7 +686,7 @@ async function respecPerks(userId) {
     await db.query("DELETE FROM player_perks WHERE user_id=$1", [userId]);
     const removed = state.perks.length;
     state.perks = [];
-    state.rate = generatorRate(state.generators, state.prestige, state.orbs);
+    state.rate = await effectiveGeneratorRate(db,userId,state.generators,state.prestige,state.orbs);
     await event(db, userId, "perk_respec", 0, { removed });
     return { removed };
   });

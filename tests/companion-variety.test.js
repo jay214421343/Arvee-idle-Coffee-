@@ -7,14 +7,14 @@ const bosses=require("../src/world-bosses");
 const ui=require("../src/ui");
 const {items}=require("../src/catalog");
 const owner="123456789012345678";
-test("all 18 companions are unique, bound to six rarity tiers and have useful specialized effects",()=>{
-  assert.equal(pets.PETS.length,18);
-  assert.equal(new Set(pets.PETS.map(p=>p.id)).size,18);
+test("all 22 companions are unique, spanning seven rarities and specialized effects",()=>{
+  assert.equal(pets.PETS.length,22);
+  assert.equal(new Set(pets.PETS.map(p=>p.id)).size,22);
   for(const p of pets.PETS){
     const b=pets.bonus({id:p.id,level:10});
     assert.ok(b?.description && b.description.length>8,p.id+" lacks a meaningful combat/utility bonus");
     assert.ok(b.percent>=0 && b.percent<=25,p.id+" bonus exceeds bound");
-    assert.ok(pets.RARITY_WEIGHTS[p.rarity] > 0);
+    assert.ok(p.rarity === "Secret" ? pets.RARITY_WEIGHTS[p.rarity] === 0 : pets.RARITY_WEIGHTS[p.rarity] > 0);
   }
   assert.equal(pets.STARTERS.length,3);
   assert.ok(!pets.STARTERS.some(p=>p.rarity==="Mythic"));
@@ -50,7 +50,7 @@ test("egg rolls favor undiscovered pets and Mythic species are possible but rare
   assert.ok(pets.eggDrop("forest",true,()=>1300,{id:"hatchling_drake",level:30}));
   assert.ok(!pets.eggDrop("forest",false,()=>0,{id:"hatchling_drake",level:30}));
 });
-test("18-pet collection fits Discord Components V2 while exposing only three free starters",()=>{
+test("22-pet collection fits Discord Components V2 while exposing only three free starters",()=>{
   const start=ui.companionCollection(owner,{starterClaimed:false,activeId:null,eggs:0,owned:[]}).toJSON();
   const menu=start.components.filter(x=>x.type===1).flatMap(x=>x.components).find(x=>x.type===3);
   assert.equal(menu.options.length,3);
@@ -61,7 +61,7 @@ test("18-pet collection fits Discord Components V2 while exposing only three fre
   assert.match(JSON.stringify(full),/Mythic/);
   assert.match(JSON.stringify(full),/Hatch egg/);
   const select=full.components.filter(x=>x.type===1).flatMap(x=>x.components).find(x=>x.type===3);
-  assert.equal(select.options.length,18);
+  assert.equal(select.options.length,22);
 });
 test("Runic Talents still require probabilistic Supply Cache finds",()=>{
   assert.ok(items.pickperk);

@@ -1,3 +1,14 @@
+# 2.13.0 — Omni-Mythic Companions & Secret Discovery (pending review)
+
+- Add Twilight Lynx, Aurora Gryphon and Eclipse Leviathan, three all-stat Mythics with progressively stronger level-scaled bonuses.
+- Add Eternal Sovereign, one ultra-rare Secret all-stat companion. The independent hatch chances are 1/100,000 normal, 1/25,000 Enchanted and 1/5,000 Astral Eggs; no pity or purchase shortcut.
+- Apply all nine pet bonuses, including passive IC income, mining income, expedition duration/loot/success, World Boss damage/haste, egg luck and Supply Cache chance. Preserve existing caps and mastery/charm specializations.
+- Keep the secret identity hidden until obtained, while supporting the same compact 22-species companion menu, one-active-pet model and persistent duplicate XP.
+- Widen existing PostgreSQL companion ID constraints without replacing or deleting player pets. Add unit/integration tests for rarity boundary odds, all-stat gameplay effects, passive accrual and migration.
+- Deploy with a DB migration and restart; no slash-command changes.
+
+---
+
 # 2.12.0 — 100 Season Tiers and Private Owner Administration (pending review)
 
 - Expand free Founders' Journey from 20 to 100 tiers, preserving its existing tier 1–20 rewards, player XP, one-time claims and season schedule.
