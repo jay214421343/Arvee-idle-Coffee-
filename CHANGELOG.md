@@ -1,5 +1,9 @@
 # 2.1.0 — polished collection and easier progression (unreleased)
 
+- Inspired by the supplied Discord UI references: rebuilt the Satchel with compact rarity-coded rows, a right-aligned Filters button, sorting and an Inspect dropdown; streamlined the Expeditions board with context filters and inline Inspect actions.
+- Added a ten-destination emoji navigation dropdown to the Command Center while keeping daily actions in one prominent horizontal button row.
+- The Forge now has a dynamic Craftable-only menu and contextual action rows; the Player Exchange also uses a compact listing picker.
+
 - Reworked inventory, operations and forging into individual Components V2 cards with buttons, filtering, sorting and pagination.
 - Pickaxe upgrades now show owned/required material counts and disable the upgrade action until affordable, avoiding misleading errors.
 - Made the early game less grindy: 500 IC starting balance, 150 IC mine minimum, 90-second mining cooldown, 750 IC daily credits, larger material drops and cheaper starter pickaxe tiers.

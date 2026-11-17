@@ -84,7 +84,7 @@ All gameplay lives under /idle:
 | Items | inventory, craft, use, open, give |
 | Exchange | market browse, market sell, market buy, market cancel |
 
-Inventory and operations now use individual Components V2 Section cards with Inspect/Details buttons, category filters, sorting and pagination. The Forge shows owned/required material counts. Most screens also offer actions without repeated slash commands. You can navigate operations, purchase upgrades, open supply caches, craft, trade and review progress from the Components V2 interface.
+Expeditions use interactive Components V2 Section cards and contextual Filters; Satchel uses compact rarity-coded rows with a right-aligned Filters button, sort control and Inspect dropdown; Command Center uses an emoji navigation menu with direct action buttons. The Forge shows owned/required material counts. Most screens also offer actions without repeated slash commands. You can navigate operations, purchase upgrades, open supply caches, craft, trade and review progress from the Components V2 interface.
 
 ## Operational safety
 

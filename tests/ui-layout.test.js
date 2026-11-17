@@ -22,46 +22,57 @@ function verifyCompact(view) {
   assert.ok(json.components.length <= 10, "container must stay within Discord component limit");
   assert.ok(JSON.stringify(json).length < 10000);
   const sections = findSections(view);
-  assert.ok(sections.length <= 4);
+  assert.ok(sections.length <= 5);
   for (const section of sections) {
     assert.equal(section.accessory.type, 2);
     assert.match(section.accessory.custom_id, /^ai:2:123456789012345678:/);
     assert.ok(section.components.some((part) => part.type === 10));
   }
 }
-test("inventory renders four individual rarity cards with Inspect accessories", () => {
+test("satchel uses a filter button, sorting dropdown and compact 8-item list", () => {
   const view = ui.inventory(owner, sample, 1, "all", "rarity");
   verifyCompact(view);
-  assert.equal(findSections(view).length, 4);
+  assert.equal(findSections(view).length, 1);
   assert.equal(findSelects(view).length, 2);
-  assert.match(JSON.stringify(view.toJSON()), /Inspect/);
-  assert.match(JSON.stringify(view.toJSON()), /rarity/);
-});
-test("filtering inventory categories, sorting, and paging preserve user choices", () => {
-  const view = ui.inventory(owner, sample, 2, "materials", "quantity");
-  verifyCompact(view);
-  const menu = findSelects(view);
-  assert.ok(menu[0].options.find((v) => v.value === "materials" && v.default === true));
-  assert.ok(menu[1].options.find((v) => v.value === "quantity" && v.default === true));
+  assert.equal(findSections(view)[0].accessory.label, "Filters");
   const json = JSON.stringify(view.toJSON());
-  assert.match(json, /2_materials_quantity/);
+  assert.match(json, /SATCHEL/);
+  assert.match(json, /Inspect an item/);
+  assert.match(json, /Rarest first/);
+});
+test("satchel filters use contextual filter panel, sorting and paging", () => {
+  const view = ui.inventory(owner, sample, 1, "materials", "quantity");
+  verifyCompact(view);
+  const menus = findSelects(view);
+  assert.ok(menus[0].options.find((v) => v.value === "quantity" && v.default === true));
+  assert.match(JSON.stringify(view.toJSON()), /1_materials_quantity/);
+  const filterPanel = ui.inventoryFilters(owner, 1, "materials", "quantity");
+  assert.match(JSON.stringify(filterPanel.toJSON()), /Crafting materials/);
+  assert.match(JSON.stringify(filterPanel.toJSON()), /inventory_filter_set/);
   assert.deepEqual(ui.parseListState("2_materials_quantity"), { page: 2, filter: "materials", sort: "quantity" });
   assert.deepEqual(ui.parseListState("99999_bad_invalid"), { page: 999, filter: "all", sort: "rarity" });
 });
-test("operation cards show correct actual price and affordability", () => {
+test("Expeditions use contextual filter button, sort menu and inspect cards", () => {
   const view = ui.shop(owner, 1, sample, "affordable", "price");
   verifyCompact(view);
-  assert.equal(findSelects(view).length, 2);
-  assert.ok(findSections(view).length <= 4);
-  assert.match(JSON.stringify(view.toJSON()), /Details/);
+  assert.equal(findSelects(view).length, 1);
+  assert.ok(findSections(view).length <= 5);
+  assert.equal(findSections(view)[0].accessory.label, "Filters");
+  assert.match(JSON.stringify(view.toJSON()), /Inspect/);
+  assert.match(JSON.stringify(ui.shopFilters(owner, 1, "owned", "income").toJSON()), /shop_filter_set/);
   assert.deepEqual(ui.parseListState("3_owned_income", "shop"), { page: 3, filter: "owned", sort: "income" });
 });
-test("Forge uses recipe cards and ingredient-aware confirmations", () => {
+test("Forge offers a craftable filter and ingredient-aware confirmation", () => {
   const list = ui.crafting(owner, sample, 1);
   verifyCompact(list);
   assert.equal(findSections(list).length, 4);
+  assert.equal(findSelects(list).length, 1);
+  assert.match(JSON.stringify(list.toJSON()), /craft_filter/);
+  assert.deepEqual(ui.parseCraftState("2_ready"), {page:2, filter:"ready"});
+  const ready = ui.crafting(owner, {...sample,inventory:[]}, 1, "ready");
+  assert.equal(findSections(ready).length, 0);
   const recipe = ui.recipe(owner, "coffee", sample);
-  assert.match(JSON.stringify(recipe.toJSON()), /FORGING MATERIALS/);
+  assert.match(JSON.stringify(recipe.toJSON()), /REQUIRED MATERIALS/);
   assert.match(JSON.stringify(recipe.toJSON()), /Rune Ore/);
   const buttons = recipe.toJSON().components.find((part) => part.type === 1).components;
   assert.equal(buttons[0].disabled, true);
@@ -86,4 +97,26 @@ test("pickaxe displays owned materials and disables unavailable upgrades", () =>
   assert.equal(ready.components.find((part) => part.type === 1).components[0].disabled, false);
   const max = ui.pickaxe(owner, { ...sample, pickaxeTier: 10 }).toJSON();
   assert.equal(max.components.find((part) => part.type === 1).components[0].disabled, true);
+});
+
+test("command center groups primary actions and an emoji navigation menu", () => {
+  const home = ui.home(owner, {
+    username:"ArveeAdventurer", displayAvatarURL:()=>"https://cdn.discordapp.com/embed/avatars/0.png"
+  },sample);
+  const json=home.toJSON();
+  const actions=json.components.filter((c)=>c.type===1 && c.components[0]?.type===2);
+  const selects=findSelects(home);
+  assert.equal(actions.length,1);
+  assert.equal(actions[0].components.length,4);
+  assert.equal(selects.length,1);
+  assert.equal(selects[0].options.length,10);
+  assert.equal(selects[0].custom_id,ui.custom(owner,"navigate"));
+  assert.ok(selects[0].options.some((o)=>o.value==="market"));
+});
+test("filter and navigation menus use safe owner-locked custom IDs", () => {
+  for (const v of [ui.inventoryFilters(owner),ui.shopFilters(owner)]) {
+    for(const part of v.toJSON().components) if(part.type===1)
+      for(const comp of part.components) if(comp.custom_id)
+        assert.match(comp.custom_id,/^ai:2:123456789012345678:/);
+  }
 });

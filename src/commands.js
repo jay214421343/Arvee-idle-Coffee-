@@ -212,11 +212,30 @@ async function handleComponent(interaction) {
     const selected = interaction.isStringSelectMenu() ? interaction.values[0] : "";
     let view;
     let result;
-    if (action === "profile") {
+    if (action === "navigate") {
+      if (selected === "profile") view = ui.home(owner, interaction.user, await store.profile(owner));
+      else if (selected === "shop") view = ui.shop(owner, 1, await store.profile(owner));
+      else if (selected === "inventory") view = ui.inventory(owner, await store.profile(owner));
+      else if (selected === "craft") view = ui.crafting(owner, await store.profile(owner));
+      else if (selected === "market") view = ui.market(owner, await store.browseMarket());
+      else if (selected === "pickaxe") view = ui.pickaxe(owner, await store.profile(owner));
+      else if (selected === "perks") view = ui.perks(owner, await store.profile(owner), require("./catalog").perks);
+      else if (selected === "stats") view = ui.stats(owner, await store.getStats(owner));
+      else if (selected === "leaderboard") view = ui.leaderboard(owner, await store.leaderboard());
+      else if (selected === "prestige") view = ui.prestige(owner, await store.profile(owner));
+      else if (selected === "help") view = ui.help(owner);
+      else throw new Error("Unknown navigation destination.");
+    } else if (action === "profile") {
       view = ui.home(owner, interaction.user, await store.profile(owner));
     } else if (action === "shop") {
       const { page, filter, sort } = ui.parseListState(argument, "shop");
       view = ui.shop(owner, page, await store.profile(owner), filter, sort);
+    } else if (action === "shop_filters") {
+      const { page, filter, sort } = ui.parseListState(argument, "shop");
+      view = ui.shopFilters(owner, page, filter, sort);
+    } else if (action === "shop_filter_set") {
+      const [filter, sort] = argument.split("_");
+      view = ui.shop(owner, 1, await store.profile(owner), filter, sort);
     } else if (action === "shop_filter") {
       view = ui.shop(owner, 1, await store.profile(owner), selected, argument);
     } else if (action === "shop_sort") {
@@ -245,6 +264,12 @@ async function handleComponent(interaction) {
     } else if (action === "inventory") {
       const { page, filter, sort } = ui.parseListState(argument, "inventory");
       view = ui.inventory(owner, await store.profile(owner), page, filter, sort);
+    } else if (action === "inventory_filters") {
+      const { page, filter, sort } = ui.parseListState(argument, "inventory");
+      view = ui.inventoryFilters(owner, page, filter, sort);
+    } else if (action === "inventory_filter_set") {
+      const [filter, sort] = argument.split("_");
+      view = ui.inventory(owner, await store.profile(owner), 1, filter, sort);
     } else if (action === "inventory_filter") {
       view = ui.inventory(owner, await store.profile(owner), 1, selected, argument);
     } else if (action === "inventory_sort") {
@@ -255,7 +280,7 @@ async function handleComponent(interaction) {
     } else if (action === "item_select") {
       const p = await store.profile(owner);
       const quantity = p.inventory.find((r) => r.item_id === selected)?.quantity || 0;
-      view = ui.item(owner, selected, quantity, Number(argument) || 1);
+      view = ui.item(owner, selected, quantity, argument);
     } else if (action === "use_item") {
       result = await store.useItem(owner, argument);
       view = ui.message("✨ Item used", "**" + labelItem(result.itemId) + "** · " + result.message, owner, { color: ui.SUCCESS });
@@ -263,7 +288,10 @@ async function handleComponent(interaction) {
       const drops = await store.openLootbox(owner, 1, argument);
       view = ui.message("📦 Supply Cache opened", Object.entries(drops).map(([id, n]) => n + "× " + labelItem(id)).join(" · "), owner, { color: ui.SUCCESS });
     } else if (action === "craft") {
-      view = ui.crafting(owner, await store.profile(owner), Number(argument) || 1);
+      const { page, filter } = ui.parseCraftState(argument);
+      view = ui.crafting(owner, await store.profile(owner), page, filter);
+    } else if (action === "craft_filter") {
+      view = ui.crafting(owner, await store.profile(owner), 1, selected);
     } else if (action === "recipe_view") {
       view = ui.recipe(owner, argument, await store.profile(owner));
     } else if (action === "recipe_select") {
