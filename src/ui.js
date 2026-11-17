@@ -325,8 +325,8 @@ function pickaxe(owner, p) {
   divider(c);
   foot(c, "**Tier**  " + tier + " / 10   ·   **Mining XP**  " + p.mineXp +
     "\n**Reward multiplier**  " + (1 + tier * 0.25).toFixed(2) + "×" +
-    "\n**Upgrade cost**  " + (20 * (tier + 1)) + " Ore + " + (5 * (tier + 1)) + " Silver" +
-    (tier >= 2 ? " + " + tier + " Gold" : "") +
+    "\n**Upgrade cost**  " + (8 * (tier + 1)) + " Rune Ore + " + (2 * (tier + 1)) + " Moonsteel" +
+    (tier >= 3 ? " + " + Math.ceil(tier / 2) + " Sunforged Gold" : "") +
     "\n**Perks**  " + (p.perks?.length ? p.perks.map((r) => r.perk_id + " Lv." + r.level).join(", ") : "None yet"));
   c.addActionRowComponents(row([
     button(owner, "pickaxe_upgrade", "Upgrade", "", ButtonStyle.Primary, tier >= 10),
@@ -354,7 +354,7 @@ function perks(owner, p, defs) {
 function perkRespec(owner) {
   const c = container("⚠ Respec pickaxe perks", "Remove every unlocked perk. Levels and consumed tokens are not refunded.", WARN);
   divider(c);
-  foot(c, "**Cost**  5× Strange Matter. Your pickaxe tier and XP are preserved.");
+  foot(c, "**Cost**  5× Void Essence. Your pickaxe tier and XP are preserved.");
   c.addActionRowComponents(row([
     button(owner, "perk_respec_confirm", "Confirm respec", "", ButtonStyle.Danger),
     button(owner, "perks", "Keep my perks")

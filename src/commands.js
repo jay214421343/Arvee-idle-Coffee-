@@ -20,8 +20,8 @@ idle.addSubcommand((c) => c.setName("inventory").setDescription("Check collected
 idle.addSubcommand((c) => c.setName("craft").setDescription("Craft an item")
   .addStringOption((o) => o.setName("item").setDescription("Item to craft (omit to browse recipes)").addChoices(...recipeChoices))
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity (1-100)").setMinValue(1).setMaxValue(100)));
-idle.addSubcommand((c) => c.setName("open").setDescription("Open lootboxes")
-  .addStringOption((o) => o.setName("type").setDescription("Type of lootbox").addChoices(
+idle.addSubcommand((c) => c.setName("open").setDescription("Open your Supply Caches")
+  .addStringOption((o) => o.setName("type").setDescription("Type of supply cache").addChoices(
     { name: "Supply Cache", value: "lootbox" }, { name: "Rare Supply Cache", value: "rare_lootbox" }, { name: "Mythic Supply Cache", value: "legendary_lootbox" }))
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity (1-20)").setMinValue(1).setMaxValue(20)));
 idle.addSubcommand((c) => c.setName("give").setDescription("Give another player an item")
@@ -118,7 +118,7 @@ async function respond(interaction) {
     } else if (command === "mine") {
       const result = await store.mine(id);
       content = result.cooldown ? "Your pickaxe is resting. Try again in " + result.cooldown + " seconds." :
-        "⛏️ Mined **" + pretty(result.reward) + " IC** and found **" + labelItem(result.drop) + "**! Mining XP: " + result.mineXp;
+        "⛏️ Mined **" + pretty(result.reward) + " IC** and found **" + (result.dropQuantity || 1) + "× " + labelItem(result.drop) + "**! Mining XP: " + result.mineXp;
     } else if (command === "daily") {
       const result = await store.daily(id);
       content = result.cooldown ? "Daily reward available in " + Math.ceil(result.cooldown / 60) + " minutes." :
@@ -223,7 +223,7 @@ async function handleComponent(interaction) {
       result = await store.mine(owner);
       view = ui.message(result.cooldown ? "⏳ Pickaxe cooling down" : "⛏ Mining complete",
         result.cooldown ? "You can mine again in " + result.cooldown + " seconds." :
-          "**+" + pretty(result.reward) + " IC** and **" + labelItem(result.drop) + "**" + (result.box ? " · Bonus Supply Cache!" : ""),
+          "**+" + pretty(result.reward) + " IC** and **" + (result.dropQuantity || 1) + "× " + labelItem(result.drop) + "**" + (result.box ? " · Bonus Supply Cache!" : ""),
         owner, { color: result.cooldown ? ui.WARN : ui.SUCCESS });
     } else if (action === "daily") {
       result = await store.daily(owner);

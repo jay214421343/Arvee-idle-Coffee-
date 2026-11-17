@@ -169,7 +169,7 @@ async function craft(userId, itemId, quantity) {
 }
 async function openLootbox(userId, quantity, boxType = "lootbox") {
   assertQuantity(quantity, 20);
-  if (!["lootbox", "rare_lootbox", "legendary_lootbox"].includes(boxType)) throw new Error("Unknown lootbox type.");
+  if (!["lootbox", "rare_lootbox", "legendary_lootbox"].includes(boxType)) throw new Error("Unknown supply cache type.");
   return transact([userId], async (db) => {
     await removeItem(db, userId, boxType, quantity);
     const drops = {};

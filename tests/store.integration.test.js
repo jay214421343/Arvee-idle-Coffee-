@@ -65,7 +65,7 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
     const cancellable = await store.sellItem(b, "ore", 1, "50");
     await store.cancelListing(b, cancellable.id);
     await assert.rejects(() => store.buyListing(a, cancellable.id), /no longer available/);
-    // Prestige resets only BP and generators, keeping perks, ore and pickaxe tiers.
+    // Prestige resets only IC and generators, keeping perks, ore and pickaxe tiers.
     await store.pool.query("UPDATE players SET balance=2000000000,total_earned=2000000000 WHERE user_id=$1", [a]);
     assert.equal((await store.prestige(a)).prestige, 1);
     const reset = await store.profile(a);

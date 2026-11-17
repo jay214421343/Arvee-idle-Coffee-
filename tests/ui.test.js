@@ -31,7 +31,7 @@ test("Components V2 identifiers are owner-bound and compact", () => {
   assert.throws(() => ui.custom(owner, "weird action", ""));
 });
 test("all game dashboard views serialize as native Components V2", () => {
-  const user = { username: "CoffeeFan", displayAvatarURL: () => "https://cdn.discordapp.com/embed/avatars/0.png" };
+  const user = { username: "ARVEEFan", displayAvatarURL: () => "https://cdn.discordapp.com/embed/avatars/0.png" };
   const views = [
     ui.home(owner, user, sample),
     ui.shop(owner, 1),
@@ -46,7 +46,7 @@ test("all game dashboard views serialize as native Components V2", () => {
     ui.pickaxe(owner, sample),
     ui.perks(owner, sample, perks),
     ui.leaderboard(owner, [{ user_id: owner, total_earned: "10", prestige: 0 }]),
-    ui.stats(owner, { ...sample, counts: { mine: 4, daily: 1 }, achievements: [{ name: "Coffee Lover", achieved: true, goal: "Claim a reward" }] }),
+    ui.stats(owner, { ...sample, counts: { mine: 4, daily: 1 }, achievements: [{ name: "First Expedition", achieved: true, goal: "Claim a reward" }] }),
     ui.perkRespec(owner),
     ui.help(owner),
     ui.message("Test", "Hello", owner)

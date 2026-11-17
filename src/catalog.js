@@ -14,18 +14,18 @@ if (byId.size !== generators.length) throw new Error("Duplicate generator ID in 
 const items = Object.freeze({
   ore: { name: "Rune Ore", emoji: "🪨", rarity: "Common", description: "Ore extracted from ARVEE mines. Used at the Forge." },
   silver: { name: "Moonsteel", emoji: "🥈", rarity: "Uncommon", description: "A refined ore used in forging and trading." },
-  gold: { name: "Sunforged Gold", emoji: "🥇", rarity: "Rare", description: "Precious metal for advanced crafts." },
+  gold: { name: "Sunforged Gold", emoji: "🥇", rarity: "Rare", description: "Rare metal for advanced ARVEE forging." },
   coffee: { name: "Campfire Brew", emoji: "☕", rarity: "Common", description: "A warm brew shared by adventurers at an ARVEE campfire.", use: "Gain 50 IC.", effect: { bp: "50" } },
   cookie: { name: "Traveler's Ration", emoji: "🍪", rarity: "Common", description: "A reliable snack before a dungeon expedition.", use: "Gain 250 IC.", effect: { bp: "250" } },
   lucky_charm: { name: "Fate Charm", emoji: "🍀", rarity: "Epic", description: "A charm marked with runes from an ancient ARVEE expedition.", use: "Double your next mining reward.", effect: { nextMine: "2" } },
   lootbox: { name: "Supply Cache", emoji: "📦", rarity: "Common", description: "Contains a random selection of useful items.", use: "Open with /idle open." },
   rare_lootbox: { name: "Rare Supply Cache", emoji: "🎁", rarity: "Rare", description: "A better selection of loot.", use: "Open with /idle open." },
   legendary_lootbox: { name: "Mythic Supply Cache", emoji: "🌟", rarity: "Legendary", description: "A rare box full of precious items.", use: "Open with /idle open." },
-  apple: { name: "Herbal Ration", emoji: "🍎", rarity: "Common", description: "A healthy mining snack.", use: "Gain 100 IC.", effect: { bp: "100" } },
-  bread: { name: "Traveler Bread", emoji: "🍞", rarity: "Common", description: "Freshly baked bread.", use: "Gain 150 IC.", effect: { bp: "150" } },
-  bacon: { name: "Hunter\'s Feast", emoji: "🥓", rarity: "Uncommon", description: "An energy-packed snack.", use: "Gain 600 IC.", effect: { bp: "600" } },
-  cola: { name: "Spark Tonic", emoji: "🥤", rarity: "Uncommon", description: "Fuel for late-night mining.", use: "Boost your next mine by 25%.", effect: { nextMine: "1.25" } },
-  starfruit: { name: "Starshard Fruit", emoji: "⭐", rarity: "Rare", description: "A mysterious glowing fruit.", use: "Boost your next mine by 50%.", effect: { nextMine: "1.5" } },
+  apple: { name: "Herbal Ration", emoji: "🍎", rarity: "Common", description: "An herb-packed adventurer ration.", use: "Gain 100 IC.", effect: { bp: "100" } },
+  bread: { name: "Traveler Bread", emoji: "🍞", rarity: "Common", description: "Bread prepared for a journey through the ARVEE realms.", use: "Gain 150 IC.", effect: { bp: "150" } },
+  bacon: { name: "Hunter\'s Feast", emoji: "🥓", rarity: "Uncommon", description: "A feast for weary dungeon hunters.", use: "Gain 600 IC.", effect: { bp: "600" } },
+  cola: { name: "Spark Tonic", emoji: "🥤", rarity: "Uncommon", description: "Sparkling energy from an alchemist workshop.", use: "Boost your next mine by 25%.", effect: { nextMine: "1.25" } },
+  starfruit: { name: "Starshard Fruit", emoji: "⭐", rarity: "Rare", description: "A fruit infused with astral energy.", use: "Boost your next mine by 50%.", effect: { nextMine: "1.5" } },
   golden_apple: { name: "Golden Starfruit", emoji: "🍏", rarity: "Epic", description: "A highly prized enchanted snack.", use: "Boost your next mine by 100%.", effect: { nextMine: "2" } },
   strange_matter: { name: "Void Essence", emoji: "✨", rarity: "Rare", description: "Used in rare experiments and crafting." },
   foxtail_amulet: { name: "Foxfire Charm", emoji: "🦊", rarity: "Epic", description: "A charm beloved by miners.", use: "Boost your next mine by 200%.", effect: { nextMine: "3" } },
@@ -36,7 +36,7 @@ const items = Object.freeze({
   pumpkin_spice_latte: { name: "Harvest Brew", emoji: "🎃", rarity: "Rare", description: "A seasonal harvest potion brewed in the ARVEE realm.", use: "Boost your next mine by 75%.", effect: { nextMine: "1.75" } },
   bohemian_cocktail: { name: "Moonshadow Elixir", emoji: "🍹", rarity: "Epic", description: "Moonlit alchemy distilled by ARVEE artificers.", use: "Receive 1 Rare Supply Cache.", effect: { grant: "rare_lootbox", grantAmount: 1 } },
   jungle_juice: { name: "Forest Tonic", emoji: "🧃", rarity: "Rare", description: "A burst of concentrated energy.", use: "Gain 10 mining XP.", effect: { xp: 10 } },
-  gilded_slurry: { name: "Golden Elixir", emoji: "🏺", rarity: "Epic", description: "Expensive but fruitful alchemy.", use: "Receive a Gem.", effect: { grant: "gem", grantAmount: 1 } }
+  gilded_slurry: { name: "Golden Elixir", emoji: "🏺", rarity: "Epic", description: "Expensive but fruitful alchemy.", use: "Receive an Astral Gem.", effect: { grant: "gem", grantAmount: 1 } }
 });
 const recipes = Object.freeze({
   coffee: { ore: 3, silver: 1 },
@@ -56,7 +56,7 @@ const perks = Object.freeze({
   fortune: { name: "Treasure Hunter", description: "Better mineral loot at each level", max: 10 },
   sprinter: { name: "Quick Hands", description: "-15 seconds mining cooldown per level", max: 10 },
   investor: { name: "Idle Savant", description: "+3% passive IC income per level", max: 10 },
-  scavenger: { name: "Scavenger", description: "+3% lootbox chance per level", max: 10 }
+  scavenger: { name: "Scavenger", description: "+3% Supply Cache chance per level", max: 10 }
 });
 for (const [id, recipe] of Object.entries(recipes)) {
   if (!Object.hasOwn(items, id)) throw new Error("Undefined recipe output " + id);
