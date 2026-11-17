@@ -18,6 +18,19 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.8 — Coffee-inspired Core Polish
+
+Version 2.8 focuses on improving existing gameplay. There are no economy or reward changes and no database migrations.
+
+- **Accurate prestige:** The Command Center shows exact integer percentage progress to 1B IC (not rounded to 10% steps), remaining IC and readiness.
+- **Clear next action:** Daily, mining and prestige readiness guide players to a single relevant activity without added buttons or queries. Other-player profiles stay read-only.
+- **Unambiguous navigation:** Passive-income generators are called *Operations*; timed missions remain *World Map expeditions*, and guild weeklies remain *Guild Expeditions*. Existing commands, saved preferences and action identifiers are unchanged.
+- **Compact receipts:** Recruiting operations or prestiging, by button or slash command, now shows the same Coffee-style two-button result with actual committed values.
+- **Error handling:** Unexpected Discord failures after an interaction acknowledgement now show a private fallback rather than leaving players without feedback.
+- **Tests:** New regression tests cover progress boundaries, guidance, cross-server-safe receipts and UI component limits.
+
+**After PR review:** Run `npm ci && npm run check && npm test`. After the PR is merged, update only ARVEE Idle in `/Users/gabberjay/Documents/arvee-idle`: `git switch master && git pull --ff-only origin master && npm ci && npm run register && npm run mac:restart`. Run registration for updated slash-command descriptions; no SQL migration is required for 2.8.
+
 ## ARVEE Idle 2.7 — Guild Expeditions & Seasonal Guild Leagues
 
 Team expeditions are **global player-guild objectives** rather than Discord-server missions. Successful gameplay events from members of the same guild advance shared objectives regardless of which Discord server hosts the command. Data lives in the existing PostgreSQL database and the Discord UI uses compact, mostly emoji-free Components V2.

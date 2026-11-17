@@ -10,6 +10,7 @@ const challengeData = require("./challenges");
 const exploration = require("./exploration");
 const companions = require("./companions");
 const activity = require("./activity");
+const progression = require("./progression");
 const guilds = require("./guilds");
 const { SEASON, rewards, missions, label, tierNeeded } = require("./season");
 
@@ -51,7 +52,7 @@ function rarityMark(rarity) {
 function navigation(owner) {
   return selector(owner, "navigate", "", "✦ Navigate ARVEE Idle", [
     { label: "Command Center", value: "profile", description: "Wallet, progression and quick actions" },
-    { label: "Expeditions", value: "shop", description: "Recruit passive Idle Credit generators" },
+    { label: "Operations", value: "shop", description: "Recruit passive IC-producing units" },
     { label: "Satchel", value: "inventory", description: "Manage your loot and materials" },
     { label: "The Forge", value: "craft", description: "Forge artifacts from gathered materials" },
     { label: "Season Journey", value: "season", description: "Earn Season XP and unlock 20 free rewards" },
@@ -66,7 +67,7 @@ function navigation(owner) {
     { label: "Player Exchange", value: "market", description: "Trade with other adventurers" },
     { label: "Hall of Fame", value: "leaderboard", description: "See top adventurers" },
     { label: "Milestones", value: "stats", description: "Track achievements and records" },
-    { label: "Ascension", value: "prestige", description: "Earn a permanent prestige boost" },
+    { label: "Prestige", value: "prestige", description: "Earn a permanent production boost" },
     { label: "Field Guide", value: "help", description: "Learn how to play" }
   ]);
 }
@@ -79,9 +80,9 @@ function choice(owner, action, label, value, selected = false) {
   return button(owner, action, label, value, selected ? ButtonStyle.Primary : ButtonStyle.Secondary, selected);
 }
 function shopFilters(owner, page = 1, filter = "all", sort = "price") {
-  const c = container("RECRUITMENT  /  FILTERS", "Choose what appears on your expedition board.");
+  const c = container("RECRUITMENT  /  FILTERS", "Choose what appears on your Operations board.");
   c.addTextDisplayComponents(text("**Current selection**  " +
-    ({ all: "All expeditions", affordable: "Can recruit", owned: "My expeditions" }[filter] || "All expeditions") +
+    ({ all: "All operations", affordable: "Can recruit", owned: "My operations" }[filter] || "All expeditions") +
     "\nSorting: " + (sort === "income" ? "Highest income" : "Lowest cost")));
   divider(c);
   c.addActionRowComponents(row([
@@ -89,7 +90,7 @@ function shopFilters(owner, page = 1, filter = "all", sort = "price") {
     choice(owner, "shop_filter_set", "Affordable", "affordable_" + sort, filter === "affordable"),
     choice(owner, "shop_filter_set", "Owned", "owned_" + sort, filter === "owned")
   ]));
-  c.addActionRowComponents(row([button(owner, "shop", "◀ Back to expeditions", listState(page, filter, sort), ButtonStyle.Primary)]));
+  c.addActionRowComponents(row([button(owner, "shop", "Back to operations", listState(page, filter, sort), ButtonStyle.Primary)]));
   return c;
 }
 function inventoryFilters(owner, page = 1, filter = "all", sort = "rarity") {
@@ -246,6 +247,29 @@ function cacheResult(owner, drops) {
     "Your finds have been added to your inventory."
   );
 }
+function purchaseResult(owner, result) {
+  return activityCard(owner, "OPERATIONS  /  RECRUITED", "THE RECRUITER",
+    "Your crew grows. The work continues even while you're away.",
+    "**RECRUITED**  " + result.quantity + "× " + escapeMarkdown(result.generator.name) +
+    "\n**SPENT**  " + pretty(result.cost) + " IC" +
+    "\n**WALLET**  " + pretty(result.balance) + " IC" +
+    "\n**PASSIVE INCOME**  +" + pretty(result.rate) + " IC/s",
+    [button(owner, "operation", "Recruit more", result.generator.id, ButtonStyle.Primary),
+     button(owner, "profile", "Command Center")],
+    "Operations produce Idle Credits passively across every server."
+  );
+}
+function prestigeResult(owner, result) {
+  return activityCard(owner, "PRESTIGE  /  COMPLETE", "THE CHRONICLER",
+    "A new chapter begins with lasting strength.",
+    "**PRESTIGE LEVEL**  " + result.prestige +
+    "\n**PRODUCTION MULTIPLIER**  " + dec(result.multiplier).toString() + "×" +
+    "\nYour operation roster and wallet have reset; your permanent progress remains.",
+    [button(owner, "shop", "Recruit operations", "", ButtonStyle.Primary),
+     button(owner, "profile", "Command Center")],
+    "Build your passive production again to reach your next prestige."
+  );
+}
 function home(owner, user, p, readOnly = false) {
   const operations = p.generators.reduce((n, g) => n + g.quantity, 0);
   const c = container("✦ ARVEE IDLE  /  COMMAND CENTER",
@@ -260,11 +284,11 @@ function home(owner, user, p, readOnly = false) {
     .setDescription("ARVEE Idle player avatar"));
   c.addSectionComponents(s);
   divider(c);
-  const progress = Math.max(0, Math.min(10, Decimal.min(p.balance.div(PRESTIGE_REQUIREMENT).times(10), 10).floor().toNumber()));
-  c.addTextDisplayComponents(text("**ASCENSION PROGRESS**  " + "▰".repeat(progress) +
-    "▱".repeat(10 - progress) + "  " + Math.floor(progress * 10) + "%\n" +
-    (operations === 0 ? "**Getting started:** Claim Daily → Mine → Recruit your first expedition." :
-      "**Passive income:** Your expeditions are producing IC, even offline.")));
+  const progress = progression.prestigeProgress(p);
+  c.addTextDisplayComponents(text("**PRESTIGE PROGRESS**  " + "▰".repeat(progress.filled) +
+    "▱".repeat(10 - progress.filled) + "  " + progress.percent + "%\n" +
+    (progress.ready ? "**Prestige available** · A permanent production boost awaits." :
+      "**To next prestige**  " + pretty(progress.remaining) + " IC")));
   if (readOnly) {
     foot(c, "Viewing another player's public progress. Only your own character can perform actions.");
     c.addActionRowComponents(row([button(owner, "profile", "My Command Center", "", ButtonStyle.Primary)]));
@@ -277,11 +301,11 @@ function home(owner, user, p, readOnly = false) {
   c.addActionRowComponents(row([
     button(owner, "mine", "Mine", "", ButtonStyle.Primary),
     button(owner, "daily", "Daily Reward"),
-    button(owner, "shop", "Expeditions"),
+    button(owner, "shop", "Operations"),
     button(owner, "inventory", "Satchel")
   ]));
   c.addActionRowComponents(navigation(owner));
-  foot(c, "**Next:** Complete expeditions or open your Season Journey to unlock rewards.\n[ARVEE World](" + brand.website + ")");
+  foot(c, "**NEXT STEP**  " + progression.nextStep(p, ready) + "\n[ARVEE World](" + brand.website + ")");
   return c;
 }
 
@@ -296,17 +320,17 @@ function shop(owner, page = 1, p = null, filter = "all", sort = "price") {
   const total = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
   page = Math.max(1, Math.min(total, Number(page) || 1));
   const visible = entries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const c = container("ARVEE IDLE  /  EXPEDITIONS",
+  const c = container("ARVEE IDLE  /  OPERATIONS",
     "**" + (p ? pretty(p.balance) : "—") + " IC** in treasury  ·  **+" + (p ? pretty(p.rate) : "0") +
     " IC/s**\nRecruit units, expand your empire and earn while offline.");
   c.addSectionComponents(filterHeader(owner, "shop_filters", "RECRUITMENT BOARD",
-    (filter === "owned" ? "Owned" : filter === "affordable" ? "Affordable" : "All expeditions") +
+    (filter === "owned" ? "Owned" : filter === "affordable" ? "Affordable" : "All operations") +
     "  ·  " + (sort === "income" ? "Highest income first" : "Lowest cost first"),
     listState(page, filter, sort)));
-  c.addActionRowComponents(selector(owner, "shop_sort", filter, "↕ Sort expeditions",
+  c.addActionRowComponents(selector(owner, "shop_sort", filter, "Sort operations",
     [{ label: "Lowest cost", value: "price", default: sort === "price" },
       { label: "Highest IC per second", value: "income", default: sort === "income" }]));
-  if (!visible.length) c.addTextDisplayComponents(text("No expeditions match this filter. Open Filters to view everything."));
+  if (!visible.length) c.addTextDisplayComponents(text("No operations match this filter. Open Filters to view everything."));
   for (const g of visible) {
     const units = owned(g);
     const next = cost(g);
@@ -321,7 +345,7 @@ function shop(owner, page = 1, p = null, filter = "all", sort = "price") {
     button(owner, "profile", "Command Center", "", ButtonStyle.Primary),
     button(owner, "shop", "▶", listState(page + 1, filter, sort), ButtonStyle.Secondary, page === total)
   ]));
-  foot(c, "**SECTOR " + page + " / " + total + "**  ·  " + entries.length + " expeditions  ·  Filters are saved automatically");
+  foot(c, "**SECTOR " + page + " / " + total + "**  ·  " + entries.length + " operations  ·  Filters are saved automatically");
   return c;
 }
 
@@ -834,7 +858,7 @@ function expeditionGear(owner, status, note = "") {
 function preferences(owner, p, note = "") {
   const c = container("ARVEE IDLE  /  SAVED PREFERENCES",
     "Your personal filters are remembered on every Discord device and after bot restarts.");
-  c.addTextDisplayComponents(text("**EXPEDITIONS**\n" +
+  c.addTextDisplayComponents(text("**OPERATIONS**\n" +
     "Collection: " + ({ all: "All expeditions", affordable: "Affordable", owned: "Owned" }[p.shopFilter] || "All") +
     "  ·  Sort: " + (p.shopSort === "income" ? "Highest production" : "Lowest cost") +
     "\n\n**SATCHEL**\n" +
@@ -1095,5 +1119,5 @@ function payload(view) {
 }
 module.exports = {
   custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, worldBoss, guildOverview, guildRankings, guildExpeditionBoard, guildLeagueBoard, preferences, challengeBoard, message, home, shop, generator, inventory, inventoryPreview, item, crafting, recipe, season, market, listing,
-  prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, miningResult, dailyResult, craftingResult, cacheResult, SUCCESS, WARN, ERROR
+  prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, miningResult, dailyResult, craftingResult, cacheResult, purchaseResult, prestigeResult, SUCCESS, WARN, ERROR
 };
