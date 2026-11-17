@@ -120,3 +120,15 @@ test("filter and navigation menus use safe owner-locked custom IDs", () => {
         assert.match(comp.custom_id,/^ai:2:123456789012345678:/);
   }
 });
+
+test("rune talent picker is unavailable until player has fragments", () => {
+  const { perks } = require("../src/catalog");
+  const empty = ui.perks(owner, {...sample,inventory:[],perks:[]},perks).toJSON();
+  const menu = empty.components.filter(c=>c.type===1).flatMap(c=>c.components).find(c=>c.type===3);
+  assert.equal(menu.disabled,true);
+  assert.match(JSON.stringify(empty),/Rune Fragments:.*0/);
+  const unlocked = ui.perks(owner, {...sample,inventory:[{item_id:"pickperk",quantity:1}],perks:[]},perks).toJSON();
+  const active = unlocked.components.filter(c=>c.type===1).flatMap(c=>c.components).find(c=>c.type===3);
+  assert.equal(active.disabled,false);
+  assert.ok(unlocked.components.length <=10);
+});

@@ -491,16 +491,26 @@ function pickaxe(owner, p) {
   return c;
 }
 function perks(owner, p, defs) {
-  const c = container("✨ Pickaxe Perks", "Unlock perks using Rune Fragments, found in high-tier supply caches.");
+  const fragments = p.inventory?.find((r) => r.item_id === "pickperk")?.quantity || 0;
+  const equipped = p.perks?.length || 0;
+  const c = container("ARVEE IDLE  /  RUNIC TALENTS",
+    "Spend Rune Fragments on lasting mining abilities. Choose up to 3 different talents.");
+  c.addTextDisplayComponents(text("**Rune Fragments:** " + fragments + "  ·  **Talents:** " + equipped + " / 3"));
   divider(c);
-  foot(c, Object.entries(defs).map(([id, d]) => "**" + d.name + "** · " + (p.perks?.find((x) => x.perk_id === id)?.level || 0) + " / " + d.max +
-    "\n" + d.description).join("\n\n"));
+  c.addTextDisplayComponents(text(Object.entries(defs).map(([id, def]) => {
+    const level = p.perks?.find((x) => x.perk_id === id)?.level || 0;
+    return (level > 0 ? "◆" : "◇") + " **" + def.name + "**  " + level + " / " + def.max +
+      "\n   " + def.description;
+  }).join("\n\n")));
   c.addActionRowComponents(new ActionRowBuilder().addComponents(new StringSelectMenuBuilder()
-    .setCustomId(custom(owner, "perk_select")).setPlaceholder("Upgrade a perk (costs 1 token)")
-    .addOptions(Object.entries(defs).map(([id, d]) => ({ label: d.name, value: id, description: d.description.slice(0, 100) })))));
+    .setCustomId(custom(owner, "perk_select")).setPlaceholder(fragments ? "Choose a runic talent to upgrade" : "Collect Rune Fragments to upgrade")
+    .setDisabled(fragments < 1)
+    .addOptions(Object.entries(defs).map(([id, def]) => ({
+      label: def.name, value: id, description: ("1 fragment · " + def.description).slice(0, 100)
+    })))));
   c.addActionRowComponents(row([
-    button(owner, "pickaxe", "Back to pickaxe"),
-    button(owner, "perk_respec", "Respec perks", "", ButtonStyle.Danger, !p.perks?.length),
+    button(owner, "pickaxe", "◀ Pickaxe", "", ButtonStyle.Primary),
+    button(owner, "perk_respec", "Reset talents", "", ButtonStyle.Secondary, equipped < 1),
     button(owner, "profile", "Command Center")
   ]));
   return c;

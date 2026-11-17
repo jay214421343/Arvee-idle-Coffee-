@@ -2,6 +2,7 @@
 
 - Added the **Founders' Journey** season with 20 free tiers, activity XP, daily cap, contracts, 7-day claim grace, and atomic rewards in PostgreSQL.
 - Made the UI calmer: one ARVEE-purple accent, neutral rarity markers, and no decorative green buttons; red remains for destructive confirmations.
+- Rebuilt the Rune Talents page with fragment counts and a disabled upgrade dropdown when the player has no tokens.
 - Preserved season rewards during prestige resets, corrected the pickaxe Quick Hands cooldown description, and fixed prestige's starter balance to 500 IC.
 - Added season progress and claim tests, including concurrent duplicate-claim prevention and daily XP limits.
 
