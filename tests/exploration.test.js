@@ -106,7 +106,7 @@ test("slash commands and navigation expose World Map and Equipment", () => {
     .filter(x=>x.type===3).flatMap(x=>x.options);
   assert.ok(options.some(x=>x.value==="explore"));
   assert.ok(options.some(x=>x.value==="equipment"));
-  assert.equal(options.length,16);
+  assert.equal(options.length,17);
 });
 test("expedition completion advances the season and rotating contracts", () => {
   assert.equal(season.eventXp("expedition_complete"),60);

@@ -60,6 +60,8 @@ function eventXp(type, metadata = {}) {
   if (type === "perk_upgrade") return 40;
   if (type === "prestige") return 250;
   if (type === "expedition_complete") return 60;
+  if (type === "world_boss_attack") return 15;
+  if (type === "world_boss_reward") return 80;
   if (type === "expedition_gear_upgrade") return 35;
   return 0;
 }

@@ -36,6 +36,7 @@ function eventXp(type, metadata = {}) {
   if (type === "mine") return 10;
   if (type === "daily") return 25;
   if (type === "expedition_complete") return 65;
+  if (type === "world_boss_attack") return 15;
   if (type === "craft") return 10 * Math.max(1, Math.min(5, Number.isSafeInteger(metadata.quantity) ? metadata.quantity : 1));
   if (type === "open_lootbox") return 5 * Math.max(1, Math.min(5, Number.isSafeInteger(metadata.quantity) ? metadata.quantity : 1));
   return 0;

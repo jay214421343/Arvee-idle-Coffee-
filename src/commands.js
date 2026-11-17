@@ -18,6 +18,7 @@ idle.addSubcommand((c) => c.setName("daily").setDescription("Claim your daily Id
 idle.addSubcommand((c) => c.setName("season").setDescription("Season Journey: tiers, challenges and free rewards"));
 idle.addSubcommand((c) => c.setName("challenges").setDescription("Daily and weekly adventurer contracts with rewards"));
 idle.addSubcommand((c) => c.setName("explore").setDescription("World Map: send your crew on timed expeditions"));
+idle.addSubcommand((c) => c.setName("boss").setDescription("Fight the shared weekly world boss and claim rewards"));
 idle.addSubcommand((c) => c.setName("companions").setDescription("Collect, level and equip an adventure companion"));
 idle.addSubcommand((c) => c.setName("equipment").setDescription("Upgrade permanent expedition equipment"));
 idle.addSubcommand((c) => c.setName("settings").setDescription("View and reset your saved filter preferences"));
@@ -115,6 +116,7 @@ async function respond(interaction) {
         "**Season:** /idle season to unlock 20 free reward tiers",
         "**Contracts:** /idle challenges for daily and weekly rewards",
         "**World Map:** /idle explore to send crew on timed expeditions",
+        "**World Boss:** /idle boss for a cross-server cooperative battle",
         "**Companions:** /idle companions to choose a pet and hatch eggs",
         "**Equipment:** /idle equipment to boost expedition rewards",
         "**Preferences:** /idle settings to view and reset your saved filters",
@@ -135,6 +137,8 @@ async function respond(interaction) {
       view = ui.preferences(id, await store.getPreferences(id));
     } else if (command === "explore") {
       view = ui.expeditionMap(id, await store.getExploration(id));
+    } else if (command === "boss") {
+      view = ui.worldBoss(id, await store.getWorldBoss(id));
     } else if (command === "companions") {
       view = ui.companionCollection(id, await store.getCompanions(id));
     } else if (command === "equipment") {
@@ -257,6 +261,7 @@ async function handleComponent(interaction) {
       else if (selected === "challenges") view = ui.challengeBoard(owner, await store.getChallenges(owner));
       else if (selected === "settings") view = ui.preferences(owner, await store.getPreferences(owner));
       else if (selected === "explore") view = ui.expeditionMap(owner, await store.getExploration(owner));
+      else if (selected === "boss") view = ui.worldBoss(owner, await store.getWorldBoss(owner));
       else if (selected === "companions") view = ui.companionCollection(owner, await store.getCompanions(owner));
       else if (selected === "equipment") view = ui.expeditionGear(owner, await store.getExploration(owner));
       else if (selected === "market") view = ui.market(owner, await store.browseMarket());
@@ -308,6 +313,18 @@ async function handleComponent(interaction) {
       view = ui.companionCollection(owner, await store.getCompanions(owner),
         result.discovered ? "Discovered " + result.name + "!" :
           result.name + " bonded with you. +" + result.bonusXp + " companion XP.");
+    } else if (action === "boss") {
+      view = ui.worldBoss(owner, await store.getWorldBoss(owner));
+    } else if (action === "boss_attack") {
+      result = await store.attackWorldBoss(owner);
+      view = ui.worldBoss(owner, await store.getWorldBoss(owner),
+        "Your strike dealt " + result.damage + " damage." +
+        (result.finished ? " The boss is defeated!" : ""));
+    } else if (action === "boss_claim") {
+      result = await store.claimWorldBossReward(owner, argument);
+      view = ui.worldBoss(owner, await store.getWorldBoss(owner),
+        "Claimed " + pretty(result.ic) + " IC and " + result.quantity + "× " +
+        labelItem(result.itemId) + (result.rare ? " plus a Rare Supply Cache." : "."));
     } else if (action === "explore") {
       view = ui.expeditionMap(owner, await store.getExploration(owner));
     } else if (action === "region_view") {

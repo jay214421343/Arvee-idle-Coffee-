@@ -7,6 +7,7 @@ const challenges = require("./challenges");
 const exploration = require("./exploration");
 const activity = require("./activity");
 const companions = require("./companions");
+const worldBosses = require("./world-bosses");
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 10, connectionTimeoutMillis: 10000, idleTimeoutMillis: 30000 });
 pool.on("error", (error) => console.error("[Postgres] Idle connection error", error));
@@ -495,7 +496,9 @@ async function getStats(userId) {
     { name: "Crafting Artisan", achieved: (counts.craft || 0) >= 10, goal: "Craft 10 times" },
     { name: "Merchant", achieved: (counts.market_sell || 0) >= 1, goal: "List an item for sale" },
     { name: "Shopping Spree", achieved: (counts.generator_purchase || 0) >= 20, goal: "Buy generators 20 times" },
-    { name: "Rising Star", achieved: player.prestige >= 1, goal: "Prestige once" }
+    { name: "Rising Star", achieved: player.prestige >= 1, goal: "Prestige once" },
+    { name: "Boss Challenger", achieved: (counts.world_boss_attack || 0) >= 2, goal: "Strike a world boss twice" },
+    { name: "Worldbreaker", achieved: (counts.world_boss_reward || 0) >= 1, goal: "Claim a world boss reward" }
   ];
   return { ...player, counts, achievements };
 }
@@ -715,6 +718,148 @@ async function upgradeExpeditionGear(userId, gearId) {
   });
 }
 
+async function ensureWorldBoss(db, now) {
+  const cycle = worldBosses.cycle(now);
+  const boss = cycle.boss;
+  await db.query(
+    "INSERT INTO world_boss_instances(period_key,boss_id,max_hp,hp,starts_at,ends_at,reward_pool,reward_item_id) " +
+    "VALUES($1,$2,$3,$3,$4,$5,$6,$7) ON CONFLICT(period_key) DO NOTHING",
+    [cycle.key,boss.id,boss.hp,cycle.start,cycle.end,boss.pool,boss.itemId]
+  );
+  return cycle;
+}
+async function readWorldBoss(db, userId) {
+  const now = (await db.query("SELECT clock_timestamp() AS now")).rows[0].now;
+  const cycle = await ensureWorldBoss(db,now);
+  const bossRow = (await db.query(
+    "SELECT * FROM world_boss_instances WHERE period_key=$1",[cycle.key]
+  )).rows[0];
+  const mine = (await db.query(
+    "SELECT total_damage,attack_count,next_attack_at,claimed_at FROM world_boss_contributions " +
+    "WHERE period_key=$1 AND user_id=$2",[cycle.key,userId]
+  )).rows[0];
+  const participants = (await db.query(
+    "SELECT count(*)::integer AS total FROM world_boss_contributions WHERE period_key=$1",[cycle.key]
+  )).rows[0].total;
+  const leaders = (await db.query(
+    "SELECT user_id,total_damage FROM world_boss_contributions " +
+    "WHERE period_key=$1 ORDER BY total_damage DESC,user_id LIMIT 3",[cycle.key]
+  )).rows;
+  // Old, unclaimed rewards survive all later weekly rotations.
+  const pending = (await db.query(
+    "SELECT b.period_key,b.boss_id,c.total_damage FROM world_boss_contributions c " +
+    "JOIN world_boss_instances b ON b.period_key=c.period_key " +
+    "WHERE c.user_id=$1 AND c.claimed_at IS NULL AND c.attack_count >= 2 " +
+    "AND c.total_damage >= GREATEST(80,CEIL(b.max_hp * 0.015)) " +
+    "AND (b.hp=0 OR b.ends_at <= $2) ORDER BY b.starts_at ASC LIMIT 1",
+    [userId,now]
+  )).rows[0];
+  const boss = worldBosses.byId.get(bossRow.boss_id);
+  const dealt = Number(mine?.total_damage || 0);
+  const attacks = Number(mine?.attack_count || 0);
+  const rules = worldBosses.eligibility({ ...boss, hp:bossRow.max_hp },dealt,attacks);
+  const finished = bossRow.hp === 0 || new Date(now) >= bossRow.ends_at;
+  const next = mine?.next_attack_at || null;
+  const canAttack = !finished && (!next || new Date(now) >= next);
+  return {
+    periodKey: bossRow.period_key, bossId: boss.id, name: boss.name, description: boss.description,
+    maxHp: bossRow.max_hp, hp: bossRow.hp, rewardPool:bossRow.reward_pool,
+    endsAt: bossRow.ends_at.toISOString(),
+    defeated: bossRow.hp === 0, ended: finished, participants: Number(participants),
+    myDamage: dealt, myAttacks: attacks, qualified: rules.eligible,
+    minDamage: rules.minDamage, minAttacks: rules.minAttacks, canAttack,
+    nextAttackAt: next?.toISOString() || null, leaders: leaders.map((r) => ({
+      userId:r.user_id,damage:Number(r.total_damage)
+    })),
+    pending: pending ? { periodKey:pending.period_key,
+      name:worldBosses.byId.get(pending.boss_id)?.name || "World Boss",
+      damage:Number(pending.total_damage) } : null
+  };
+}
+async function getWorldBoss(userId) {
+  return transact([userId], async (db) => readWorldBoss(db,userId));
+}
+async function attackWorldBoss(userId) {
+  return transact([userId], async (db,states) => {
+    const now = (await db.query("SELECT clock_timestamp() AS now")).rows[0].now;
+    const cycle = await ensureWorldBoss(db,now);
+    // All guilds and shards serialize this week's HP changes on the same row lock.
+    const instance = (await db.query(
+      "SELECT * FROM world_boss_instances WHERE period_key=$1 FOR UPDATE",[cycle.key]
+    )).rows[0];
+    if (instance.hp <= 0 || new Date(now) >= instance.ends_at)
+      throw new Error("This world boss is finished. Check the board for rewards.");
+    const current = (await db.query(
+      "SELECT next_attack_at FROM world_boss_contributions WHERE period_key=$1 AND user_id=$2",
+      [cycle.key,userId]
+    )).rows[0];
+    if (current?.next_attack_at && new Date(now) < current.next_attack_at)
+      throw new Error("Your next strike is available <t:" +
+        Math.floor(current.next_attack_at.getTime()/1000) + ":R>.");
+    const player = stateOf(states,userId);
+    const pet = await activeCompanion(db,userId);
+    const raw = worldBosses.attackPower(player,pet);
+    const damage = Math.min(instance.hp,raw);
+    const nextAt = new Date(new Date(now).getTime()+worldBosses.attackCooldownMs(pet));
+    const owlPoints = pet?.id === "moon_owl"
+      ? damage * Math.round(companions.boostPct(pet.level)*100) : 0;
+    await db.query(
+      "UPDATE world_boss_instances SET hp=hp-$2,defeated_at=CASE WHEN hp=$2 THEN $3 ELSE defeated_at END " +
+      "WHERE period_key=$1",[cycle.key,damage,now]
+    );
+    await db.query(
+      "INSERT INTO world_boss_contributions(period_key,user_id,total_damage,attack_count,last_attack_at,next_attack_at,owl_bonus_points) " +
+      "VALUES($1,$2,$3,1,$4,$5,$6) ON CONFLICT(period_key,user_id) DO UPDATE SET " +
+      "total_damage=world_boss_contributions.total_damage+EXCLUDED.total_damage," +
+      "attack_count=world_boss_contributions.attack_count+1," +
+      "last_attack_at=EXCLUDED.last_attack_at,next_attack_at=EXCLUDED.next_attack_at," +
+      "owl_bonus_points=world_boss_contributions.owl_bonus_points+EXCLUDED.owl_bonus_points",
+      [cycle.key,userId,damage,now,nextAt,owlPoints]
+    );
+    await event(db,userId,"world_boss_attack",0,{boss:instance.boss_id,damage});
+    return { damage, finished: damage === instance.hp, nextAttackAt:nextAt.toISOString(), bossName:cycle.boss.name };
+  });
+}
+async function claimWorldBossReward(userId, periodKey) {
+  if (!/^[0-9]{8}$/.test(String(periodKey))) throw new Error("Invalid world boss period.");
+  return transact([userId], async (db,states) => {
+    const now = (await db.query("SELECT clock_timestamp() AS now")).rows[0].now;
+    const instance = (await db.query(
+      "SELECT * FROM world_boss_instances WHERE period_key=$1",[periodKey]
+    )).rows[0];
+    if (!instance || instance.hp > 0 && new Date(now) < instance.ends_at)
+      throw new Error("This world boss is still active.");
+    const contribution = (await db.query(
+      "SELECT * FROM world_boss_contributions WHERE period_key=$1 AND user_id=$2 FOR UPDATE",
+      [periodKey,userId]
+    )).rows[0];
+    if (!contribution) throw new Error("You did not participate in that world boss.");
+    if (contribution.claimed_at) throw new Error("You already claimed this world boss reward.");
+    const boss = worldBosses.byId.get(instance.boss_id);
+    const dealt = Number(contribution.total_damage);
+    const attacks = Number(contribution.attack_count);
+    if (!worldBosses.eligibility({ ...boss, hp:instance.max_hp },dealt,attacks).eligible)
+      throw new Error("A reward requires at least two strikes and the minimum damage contribution.");
+    const snapshot = { ...boss, hp:instance.max_hp, pool:instance.reward_pool,
+      itemId:instance.reward_item_id };
+    const payout = worldBosses.reward(snapshot,dealt,attacks,Number(contribution.owl_bonus_points));
+    const updated = await db.query(
+      "UPDATE world_boss_contributions SET claimed_at=$3 " +
+      "WHERE period_key=$1 AND user_id=$2 AND claimed_at IS NULL RETURNING user_id",
+      [periodKey,userId,now]
+    );
+    if (!updated.rowCount) throw new Error("You already claimed this world boss reward.");
+    const state = stateOf(states,userId);
+    state.balance=state.balance.plus(payout.ic);
+    state.totalEarned=state.totalEarned.plus(payout.ic);
+    await addItem(db,userId,payout.itemId,payout.quantity);
+    if (payout.rare) await addItem(db,userId,"rare_lootbox",1);
+    await event(db,userId,"world_boss_reward",payout.ic,
+      { boss:instance.boss_id,periodKey,damage:dealt });
+    return { ...payout, name:boss.name, damage:dealt };
+  });
+}
+
 async function seasonStatus(userId) {
   return transact([userId], async (db) => {
     const progress = (await db.query("SELECT xp FROM season_progress WHERE user_id=$1 AND season_id=$2",
@@ -774,6 +919,6 @@ async function claimSeasonRewards(userId, requested = "all") {
   });
 }
 
-module.exports = { pool, transact, profile, getCompanions, adoptCompanion, equipCompanion, hatchCompanion, getExploration, startExpedition, collectExpedition, upgradeExpeditionGear, getPreferences, setPreferences, resetPreferences, getChallenges, claimChallenge, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
+module.exports = { pool, transact, profile, getWorldBoss, attackWorldBoss, claimWorldBossReward, getCompanions, adoptCompanion, equipCompanion, hatchCompanion, getExploration, startExpedition, collectExpedition, upgradeExpeditionGear, getPreferences, setPreferences, resetPreferences, getChallenges, claimChallenge, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
   prestige, leaderboard, browseMarket, sellItem, buyListing, cancelListing, getListing, useItem, upgradePickaxe, upgradePerk,
   respecPerks, getStats };
