@@ -18,6 +18,14 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.9.2 — Unique Operation Lore & Creditus Deletus
+
+All 56 operations now have their own compact lore tied to their specific crews, kingdoms and cosmic domains, with a handful of in-world jokes. Every operation ID, name, price, income, icon, ordering and progression mechanic is unchanged.
+
+**Creditus Deletus** is a harmless, consumable Easter egg inspired by an original Coffee item. Find it with a 0.5% draw in a Mythic Supply Cache (without reducing any other premium reward drop rates), or craft it from 10 Void Essence, 15 Moonsteel and 1 Traveler's Ration. It shows a dramatic fake-deletion message when used, but **does not subtract or reset IC, player data, generators or prestige**. The one scroll is consumed transactionally, and the item can be traded like regular items.
+
+This release is additive and PostgreSQL-schema-compatible: no database migration or slash-command re-registration required. After reviewing, merging and running the test suite, restart the dedicated ARVEE Idle service to load the new catalogue.
+
 ## ARVEE Idle 2.9.1 — Command Center Polish
 
 The Command Center now puts its six-option navigation dropdown directly beneath the player summary, above prestige progress, activity readiness and quick actions. All navigation options, slash commands and cross-server data behavior remain unchanged.

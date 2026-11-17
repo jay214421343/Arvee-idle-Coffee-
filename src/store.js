@@ -310,7 +310,7 @@ async function openLootbox(userId, quantity, boxType = "lootbox") {
     for (let i = 0; i < quantity; i++) {
       const roll = Math.random();
       const item = boxType === "legendary_lootbox" ?
-        (roll < 0.10 ? "orb_of_almanac" : roll < 0.23 ? "gem" : roll < 0.43 ? "pickperk" : roll < 0.65 ? "tinkers_gizmo" : "strange_matter") :
+        (roll < 0.10 ? "orb_of_almanac" : roll < 0.23 ? "gem" : roll < 0.43 ? "pickperk" : roll < 0.65 ? "tinkers_gizmo" : roll >= 0.995 ? "creditus_deletus" : "strange_matter") :
         boxType === "rare_lootbox" ?
         (roll < 0.04 ? "gem" : roll < 0.18 ? "pickperk" : roll < 0.40 ? "gold" : roll < 0.60 ? "starfruit" : "strange_matter") :
         (roll < 0.01 ? "pickperk" : roll < 0.04 ? "gold" : roll < 0.16 ? "silver" : roll < 0.25 ? "apple" : roll < 0.36 ? "bread" : roll < 0.45 ? "cola" : roll < 0.55 ? "cookie" : "ore");
@@ -438,6 +438,10 @@ async function useItem(userId, itemId) {
     if (e.grant) {
       await addItem(db, userId, e.grant, e.grantAmount || 1);
       message = "Received " + (e.grantAmount || 1) + "× " + items[e.grant].name + ".";
+    }
+    if (e.prank) {
+      message = "CREDITUS DELETUS! Your entire wallet vanishes in a puff of smoke... " +
+        "Wait. It's back. **0 IC lost.** The spell was a prank.";
     }
     await event(db, userId, "use_item", 0, { itemId });
     return { itemId, message };

@@ -37,7 +37,8 @@ const items = Object.freeze({
   pumpkin_spice_latte: { name: "Harvest Brew", emoji: "🎃", rarity: "Rare", description: "A seasonal harvest potion brewed in the ARVEE realm.", use: "Boost your next mine by 75%.", effect: { nextMine: "1.75" } },
   bohemian_cocktail: { name: "Moonshadow Elixir", emoji: "🍹", rarity: "Epic", description: "Moonlit alchemy distilled by ARVEE artificers.", use: "Receive 1 Rare Supply Cache.", effect: { grant: "rare_lootbox", grantAmount: 1 } },
   jungle_juice: { name: "Forest Tonic", emoji: "🧃", rarity: "Rare", description: "A burst of concentrated energy.", use: "Gain 10 mining XP.", effect: { xp: 10 } },
-  gilded_slurry: { name: "Golden Elixir", emoji: "🏺", rarity: "Epic", description: "Expensive but fruitful alchemy.", use: "Receive an Astral Gem.", effect: { grant: "gem", grantAmount: 1 } }
+  gilded_slurry: { name: "Golden Elixir", emoji: "🏺", rarity: "Epic", description: "Expensive but fruitful alchemy.", use: "Receive an Astral Gem.", effect: { grant: "gem", grantAmount: 1 } ,
+  creditus_deletus: { name: "Creditus Deletus", emoji: "🪄", rarity: "Epic", description: "A dubious spell scroll from the original Coffee archives. The dramatic vanishing trick is harmless.", use: "Make a dramatic fake IC deletion. Your credits and progress stay intact.", effect: { prank: true } }
 });
 const recipes = Object.freeze({
   coffee: { ore: 3, silver: 1 },
@@ -50,7 +51,8 @@ const recipes = Object.freeze({
   rare_lootbox: { lootbox: 5, silver: 4 },
   legendary_lootbox: { rare_lootbox: 4, gem: 2 },
   bohemian_cocktail: { coffee: 4, gold: 2, strange_matter: 3 },
-  gilded_slurry: { gold: 8, strange_matter: 3 }
+  gilded_slurry: { gold: 8, strange_matter: 3 },
+  creditus_deletus: { strange_matter: 10, silver: 15, cookie: 1 }
 });
 const perks = Object.freeze({
   miner: { name: "Power Strike", description: "+10% mining IC per level", max: 10 },
