@@ -51,7 +51,7 @@ test("Coffee-style bonus breakdown shows exact bonus, source, charges and skin a
   assert.match(serialized, /REMAINING CHARGES/);
   assert.match(serialized, /Moonshard/);
   assert.match(serialized, /<:demon_skin:1572286340928774184>/);
-  assert.match(serialized, /<:silver:1572284313511141477>/);
+  assert.match(serialized, /<a:silver:1572284313511141477>/);
   assert.equal(buttons.length, 2);
 });
 test("mining cooldown stays descriptive and never shows invented loot", () => {

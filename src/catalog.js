@@ -13,7 +13,7 @@ if (byId.size !== generators.length) throw new Error("Duplicate generator ID in 
 
 const items = Object.freeze({
   ore: { name: "Rune Ore", emoji: "🪨", rarity: "Common", description: "Ore extracted from ARVEE mines. Used at the Forge." },
-  silver: { name: "Moonsteel", emoji: "<:silver:1572284313511141477>", rarity: "Uncommon", description: "A refined ore used in forging and trading." },
+  silver: { name: "Moonsteel", emoji: "<a:silver:1572284313511141477>", rarity: "Uncommon", description: "A refined ore used in forging and trading." },
   gold: { name: "Sunforged Gold", emoji: "🥇", rarity: "Rare", description: "Rare metal for advanced ARVEE forging." },
   coffee: { name: "Campfire Brew", emoji: "☕", rarity: "Common", description: "A warm brew shared by adventurers at an ARVEE campfire.", use: "Gain 50 IC and reset the mining cooldown so you can dig again.", effect: {"bp":"50","cooldownReset":true} },
   cookie: { name: "Traveler's Ration", emoji: "🍪", rarity: "Common", description: "A reliable snack before a dungeon expedition.", use: "Gain 250 IC.", effect: { bp: "250" } },

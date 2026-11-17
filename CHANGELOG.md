@@ -1,3 +1,12 @@
+# 2.9.4 — Animated Silver Emoji Fix (pending review)
+
+- Correct Moonsteel/Silver's registered application emoji from static `<:silver:1572284313511141477>` to animated `<a:silver:1572284313511141477>`.
+- Apply the animated syntax consistently in the item catalogue, artwork registry and regression tests so the emoji renders on item cards and mining receipts.
+- Keep all other uploaded emoji mappings unchanged: their animation status has not been confirmed.
+- Pure presentation fix; no economy, inventory, schema or gameplay changes. Restart ARVEE Idle after review and merge. No migration or slash-command re-registration required.
+
+---
+
 # 2.9.3 — Coffee Mining, Rebirth Cocktail & Art Registry (pending review)
 
 - Coffee-style mining receipts with Mr. M. Iner, precise base vs bonus IC, item sources, charge counts and pickaxe artwork.

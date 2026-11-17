@@ -3,7 +3,7 @@
 // Keep art independent of inventory/economy IDs; no asset should be required for gameplay.
 const UNKNOWN = "<:unknown:1572286729048821953>";
 const ITEM_ART = Object.freeze({
-  silver: "<:silver:1572284313511141477>",
+  silver: "<a:silver:1572284313511141477>",
   lootbox: "<:lootbox:1572285929358368799>"
 });
 const SKIN_ART = Object.freeze({
