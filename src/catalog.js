@@ -37,7 +37,7 @@ const items = Object.freeze({
   pumpkin_spice_latte: { name: "Harvest Brew", emoji: "🎃", rarity: "Rare", description: "A seasonal harvest potion brewed in the ARVEE realm.", use: "Boost your next mine by 75%.", effect: { nextMine: "1.75" } },
   bohemian_cocktail: { name: "Moonshadow Elixir", emoji: "🍹", rarity: "Epic", description: "Moonlit alchemy distilled by ARVEE artificers.", use: "Receive 1 Rare Supply Cache.", effect: { grant: "rare_lootbox", grantAmount: 1 } },
   jungle_juice: { name: "Forest Tonic", emoji: "🧃", rarity: "Rare", description: "A burst of concentrated energy.", use: "Gain 10 mining XP.", effect: { xp: 10 } },
-  gilded_slurry: { name: "Golden Elixir", emoji: "🏺", rarity: "Epic", description: "Expensive but fruitful alchemy.", use: "Receive an Astral Gem.", effect: { grant: "gem", grantAmount: 1 } ,
+  gilded_slurry: { name: "Golden Elixir", emoji: "🏺", rarity: "Epic", description: "Expensive but fruitful alchemy.", use: "Receive an Astral Gem.", effect: { grant: "gem", grantAmount: 1 } },
   creditus_deletus: { name: "Creditus Deletus", emoji: "🪄", rarity: "Epic", description: "A dubious spell scroll from the original Coffee archives. The dramatic vanishing trick is harmless.", use: "Make a dramatic fake IC deletion. Your credits and progress stay intact.", effect: { prank: true } }
 });
 const recipes = Object.freeze({
