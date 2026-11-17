@@ -312,3 +312,23 @@ CREATE TABLE IF NOT EXISTS idle_guild_league_season_claims (
   claimed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY(season_key,user_id)
 );
+
+-- Private owner administration. Existing player data remains unchanged.
+CREATE TABLE IF NOT EXISTS admin_suspensions (
+  user_id TEXT PRIMARY KEY REFERENCES players(user_id) ON DELETE CASCADE,
+  reason TEXT NOT NULL CHECK (length(reason) BETWEEN 4 AND 240),
+  actor_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS admin_audit (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  interaction_id TEXT NOT NULL UNIQUE,
+  actor_id TEXT NOT NULL,
+  guild_id TEXT NOT NULL,
+  target_id TEXT,
+  action TEXT NOT NULL CHECK (length(action) BETWEEN 2 AND 100),
+  details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS admin_audit_recent_idx ON admin_audit(created_at DESC);
+CREATE INDEX IF NOT EXISTS admin_audit_target_idx ON admin_audit(target_id, created_at DESC);

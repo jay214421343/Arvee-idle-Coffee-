@@ -6,6 +6,7 @@ validateDiscord();
 const { Client, GatewayIntentBits, Events, MessageFlags } = require("discord.js");
 const { pool } = require("./store");
 const { respond, handleAutocomplete, handleComponent } = require("./commands");
+const { respondAdmin, handleAdminAutocomplete } = require("./admin-command");
 const brand = require("./brand");
 
 async function main() {
@@ -40,8 +41,10 @@ async function main() {
   });
   client.on(Events.InteractionCreate, (interaction) => {
     if (closing) return;
-    const runner = interaction.isAutocomplete() ? handleAutocomplete(interaction) :
-      interaction.isButton() || interaction.isStringSelectMenu() ? handleComponent(interaction) : respond(interaction);
+    const runner = interaction.isAutocomplete() ?
+      (interaction.commandName === "admin" ? handleAdminAutocomplete(interaction) : handleAutocomplete(interaction)) :
+      interaction.isButton() || interaction.isStringSelectMenu() ? handleComponent(interaction) :
+      interaction.commandName === "admin" ? respondAdmin(interaction) : respond(interaction);
     void runner.catch(async (error) => {
       console.error("[ARVEE Idle] Interaction failed:", error.message);
       const payload = {

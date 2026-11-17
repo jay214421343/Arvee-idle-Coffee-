@@ -23,7 +23,7 @@ function assertItem(id) {
 function assertId(id) {
   if (!/^[0-9]{15,22}$/.test(String(id))) throw new Error("Invalid Discord user ID.");
 }
-async function transact(ids, action) {
+async function transact(ids, action, options = {}) {
   const userIds = [...new Set(ids.map(String))].sort();
   userIds.forEach(assertId);
   const client = await pool.connect();
@@ -51,6 +51,13 @@ async function transact(ids, action) {
         mineBoostMultiplier: dec(player.mine_boost_multiplier), mineBoostCharges: player.mine_boost_charges,
         mineBoostSource: player.mine_boost_source, nextMineSource: player.next_mine_source
       });
+    }
+    if (!options.allowSuspended) {
+      const suspended = (await client.query(
+        "SELECT user_id FROM admin_suspensions WHERE user_id=ANY($1::text[]) LIMIT 1",
+        [userIds]
+      )).rows[0];
+      if (suspended) throw new Error("This ARVEE Idle account is suspended.");
     }
     const result = await action(client, states);
     for (const state of states.values()) {
