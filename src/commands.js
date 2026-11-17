@@ -17,6 +17,8 @@ idle.addSubcommand((c) => c.setName("buy").setDescription("Buy generators with I
 idle.addSubcommand((c) => c.setName("mine").setDescription("Mine Idle Credits and crafting materials (90-second cooldown)"));
 idle.addSubcommand((c) => c.setName("daily").setDescription("Claim your daily Idle Credits and supply caches"));
 idle.addSubcommand((c) => c.setName("season").setDescription("Season Journey: tiers, challenges and free rewards"));
+idle.addSubcommand((c) => c.setName("challenges").setDescription("Daily and weekly adventurer contracts with rewards"));
+idle.addSubcommand((c) => c.setName("settings").setDescription("View and reset your saved filter preferences"));
 idle.addSubcommand((c) => c.setName("inventory").setDescription("Check collected items").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
 idle.addSubcommand((c) => c.setName("craft").setDescription("Craft an item")
   .addStringOption((o) => o.setName("item").setDescription("Item to craft (omit to browse recipes)").addChoices(...recipeChoices))
@@ -50,6 +52,18 @@ idle.addSubcommandGroup((g) => g.setName("market").setDescription("Trade items f
     .addStringOption((o) => o.setName("id").setDescription("Listing ID").setRequired(true))));
 
 function labelItem(id) { return items[id]?.name || id; }
+async function savedShop(userId, page = 1) {
+  const prefs = await store.getPreferences(userId);
+  return ui.shop(userId, page, await store.profile(userId), prefs.shopFilter, prefs.shopSort);
+}
+async function savedInventory(owner, target = owner) {
+  const prefs = await store.getPreferences(owner);
+  return ui.inventory(owner, await store.profile(target), 1, prefs.inventoryFilter, prefs.inventorySort);
+}
+async function savedForge(owner) {
+  const prefs = await store.getPreferences(owner);
+  return ui.crafting(owner, await store.profile(owner), 1, prefs.forgeFilter);
+}
 function shop(page) {
   const pages = Math.max(1, Math.ceil(generators.length / 4));
   const selected = Math.max(1, Math.min(page, pages));
@@ -97,6 +111,8 @@ async function respond(interaction) {
         "Start with /idle daily, /idle mine, then recruit an operation in /idle shop.",
         "**Economy:** /idle shop, /idle buy, /idle leaderboard, /idle prestige",
         "**Season:** /idle season to unlock 20 free reward tiers",
+        "**Contracts:** /idle challenges for daily and weekly rewards",
+        "**Preferences:** /idle settings to view and reset your saved filters",
         "**Activities:** /idle mine, /idle daily, /idle craft, /idle open",
         "**Items:** /idle inventory, /idle give, /idle market",
         "Prestige requires 1B IC and increases production by 25% per level.",
@@ -112,8 +128,12 @@ async function respond(interaction) {
         "\nGenerators owned: " + genTotal + "\nPrestige: " + p.prestige + " · Mining XP: " + p.mineXp;
     } else if (command === "season") {
       view = ui.season(id, await store.seasonStatus(id));
+    } else if (command === "challenges") {
+      view = ui.challengeBoard(id, await store.getChallenges(id));
+    } else if (command === "settings") {
+      view = ui.preferences(id, await store.getPreferences(id));
     } else if (command === "shop") {
-      view = ui.shop(id, opts.getInteger("page") || 1, await store.profile(id));
+      view = await savedShop(id, opts.getInteger("page") || 1);
       content = shop(opts.getInteger("page") || 1);
     } else if (command === "buy") {
       const result = await store.buyGenerator(id, opts.getString("generator", true), opts.getInteger("amount") || 1);
@@ -130,13 +150,14 @@ async function respond(interaction) {
     } else if (command === "inventory") {
       const target = opts.getUser("user") || interaction.user;
       const p = await store.profile(target.id);
-      view = ui.inventory(id, p);
+      const prefs = await store.getPreferences(id);
+      view = ui.inventory(id, p, 1, prefs.inventoryFilter, prefs.inventorySort);
       content = "**" + target.username + "'s inventory**\n" +
         (p.inventory.length ? p.inventory.map((r) => labelItem(r.item_id) + " × " + r.quantity).join("\n") : "Empty. Try /idle mine or /idle daily.");
     } else if (command === "craft") {
       const item = opts.getString("item");
       if (!item) {
-        view = ui.crafting(id, await store.profile(id));
+        view = await savedForge(id);
       } else {
         const qty = opts.getInteger("amount") || 1;
         await store.craft(id, item, qty);
@@ -218,10 +239,12 @@ async function handleComponent(interaction) {
     let result;
     if (action === "navigate") {
       if (selected === "profile") view = ui.home(owner, interaction.user, await store.profile(owner));
-      else if (selected === "shop") view = ui.shop(owner, 1, await store.profile(owner));
-      else if (selected === "inventory") view = ui.inventory(owner, await store.profile(owner));
-      else if (selected === "craft") view = ui.crafting(owner, await store.profile(owner));
+      else if (selected === "shop") view = await savedShop(owner);
+      else if (selected === "inventory") view = await savedInventory(owner);
+      else if (selected === "craft") view = await savedForge(owner);
       else if (selected === "season") view = ui.season(owner, await store.seasonStatus(owner));
+      else if (selected === "challenges") view = ui.challengeBoard(owner, await store.getChallenges(owner));
+      else if (selected === "settings") view = ui.preferences(owner, await store.getPreferences(owner));
       else if (selected === "market") view = ui.market(owner, await store.browseMarket());
       else if (selected === "pickaxe") view = ui.pickaxe(owner, await store.profile(owner));
       else if (selected === "perks") view = ui.perks(owner, await store.profile(owner), require("./catalog").perks);
@@ -242,21 +265,41 @@ async function handleComponent(interaction) {
       result = await store.claimSeasonRewards(owner, "all");
       view = ui.season(owner, await store.seasonStatus(owner), Number(argument) || 1,
         result.grants.length ? "Claimed " + result.grants.length + " rewards!" : "Nothing new to claim.");
+    } else if (action === "challenges") {
+      view = ui.challengeBoard(owner, await store.getChallenges(owner), argument);
+    } else if (action === "challenge_scope") {
+      view = ui.challengeBoard(owner, await store.getChallenges(owner), selected);
+    } else if (action === "challenge_claim") {
+      const match = argument.match(/^(daily|weekly)_([0-9]{8})_([a-z_]{3,40})$/);
+      if (!match) throw new Error("Invalid challenge selection.");
+      result = await store.claimChallenge(owner, match[1], match[2], match[3]);
+      view = ui.challengeBoard(owner, await store.getChallenges(owner), match[1],
+        result.claimed ? "Claimed " + result.reward + "!" : "Already claimed.");
+    } else if (action === "settings") {
+      view = ui.preferences(owner, await store.getPreferences(owner));
+    } else if (action === "preferences_reset") {
+      view = ui.preferences(owner, await store.resetPreferences(owner), "Defaults restored. New filters save automatically.");
     } else if (action === "profile") {
       view = ui.home(owner, interaction.user, await store.profile(owner));
     } else if (action === "shop") {
       const { page, filter, sort } = ui.parseListState(argument, "shop");
-      view = ui.shop(owner, page, await store.profile(owner), filter, sort);
+      const prefs = await store.getPreferences(owner);
+      view = ui.shop(owner, page, await store.profile(owner),
+        argument.includes("_") ? filter : prefs.shopFilter,
+        argument.includes("_") ? sort : prefs.shopSort);
     } else if (action === "shop_filters") {
       const { page, filter, sort } = ui.parseListState(argument, "shop");
       view = ui.shopFilters(owner, page, filter, sort);
     } else if (action === "shop_filter_set") {
       const [filter, sort] = argument.split("_");
-      view = ui.shop(owner, 1, await store.profile(owner), filter, sort);
+      const prefs = await store.setPreferences(owner, { shopFilter: filter, shopSort: sort });
+      view = ui.shop(owner, 1, await store.profile(owner), prefs.shopFilter, prefs.shopSort);
     } else if (action === "shop_filter") {
-      view = ui.shop(owner, 1, await store.profile(owner), selected, argument);
+      const prefs = await store.setPreferences(owner, { shopFilter: selected });
+      view = ui.shop(owner, 1, await store.profile(owner), prefs.shopFilter, prefs.shopSort);
     } else if (action === "shop_sort") {
-      view = ui.shop(owner, 1, await store.profile(owner), argument, selected);
+      const prefs = await store.setPreferences(owner, { shopSort: selected });
+      view = ui.shop(owner, 1, await store.profile(owner), prefs.shopFilter, prefs.shopSort);
     } else if (action === "operation") {
       view = ui.generator(owner, argument, 1, await store.profile(owner));
     } else if (action === "generator_select") {
@@ -280,17 +323,23 @@ async function handleComponent(interaction) {
         owner, { color: result.cooldown ? ui.WARN : ui.SUCCESS });
     } else if (action === "inventory") {
       const { page, filter, sort } = ui.parseListState(argument, "inventory");
-      view = ui.inventory(owner, await store.profile(owner), page, filter, sort);
+      const prefs = await store.getPreferences(owner);
+      view = ui.inventory(owner, await store.profile(owner), page,
+        argument.includes("_") ? filter : prefs.inventoryFilter,
+        argument.includes("_") ? sort : prefs.inventorySort);
     } else if (action === "inventory_filters") {
       const { page, filter, sort } = ui.parseListState(argument, "inventory");
       view = ui.inventoryFilters(owner, page, filter, sort);
     } else if (action === "inventory_filter_set") {
       const [filter, sort] = argument.split("_");
-      view = ui.inventory(owner, await store.profile(owner), 1, filter, sort);
+      const prefs = await store.setPreferences(owner, { inventoryFilter: filter, inventorySort: sort });
+      view = ui.inventory(owner, await store.profile(owner), 1, prefs.inventoryFilter, prefs.inventorySort);
     } else if (action === "inventory_filter") {
-      view = ui.inventory(owner, await store.profile(owner), 1, selected, argument);
+      const prefs = await store.setPreferences(owner, { inventoryFilter: selected });
+      view = ui.inventory(owner, await store.profile(owner), 1, prefs.inventoryFilter, prefs.inventorySort);
     } else if (action === "inventory_sort") {
-      view = ui.inventory(owner, await store.profile(owner), 1, argument, selected);
+      const prefs = await store.setPreferences(owner, { inventorySort: selected });
+      view = ui.inventory(owner, await store.profile(owner), 1, prefs.inventoryFilter, prefs.inventorySort);
     } else if (action === "item_view") {
       const p = await store.profile(owner);
       view = ui.item(owner, argument, p.inventory.find((e) => e.item_id === argument)?.quantity || 0);
@@ -306,9 +355,12 @@ async function handleComponent(interaction) {
       view = ui.message("📦 Supply Cache opened", Object.entries(drops).map(([id, n]) => n + "× " + labelItem(id)).join(" · "), owner, { color: ui.SUCCESS });
     } else if (action === "craft") {
       const { page, filter } = ui.parseCraftState(argument);
-      view = ui.crafting(owner, await store.profile(owner), page, filter);
+      const prefs = await store.getPreferences(owner);
+      view = ui.crafting(owner, await store.profile(owner), page,
+        argument.includes("_") ? filter : prefs.forgeFilter);
     } else if (action === "craft_filter") {
-      view = ui.crafting(owner, await store.profile(owner), 1, selected);
+      const prefs = await store.setPreferences(owner, { forgeFilter: selected });
+      view = ui.crafting(owner, await store.profile(owner), 1, prefs.forgeFilter);
     } else if (action === "recipe_view") {
       view = ui.recipe(owner, argument, await store.profile(owner));
     } else if (action === "recipe_select") {

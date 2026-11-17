@@ -3,6 +3,7 @@ const { Pool } = require("pg");
 const { items, recipes, byId, perks } = require("./catalog");
 const { Decimal, dec, generatorRate, purchaseCost, settle, PRESTIGE_REQUIREMENT, prestigeMultiplier } = require("./economy");
 const season = require("./season");
+const challenges = require("./challenges");
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 10, connectionTimeoutMillis: 10000, idleTimeoutMillis: 30000 });
 pool.on("error", (error) => console.error("[Postgres] Idle connection error", error));
@@ -402,6 +403,117 @@ async function getStats(userId) {
   return { ...player, counts, achievements };
 }
 
+const DEFAULT_PREFERENCES = Object.freeze({
+  shopFilter: "all", shopSort: "price",
+  inventoryFilter: "all", inventorySort: "rarity", forgeFilter: "all"
+});
+const PREFERENCE_COLUMNS = Object.freeze({
+  shopFilter: { column: "shop_filter", allowed: ["all", "affordable", "owned"] },
+  shopSort: { column: "shop_sort", allowed: ["price", "income"] },
+  inventoryFilter: { column: "inventory_filter", allowed: ["all", "materials", "usable", "caches"] },
+  inventorySort: { column: "inventory_sort", allowed: ["rarity", "name", "quantity"] },
+  forgeFilter: { column: "forge_filter", allowed: ["all", "ready"] }
+});
+function mapPreferences(row) {
+  return {
+    shopFilter: row?.shop_filter || "all",
+    shopSort: row?.shop_sort || "price",
+    inventoryFilter: row?.inventory_filter || "all",
+    inventorySort: row?.inventory_sort || "rarity",
+    forgeFilter: row?.forge_filter || "all"
+  };
+}
+async function getPreferences(userId) {
+  return transact([userId], async (db) => {
+    const row = (await db.query("SELECT * FROM player_ui_preferences WHERE user_id=$1", [userId])).rows[0];
+    return mapPreferences(row);
+  });
+}
+async function setPreferences(userId, changes) {
+  if (!changes || typeof changes !== "object" || Array.isArray(changes) || !Object.keys(changes).length) {
+    throw new Error("No filter preferences selected.");
+  }
+  for (const [field, value] of Object.entries(changes)) {
+    const rule = PREFERENCE_COLUMNS[field];
+    if (!rule || !rule.allowed.includes(value)) throw new Error("Invalid filter preference.");
+  }
+  return transact([userId], async (db) => {
+    // Player rows are locked by transact, serializing changes across all PM2 instances.
+    await db.query("INSERT INTO player_ui_preferences(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING", [userId]);
+    for (const [field, value] of Object.entries(changes)) {
+      const column = PREFERENCE_COLUMNS[field].column;
+      await db.query("UPDATE player_ui_preferences SET " + column + "=$2,updated_at=now() WHERE user_id=$1", [userId, value]);
+    }
+    const row = (await db.query("SELECT * FROM player_ui_preferences WHERE user_id=$1", [userId])).rows[0];
+    return mapPreferences(row);
+  });
+}
+async function resetPreferences(userId) {
+  return transact([userId], async (db) => {
+    await db.query("DELETE FROM player_ui_preferences WHERE user_id=$1", [userId]);
+    return { ...DEFAULT_PREFERENCES };
+  });
+}
+
+async function challengeActivities(db, userId, cycle) {
+  return (await db.query(
+    "SELECT event_type, COUNT(*)::integer AS occurrences, " +
+    "COALESCE(SUM(CASE WHEN jsonb_typeof(metadata->'quantity') = 'number' " +
+    "THEN LEAST(GREATEST((metadata->>'quantity')::numeric, 1), 1000) ELSE 1 END),0)::integer AS quantity " +
+    "FROM economy_events WHERE user_id=$1 AND created_at >= $2 AND created_at < $3 " +
+    "AND event_type=ANY($4::text[]) GROUP BY event_type",
+    [userId, cycle.start, cycle.end, [...new Set(cycle.tasks.map((t) => t.event))]]
+  )).rows;
+}
+async function getChallenges(userId) {
+  return transact([userId], async (db) => {
+    const now = (await db.query("SELECT clock_timestamp() AS time")).rows[0].time;
+    const result = {};
+    for (const scope of ["daily", "weekly"]) {
+      const c = challenges.cycle(scope, now);
+      const [activities, claims] = await Promise.all([
+        challengeActivities(db, userId, c),
+        db.query("SELECT challenge_id FROM challenge_claims WHERE user_id=$1 AND scope=$2 AND period_key=$3",
+          [userId, scope, c.key])
+      ]);
+      result[scope] = challenges.board(c, activities, claims.rows.map((r) => r.challenge_id));
+    }
+    return result;
+  });
+}
+async function claimChallenge(userId, scope, periodKey, challengeId) {
+  if (scope !== "daily" && scope !== "weekly" ||
+    !/^[0-9]{8}$/.test(String(periodKey)) || !/^[a-z_]{3,40}$/.test(String(challengeId))) {
+    throw new Error("Invalid challenge selection.");
+  }
+  return transact([userId], async (db, states) => {
+    const now = (await db.query("SELECT clock_timestamp() AS time")).rows[0].time;
+    const c = challenges.cycle(scope, now);
+    if (c.key !== periodKey) throw new Error("That challenge has rotated. Open Challenges again.");
+    const task = c.tasks.find((t) => t.id === challengeId);
+    if (!task) throw new Error("That challenge is no longer active.");
+    const activities = await challengeActivities(db, userId, c);
+    const row = activities.find((r) => r.event_type === task.event);
+    if (challenges.progressOf(task, row) < task.goal) throw new Error("Challenge is not complete yet.");
+    const claim = (await db.query(
+      "INSERT INTO challenge_claims(user_id,scope,period_key,challenge_id) VALUES($1,$2,$3,$4) " +
+      "ON CONFLICT(user_id,scope,period_key,challenge_id) DO NOTHING RETURNING challenge_id",
+      [userId, scope, c.key, task.id]
+    )).rows;
+    if (!claim.length) return { claimed: false, task: task.label, reward: null };
+    const state = stateOf(states, userId);
+    if (task.reward.kind === "ic") {
+      state.balance = state.balance.plus(task.reward.amount);
+      state.totalEarned = state.totalEarned.plus(task.reward.amount);
+    } else if (task.reward.kind === "item") {
+      await addItem(db, userId, task.reward.item, task.reward.quantity);
+    }
+    await event(db, userId, "challenge_reward_claim", 0, { scope, periodKey: c.key, challengeId: task.id });
+    return { claimed: true, task: task.label, reward: challenges.rewardLabel(task.reward) };
+  });
+}
+
+
 async function seasonStatus(userId) {
   return transact([userId], async (db) => {
     const progress = (await db.query("SELECT xp FROM season_progress WHERE user_id=$1 AND season_id=$2",
@@ -461,6 +573,6 @@ async function claimSeasonRewards(userId, requested = "all") {
   });
 }
 
-module.exports = { pool, transact, profile, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
+module.exports = { pool, transact, profile, getPreferences, setPreferences, resetPreferences, getChallenges, claimChallenge, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
   prestige, leaderboard, browseMarket, sellItem, buyListing, cancelListing, getListing, useItem, upgradePickaxe, upgradePerk,
   respecPerks, getStats };

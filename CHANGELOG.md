@@ -1,3 +1,13 @@
+# 2.2.0 — Saved filters and Adventurer Contracts (unreleased)
+
+- Remember Expedition and Satchel category + sort, and Forge craftability preferences per user across bot restarts through PostgreSQL.
+- Add /idle settings with a safe reset to defaults and accessible filter navigation.
+- Introduce three daily and three weekly rotating Adventurer Contracts with real activity tracking, claimable IC/item rewards and UTC resets.
+- Challenge rewards are atomic/idempotent, protect against forged or expired claims, and never generate additional season XP.
+- Add unit, database integration and Components V2 interaction tests. No changes to existing user balances or item identifiers.
+
+---
+
 # 2.1.0 — season journey, quieter interface, and easier progression (unreleased)
 
 - Added the **Founders' Journey** season with 20 free tiers, activity XP, daily cap, contracts, 7-day claim grace, and atomic rewards in PostgreSQL.

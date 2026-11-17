@@ -81,3 +81,23 @@ CREATE TABLE IF NOT EXISTS season_claims (
   PRIMARY KEY(user_id, season_id, tier)
 );
 CREATE INDEX IF NOT EXISTS season_claims_owner_idx ON season_claims(user_id,season_id);
+
+-- Per-player UI preferences are shared across Discord clients and PM2 restarts.
+CREATE TABLE IF NOT EXISTS player_ui_preferences (
+  user_id TEXT PRIMARY KEY REFERENCES players(user_id) ON DELETE CASCADE,
+  shop_filter TEXT NOT NULL DEFAULT 'all' CHECK (shop_filter IN ('all','affordable','owned')),
+  shop_sort TEXT NOT NULL DEFAULT 'price' CHECK (shop_sort IN ('price','income')),
+  inventory_filter TEXT NOT NULL DEFAULT 'all' CHECK (inventory_filter IN ('all','materials','usable','caches')),
+  inventory_sort TEXT NOT NULL DEFAULT 'rarity' CHECK (inventory_sort IN ('rarity','name','quantity')),
+  forge_filter TEXT NOT NULL DEFAULT 'all' CHECK (forge_filter IN ('all','ready')),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS challenge_claims (
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  scope TEXT NOT NULL CHECK (scope IN ('daily','weekly')),
+  period_key TEXT NOT NULL CHECK (period_key ~ '^[0-9]{8}$'),
+  challenge_id TEXT NOT NULL,
+  claimed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id,scope,period_key,challenge_id)
+);

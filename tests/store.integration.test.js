@@ -13,6 +13,47 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
   const c = "999997000000" + suffix;
   try {
     const original = await store.profile(a);
+    const defaults = await store.getPreferences(a);
+    assert.deepEqual(defaults, {
+      shopFilter: "all", shopSort: "price",
+      inventoryFilter: "all", inventorySort: "rarity", forgeFilter: "all"
+    });
+    await store.setPreferences(a, {shopFilter:"owned",shopSort:"income",inventoryFilter:"caches",
+      inventorySort:"quantity",forgeFilter:"ready"});
+    const persisted = await store.getPreferences(a);
+    assert.equal(persisted.shopFilter, "owned");
+    assert.equal(persisted.shopSort, "income");
+    assert.equal(persisted.inventoryFilter, "caches");
+    assert.equal(persisted.forgeFilter, "ready");
+    await store.setPreferences(a,{inventorySort:"name"});
+    assert.equal((await store.getPreferences(a)).shopSort,"income");
+    await assert.rejects(()=>store.setPreferences(a,{shopFilter:"owned;DROP TABLE players"}),/Invalid filter/);
+    assert.equal((await store.getPreferences(a)).shopFilter,"owned");
+    assert.equal((await store.getPreferences(b)).inventoryFilter,"all");
+    assert.equal((await store.resetPreferences(a)).shopFilter,"all");
+    assert.deepEqual(await store.getPreferences(a),defaults);
+
+    const initialBoard = await store.getChallenges(a);
+    const today = initialBoard.daily;
+    assert.equal(today.tasks.length,3);
+    assert.equal(initialBoard.weekly.tasks.length,3);
+    await store.pool.query(
+      "INSERT INTO economy_events(user_id,event_type,amount) " +
+      "SELECT $1,'mine',0 FROM generate_series(1,3)",[a]);
+    const updated = await store.getChallenges(a);
+    const mining = updated.daily.tasks.find(t=>t.id==="mining_route");
+    assert.equal(mining.progress,3);
+    const beforeClaim = (await store.profile(a)).balance;
+    const bothClaims = await Promise.all([
+      store.claimChallenge(a,"daily",today.key,"mining_route"),
+      store.claimChallenge(a,"daily",today.key,"mining_route")
+    ]);
+    assert.equal(bothClaims.filter(r=>r.claimed).length,1);
+    assert.ok((await store.profile(a)).balance.gte(beforeClaim.plus(400)));
+    assert.equal((await store.claimChallenge(a,"daily",today.key,"mining_route")).claimed,false);
+    assert.equal((await store.getChallenges(a)).daily.tasks[0].claimed,true);
+    await assert.rejects(()=>store.claimChallenge(a,"daily","20000101","mining_route"),/rotated/);
+    await assert.rejects(()=>store.claimChallenge(a,"daily",today.key,"invalid_task"),/no longer active/);
     assert.equal(original.balance.toString(), "500");
     if (season.phase() === "active") {
       const starting = await store.seasonStatus(a);
