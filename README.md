@@ -20,7 +20,9 @@ The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They on
 
 ## ARVEE Idle 2.3 — Expeditions 2.0
 
-**World Map:** `/idle explore` shows three regions with distinct requirements, timers, outcomes, and loot tables. Its Inspect buttons show requirements and rewards before launching.
+**World Map:** `/idle explore` shows three regions with distinct requirements, timers, outcomes, and loot tables.
+
+**Visual language:** restrained ARVEE purple and plain-text navigation; minimal decorative emoji. Item icons appear when inspecting a specific item instead of repeating through lists and dropdowns. Its Inspect buttons show requirements and rewards before launching.
 
 - **Whispering Forest:** requires 1 recruited adventurer; roughly 2-minute expedition; starter forging materials and Idle Credits.
 - **Forgotten Mines:** requires 3 adventurers and 70 exploration XP; roughly 8-minute expedition; Moonsteel, Sunforged Gold and rare caches.

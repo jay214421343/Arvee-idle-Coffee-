@@ -150,11 +150,11 @@ async function respond(interaction) {
     } else if (command === "mine") {
       const result = await store.mine(id);
       content = result.cooldown ? "Your pickaxe is resting. Try again in " + result.cooldown + " seconds." :
-        "⛏️ Mined **" + pretty(result.reward) + " IC** and found **" + (result.dropQuantity || 1) + "× " + labelItem(result.drop) + "**! Mining XP: " + result.mineXp;
+        "Mined **" + pretty(result.reward) + " IC** and found **" + (result.dropQuantity || 1) + "× " + labelItem(result.drop) + "**! Mining XP: " + result.mineXp;
     } else if (command === "daily") {
       const result = await store.daily(id);
       content = result.cooldown ? "Daily reward available in " + Math.ceil(result.cooldown / 60) + " minutes." :
-        "🎁 Daily reward claimed: " + result.received.join(", ") + "!";
+        "Daily reward claimed: " + result.received.join(", ") + "!";
     } else if (command === "inventory") {
       const target = opts.getUser("user") || interaction.user;
       const p = await store.profile(target.id);
@@ -173,7 +173,7 @@ async function respond(interaction) {
       }
     } else if (command === "open") {
       const drops = await store.openLootbox(id, opts.getInteger("amount") || 1, opts.getString("type") || "lootbox");
-      content = "📦 Opened supply caches: " + Object.entries(drops).map(([item, n]) => n + " " + labelItem(item)).join(", ") + ".";
+      content = "Opened supply caches: " + Object.entries(drops).map(([item, n]) => n + " " + labelItem(item)).join(", ") + ".";
     } else if (command === "give") {
       const recipient = opts.getUser("user", true);
       if (recipient.bot) throw new Error("You cannot send items to bots.");
@@ -192,7 +192,7 @@ async function respond(interaction) {
         content = "Prestige costs **" + pretty(PRESTIGE_REQUIREMENT) + " IC**. It resets your IC and generators (not inventory) and adds +25% permanent production per prestige.\nRun /idle prestige confirm:true when ready.";
       } else {
         const result = await store.prestige(id);
-        content = "🌟 Prestige **" + result.prestige + "**! Permanent production multiplier: " + result.multiplier.toString() + "×.";
+        content = "Prestige **" + result.prestige + "**! Permanent production multiplier: " + result.multiplier.toString() + "×.";
       }
     } else if (command === "pickaxe") {
       view = ui.pickaxe(id, await store.profile(id));
@@ -343,13 +343,13 @@ async function handleComponent(interaction) {
       view = ui.generator(owner, argument, page, await store.profile(owner), "Purchased " + amount + " for " + pretty(result.cost) + " IC.");
     } else if (action === "mine") {
       result = await store.mine(owner);
-      view = ui.message(result.cooldown ? "⏳ Pickaxe cooling down" : "⛏ Mining complete",
+      view = ui.message(result.cooldown ? "Pickaxe cooling down" : "Mining complete",
         result.cooldown ? "You can mine again in " + result.cooldown + " seconds." :
           "**+" + pretty(result.reward) + " IC** and **" + (result.dropQuantity || 1) + "× " + labelItem(result.drop) + "**" + (result.box ? " · Bonus Supply Cache!" : ""),
         owner, { color: result.cooldown ? ui.WARN : ui.SUCCESS });
     } else if (action === "daily") {
       result = await store.daily(owner);
-      view = ui.message(result.cooldown ? "⏳ Daily claimed" : "🎁 Daily reward",
+      view = ui.message(result.cooldown ? "Daily claimed" : "Daily reward",
         result.cooldown ? "Available again in " + Math.ceil(result.cooldown / 60) + " minutes." : result.received.join(" · "),
         owner, { color: result.cooldown ? ui.WARN : ui.SUCCESS });
     } else if (action === "inventory") {
@@ -380,10 +380,10 @@ async function handleComponent(interaction) {
       view = ui.item(owner, selected, quantity, argument);
     } else if (action === "use_item") {
       result = await store.useItem(owner, argument);
-      view = ui.message("✨ Item used", "**" + labelItem(result.itemId) + "** · " + result.message, owner, { color: ui.SUCCESS });
+      view = ui.message("Item used", "**" + labelItem(result.itemId) + "** · " + result.message, owner, { color: ui.SUCCESS });
     } else if (action === "open_one") {
       const drops = await store.openLootbox(owner, 1, argument);
-      view = ui.message("📦 Supply Cache opened", Object.entries(drops).map(([id, n]) => n + "× " + labelItem(id)).join(" · "), owner, { color: ui.SUCCESS });
+      view = ui.message("Supply Cache opened", Object.entries(drops).map(([id, n]) => n + "× " + labelItem(id)).join(" · "), owner, { color: ui.SUCCESS });
     } else if (action === "craft") {
       const { page, filter } = ui.parseCraftState(argument);
       const prefs = await store.getPreferences(owner);
@@ -399,29 +399,29 @@ async function handleComponent(interaction) {
     } else if (action === "craft_one" || action === "craft_five") {
       const quantity = action === "craft_five" ? 5 : 1;
       await store.craft(owner, argument, quantity);
-      view = ui.message("🛠 Crafted successfully", quantity + "× " + labelItem(argument), owner, { color: ui.SUCCESS });
+      view = ui.message("Crafted successfully", quantity + "× " + labelItem(argument), owner, { color: ui.SUCCESS });
     } else if (action === "market") {
       view = ui.market(owner, await store.browseMarket());
     } else if (action === "listing_select") {
       view = ui.listing(owner, await store.getListing(selected));
     } else if (action === "listing_buy") {
       result = await store.buyListing(owner, argument);
-      view = ui.message("✅ Purchase completed", result.quantity + "× " + labelItem(result.item) + " for " + pretty(result.price) + " IC.", owner, { color: ui.SUCCESS });
+      view = ui.message("Purchase completed", result.quantity + "× " + labelItem(result.item) + " for " + pretty(result.price) + " IC.", owner, { color: ui.SUCCESS });
     } else if (action === "listing_cancel") {
       result = await store.cancelListing(owner, argument);
-      view = ui.message("✅ Listing cancelled", result.quantity + "× " + labelItem(result.item) + " returned.", owner, { color: ui.SUCCESS });
+      view = ui.message("Listing cancelled", result.quantity + "× " + labelItem(result.item) + " returned.", owner, { color: ui.SUCCESS });
     } else if (action === "leaderboard") {
       view = ui.leaderboard(owner, await store.leaderboard());
     } else if (action === "prestige") {
       view = ui.prestige(owner, await store.profile(owner));
     } else if (action === "prestige_confirm") {
       result = await store.prestige(owner);
-      view = ui.message("🌟 Prestige complete", "You are now **Prestige " + result.prestige + "**!", owner, { color: ui.SUCCESS });
+      view = ui.message("Prestige complete", "You are now **Prestige " + result.prestige + "**!", owner, { color: ui.SUCCESS });
     } else if (action === "pickaxe") {
       view = ui.pickaxe(owner, await store.profile(owner));
     } else if (action === "pickaxe_upgrade") {
       result = await store.upgradePickaxe(owner);
-      view = ui.message("⛏ Pickaxe upgraded", "Tier **" + result.tier + "** unlocked!", owner, { color: ui.SUCCESS });
+      view = ui.message("Pickaxe upgraded", "Tier **" + result.tier + "** unlocked!", owner, { color: ui.SUCCESS });
     } else if (action === "perks") {
       view = ui.perks(owner, await store.profile(owner), require("./catalog").perks);
     } else if (action === "stats") {
@@ -430,10 +430,10 @@ async function handleComponent(interaction) {
       view = ui.perkRespec(owner);
     } else if (action === "perk_respec_confirm") {
       result = await store.respecPerks(owner);
-      view = ui.message("✨ Perks reset", "Removed " + result.removed + " perk(s). You can unlock new ones.", owner, { color: ui.SUCCESS });
+      view = ui.message("Perks reset", "Removed " + result.removed + " perk(s). You can unlock new ones.", owner, { color: ui.SUCCESS });
     } else if (action === "perk_select") {
       result = await store.upgradePerk(owner, selected);
-      view = ui.message("✨ Perk upgraded", require("./catalog").perks[result.perkId].name + " is now level **" + result.level + "**.", owner, { color: ui.SUCCESS });
+      view = ui.message("Perk upgraded", require("./catalog").perks[result.perkId].name + " is now level **" + result.level + "**.", owner, { color: ui.SUCCESS });
     } else return true;
     await interaction.editReply({ components: [view], allowedMentions: { parse: [] } });
   } catch (error) {

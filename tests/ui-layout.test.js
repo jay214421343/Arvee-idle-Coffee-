@@ -99,7 +99,7 @@ test("pickaxe displays owned materials and disables unavailable upgrades", () =>
   assert.equal(max.components.find((part) => part.type === 1).components[0].disabled, true);
 });
 
-test("command center groups primary actions and an emoji navigation menu", () => {
+test("command center groups primary actions and a clean text navigation menu", () => {
   const home = ui.home(owner, {
     username:"ArveeAdventurer", displayAvatarURL:()=>"https://cdn.discordapp.com/embed/avatars/0.png"
   },sample);
@@ -131,4 +131,40 @@ test("rune talent picker is unavailable until player has fragments", () => {
   const active = unlocked.components.filter(c=>c.type===1).flatMap(c=>c.components).find(c=>c.type===3);
   assert.equal(active.disabled,false);
   assert.ok(unlocked.components.length <=10);
+});
+
+test("high-traffic screens use restrained text labels instead of decorative emoji", () => {
+  const user={username:"Adventurer",displayAvatarURL:()=>"https://cdn.discordapp.com/embed/avatars/0.png"};
+  const world={
+    crew:1,xp:0,gear:{kit:0,compass:0,ward:0},inventory:[],balance:dec(1000),active:null
+  };
+  const screens=[
+    ui.home(owner,user,sample), ui.shop(owner,1,sample), ui.inventory(owner,sample),
+    ui.crafting(owner,sample), ui.expeditionMap(owner,world), ui.expeditionGear(owner,world),
+    ui.inventoryFilters(owner),ui.shopFilters(owner),ui.market(owner,[])
+  ];
+  for(const screen of screens) {
+    const json=screen.toJSON();
+    assert.equal(json.type,17);
+    assert.ok(json.components.length<=10);
+    assert.doesNotMatch(JSON.stringify(json),/\p{Emoji_Presentation}/u,
+      "decorative emoji should not crowd compact screens");
+    const dropdowns=json.components.filter(c=>c.type===1)
+      .flatMap(c=>c.components).filter(c=>c.type===3);
+    for(const menu of dropdowns) {
+      assert.ok(menu.options.every(o=>!o.emoji), "dropdown choices use clean text labels");
+    }
+  }
+  const home=ui.home(owner,user,sample).toJSON();
+  const nav=home.components.filter(c=>c.type===1).flatMap(c=>c.components)
+    .find(c=>c.type===3);
+  assert.equal(nav.options.length,15);
+  assert.ok(nav.options.some(c=>c.value==="explore"));
+});
+test("item artwork is retained in inspect details, not repeated across lists", () => {
+  const listing=ui.inventory(owner,sample).toJSON();
+  assert.doesNotMatch(JSON.stringify(listing),/\p{Emoji_Presentation}/u);
+  const inspected=ui.item(owner,"coffee",2).toJSON();
+  assert.match(JSON.stringify(inspected),/Campfire Brew/i);
+  assert.match(JSON.stringify(inspected),/☕/u);
 });
