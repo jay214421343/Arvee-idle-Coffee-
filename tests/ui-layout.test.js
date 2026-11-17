@@ -111,6 +111,8 @@ test("command center groups primary actions and a clean text navigation menu", (
   assert.equal(selects.length,1);
   assert.equal(selects[0].options.length,6);
   assert.equal(selects[0].custom_id,ui.custom(owner,"navigate"));
+  assert.equal(json.components.findIndex(c=>c.type===1&&c.components[0]?.type===3),
+    json.components.findIndex(c=>c.type===9)+1);
   assert.ok(selects[0].options.some((o)=>o.value==="more_menu"));
 });
 test("filter and navigation menus use safe owner-locked custom IDs", () => {

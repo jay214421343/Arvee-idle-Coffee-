@@ -18,6 +18,14 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.9.1 — Command Center Polish
+
+The Command Center now puts its six-option navigation dropdown directly beneath the player summary, above prestige progress, activity readiness and quick actions. All navigation options, slash commands and cross-server data behavior remain unchanged.
+
+At **100% prestige progress**, the owner sees a contextual **Prestige** button beside the progress text. It opens the existing two-step prestige confirmation screen; it never resets a wallet or operation roster on the first click. Below 100%, or when inspecting someone else's read-only profile, no prestige shortcut appears. The existing confirmation button remains server-side eligibility checked.
+
+This is a display-only Components V2 improvement with no migrations, economy changes or new gameplay actions. After review and merge, in `/Users/gabberjay/Documents/arvee-idle` run `git switch master && git pull --ff-only origin master && npm ci && npm run mac:restart`. There are no new slash-command definitions for this patch.
+
 ## ARVEE Idle 2.9 — Simpler Navigation & Everyday QoL
 
 The Command Center now has **six destinations**, rather than 18: Operations, Satchel, Adventure, Guilds, Progress and More. Adventure, Progress and More open small one-step category menus; all old commands and in-flight owner-locked component IDs still route to the same existing features.

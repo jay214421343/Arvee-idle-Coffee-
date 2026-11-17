@@ -62,6 +62,39 @@ test("command center shows mining and daily readiness without adding buttons", (
   assert.match(ready,/Daily Ready/);
   assert.match(ready,/IC earned this run/);
 });
+test("prestige shortcut appears next to 100% only for the owning player", () => {
+  const eligible = state({ balance: dec("1000000000") });
+  const json = ui.home(owner, visitor, eligible).toJSON();
+  const sections = json.components.filter((c) => c.type === 9);
+  const shortcut = sections.find((c) => c.accessory?.custom_id === ui.custom(owner, "prestige"));
+  assert.ok(shortcut, "eligible owner receives prestige shortcut beside progress");
+  assert.equal(shortcut.accessory.label, "Prestige");
+  assert.equal(shortcut.accessory.style, 1);
+  assert.match(JSON.stringify(shortcut.components), /PRESTIGE PROGRESS/);
+  assert.match(JSON.stringify(shortcut.components), /100%/);
+  assert.equal(buttons(json).filter((c) => c.custom_id === ui.custom(owner, "prestige")).length, 1);
+  assert.equal(buttons(json).length, 5, "existing four quick actions are unchanged");
+  const near = ui.home(owner, visitor, state({ balance: dec("999999999") })).toJSON();
+  assert.ok(!near.components.some((c) => c.type === 9 && c.accessory?.custom_id === ui.custom(owner, "prestige")));
+  assert.match(JSON.stringify(near), /99%/);
+  const readonly = ui.home(owner, other, eligible, true).toJSON();
+  assert.equal(buttons(readonly).length, 1);
+  assert.ok(!readonly.components.some((c) => c.type === 9 && c.accessory?.custom_id === ui.custom(owner, "prestige")));
+  assert.ok(!menus(readonly).length);
+});
+test("navigation is immediately below player header and above prestige status and actions", () => {
+  const view = ui.home(owner, visitor, state()).toJSON();
+  const components = view.components;
+  const nav = components.findIndex((c) => c.type === 1 && c.components.some((x) => x.type === 3 && x.custom_id === ui.custom(owner, "navigate")));
+  const profile = components.findIndex((c) => c.type === 9);
+  const progress = components.findIndex((c) => c.type === 10 && c.content.includes("PRESTIGE PROGRESS"));
+  const actions = components.findIndex((c) => c.type === 1 && c.components.some((x) => x.type === 2 && x.custom_id === ui.custom(owner, "mine")));
+  assert.equal(nav, profile + 1);
+  assert.ok(nav < progress && progress < actions);
+  assert.ok(components.length <= 10);
+  const readyView = ui.home(owner, visitor, state({balance:dec("1e222")})).toJSON();
+  assert.ok(readyView.components.length <= 10, "eligible state must fit Discord Components V2");
+});
 test("other-player profile is visibly read-only and never offers gameplay buttons", () => {
   const view=ui.home(owner,other,state(),true);
   const j=view.toJSON();
