@@ -86,5 +86,5 @@ test("slash command and navigation expose companions without extra buttons", () 
   const options=home.components.filter(c=>c.type===1).flatMap(c=>c.components)
     .filter(c=>c.type===3).flatMap(c=>c.options);
   assert.ok(options.some(o=>o.value==="companions"));
-  assert.equal(options.length,17);
+  assert.equal(options.length,18);
 });

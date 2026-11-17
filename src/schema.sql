@@ -172,3 +172,56 @@ CREATE TABLE IF NOT EXISTS world_boss_contributions (
 );
 CREATE INDEX IF NOT EXISTS world_boss_contributions_player_idx
   ON world_boss_contributions(user_id,period_key) WHERE claimed_at IS NULL;
+
+-- ARVEE Idle global player guilds: a Discord user has one membership across all servers.
+CREATE TABLE IF NOT EXISTS idle_guilds (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  name TEXT NOT NULL CHECK(length(name) BETWEEN 3 AND 26),
+  tag TEXT NOT NULL UNIQUE CHECK(tag ~ '^[A-Z0-9]{2,5}$'),
+  owner_id TEXT NOT NULL REFERENCES players(user_id),
+  xp BIGINT NOT NULL DEFAULT 0 CHECK(xp BETWEEN 0 AND 1000000000000),
+  renown BIGINT NOT NULL DEFAULT 0 CHECK(renown BETWEEN 0 AND 1000000000000),
+  hall_tier INTEGER NOT NULL DEFAULT 0 CHECK(hall_tier BETWEEN 0 AND 5),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idle_guilds_name_ci ON idle_guilds(lower(name));
+CREATE TABLE IF NOT EXISTS idle_guild_members (
+  user_id TEXT PRIMARY KEY REFERENCES players(user_id) ON DELETE CASCADE,
+  guild_id BIGINT NOT NULL REFERENCES idle_guilds(id) ON DELETE CASCADE,
+  role TEXT NOT NULL CHECK(role IN ('leader','officer','member')),
+  joined_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idle_guild_members_by_guild ON idle_guild_members(guild_id,role);
+CREATE UNIQUE INDEX IF NOT EXISTS idle_guild_one_leader ON idle_guild_members(guild_id) WHERE role='leader';
+CREATE TABLE IF NOT EXISTS idle_guild_invites (
+  guild_id BIGINT NOT NULL REFERENCES idle_guilds(id) ON DELETE CASCADE,
+  invitee_id TEXT NOT NULL,
+  inviter_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(guild_id,invitee_id),
+  CHECK(invitee_id ~ '^[0-9]{15,22}$')
+);
+CREATE INDEX IF NOT EXISTS idle_guild_invites_target ON idle_guild_invites(invitee_id,expires_at DESC);
+CREATE TABLE IF NOT EXISTS idle_guild_daily_xp (
+  guild_id BIGINT NOT NULL REFERENCES idle_guilds(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  day DATE NOT NULL,
+  xp INTEGER NOT NULL CHECK(xp BETWEEN 0 AND 250),
+  PRIMARY KEY(guild_id,user_id,day)
+);
+CREATE TABLE IF NOT EXISTS idle_guild_member_xp (
+  guild_id BIGINT NOT NULL REFERENCES idle_guilds(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  xp BIGINT NOT NULL DEFAULT 0 CHECK(xp BETWEEN 0 AND 1000000000000),
+  PRIMARY KEY(guild_id,user_id)
+);
+-- Attribution is snapshotted when each boss strike commits; guild switching cannot rewrite history.
+CREATE TABLE IF NOT EXISTS idle_guild_boss_damage (
+  guild_id BIGINT NOT NULL REFERENCES idle_guilds(id) ON DELETE CASCADE,
+  period_key TEXT NOT NULL REFERENCES world_boss_instances(period_key) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  damage BIGINT NOT NULL CHECK(damage > 0),
+  PRIMARY KEY(guild_id,period_key,user_id)
+);
+CREATE INDEX IF NOT EXISTS idle_guild_boss_rankings ON idle_guild_boss_damage(period_key,guild_id);

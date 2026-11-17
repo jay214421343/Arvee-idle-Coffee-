@@ -13,6 +13,7 @@ test("weekly boss HP, attacks, and payout claims are global and transactional",{
   const rand=crypto.randomInt(100000,999999).toString();
   const a="999981000000"+rand,b="999982000000"+rand,c="999983000000"+rand;
   const currentKey=bosses.cycle().key, oldKey="20261005";
+  const guildIds=[];
   const existing=await store.pool.query(
     "SELECT period_key FROM world_boss_instances WHERE period_key=ANY($1::text[])",
     [[currentKey,oldKey]]
@@ -30,6 +31,12 @@ test("weekly boss HP, attacks, and payout claims are global and transactional",{
     assert.equal(a0.hp,b0.hp);
     assert.equal(a0.myAttacks,0);
     assert.equal(a0.canAttack,true);
+    const alpha=await store.createGuild(a,"Boss Hunters " + rand,"B"+rand.slice(0,4));
+    const beta=await store.createGuild(c,"Star Watch " + rand,"C"+rand.slice(0,4));
+    guildIds.push(alpha.id,beta.id);
+    await store.inviteGuild(a,b);
+    await store.acceptGuild(b,alpha.id);
+    assert.equal((await store.getGuild(b)).guild.id,alpha.id);
     await store.adoptCompanion(a,"ember_fox");
     await store.adoptCompanion(b,"moss_wisp");
     await store.adoptCompanion(c,"moon_owl");
@@ -45,6 +52,13 @@ test("weekly boss HP, attacks, and payout claims are global and transactional",{
     assert.equal(global.participants,3);
     assert.equal(global.myDamage,47);
     assert.equal(global.myAttacks,1);
+    const guildA=await store.getGuild(a), guildC=await store.getGuild(c);
+    assert.equal(guildA.guild.damage,92);
+    assert.equal(guildC.guild.damage,45);
+    assert.equal(guildA.rankings[0].id,alpha.id);
+    assert.equal(guildA.rankings[0].damage,92);
+    assert.equal(guildA.guild.xp,50);
+    assert.equal(guildC.guild.xp,25);
     const owl=await store.pool.query(
       "SELECT owl_bonus_points FROM world_boss_contributions WHERE period_key=$1 AND user_id=$2",
       [currentKey,c]
@@ -63,6 +77,7 @@ test("weekly boss HP, attacks, and payout claims are global and transactional",{
     assert.equal(nextAttacks.filter(x=>x.status==="rejected").length,1);
     const aStats=await store.getWorldBoss(a);
     assert.equal(aStats.myAttacks,2);
+    assert.equal((await store.getGuild(a)).guild.damage,139);
     assert.ok(aStats.myDamage>=80);
     assert.equal(aStats.qualified,true);
     assert.equal(aStats.participants,3);
@@ -109,6 +124,7 @@ test("weekly boss HP, attacks, and payout claims are global and transactional",{
     assert.ok(milestones.achievements.find(x=>x.name==="Boss Challenger").achieved);
     assert.ok(milestones.achievements.find(x=>x.name==="Worldbreaker").achieved);
   } finally {
+    await store.pool.query("DELETE FROM idle_guilds WHERE id=ANY($1::bigint[])",[guildIds]);
     await store.pool.query("DELETE FROM world_boss_instances WHERE period_key=ANY($1::text[])",
       [[currentKey,oldKey]]);
     await store.pool.query("DELETE FROM economy_events WHERE user_id=ANY($1::text[])",[[a,b,c]]);

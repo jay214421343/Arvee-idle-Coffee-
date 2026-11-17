@@ -117,7 +117,7 @@ test("slash navigation and event-based progression recognize world bosses",()=>{
       generators:[],lastMine:null,lastDaily:null,perks:[]}).toJSON();
   const values=home.components.filter(x=>x.type===1).flatMap(x=>x.components)
     .filter(x=>x.type===3).flatMap(x=>x.options.map(y=>y.value));
-  assert.equal(values.length,17);
+  assert.equal(values.length,18);
   assert.ok(values.includes("boss"));
   assert.equal(eventXp("world_boss_attack"),15);
   assert.equal(eventXp("world_boss_reward"),80);
