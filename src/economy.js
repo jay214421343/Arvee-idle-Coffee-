@@ -30,6 +30,21 @@ function purchaseCost(baseCost, owned, amount) {
   }
   return dec(baseCost).times(GROWTH.pow(owned)).times(GROWTH.pow(amount).minus(1)).div(GROWTH.minus(1)).ceil();
 }
+// The cost curve is monotonic. Binary search avoids linear loops and never approximates IC.
+function maxAffordable(baseCost, owned, balance, maxBatch = 1000) {
+  if (!Number.isSafeInteger(owned) || owned < 0 || owned > 10000 ||
+      !Number.isSafeInteger(maxBatch) || maxBatch < 1 || maxBatch > 1000)
+    throw new Error("Invalid generator quantity");
+  let low = 0, high = Math.min(maxBatch, 10000 - owned);
+  const wallet = dec(balance);
+  if (!wallet.isFinite() || wallet.lt(0)) return 0;
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    if (purchaseCost(baseCost, owned, mid).lte(wallet)) low = mid;
+    else high = mid - 1;
+  }
+  return low;
+}
 function settle(balance, totalEarned, rate, lastSettledAt, now) {
   const elapsedMs = Math.max(0, now.getTime() - new Date(lastSettledAt).getTime());
   const seconds = Math.floor(elapsedMs / 1000);
@@ -65,4 +80,4 @@ function pretty(value) {
   const scaled = n.div(new Decimal(1000).pow(group)).toDecimalPlaces(2);
   return scaled.toString() + magnitudeSuffix(group);
 }
-module.exports = { Decimal, dec, asInteger, prestigeMultiplier, generatorRate, purchaseCost, settle, pretty, magnitudeSuffix, PRESTIGE_REQUIREMENT };
+module.exports = { Decimal, dec, asInteger, prestigeMultiplier, generatorRate, purchaseCost, maxAffordable, settle, pretty, magnitudeSuffix, PRESTIGE_REQUIREMENT };

@@ -18,6 +18,18 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.9 — Simpler Navigation & Everyday QoL
+
+The Command Center now has **six destinations**, rather than 18: Operations, Satchel, Adventure, Guilds, Progress and More. Adventure, Progress and More open small one-step category menus; all old commands and in-flight owner-locked component IDs still route to the same existing features.
+
+**Smart Buy Max:** Each operation's inspect card offers Buy 1, Buy 10 and Buy Max. Buy Max uses a monotonic binary search over the existing 3% cost curve and purchases only the number affordable *inside the same locked PostgreSQL transaction* (up to 1,000 per action and 10,000 owned per type). `/idle buy generator:<id> max:true` also works; amount and max are mutually exclusive. No borrowed IC, discounts or unbounded purchases.
+
+**Idle return summary:** After at least five minutes between saved player settlements, opening your own Command Center shows the exact IC passively settled since the last saved activity. Short visits and other-player read-only views do not show an invented offline bonus. Settlements already happen server-side; this is a display of existing earnings, not a new grant.
+
+**Progression guidance:** Operation inspect cards show a simple approximate time until the next purchase at the current passive IC/s. Time estimates are display-only and reflect the current rate, which may change.
+
+No schema migration, no new reward tables or balance resets. CI covers purchase bounds, concurrent writes, single settlement, menu depth and compact Discord Components V2. After review and merge, in `/Users/gabberjay/Documents/arvee-idle` run `git switch master && git pull --ff-only origin master && npm ci && npm run register && npm run mac:restart`. Registration updates the optional `max` slash argument; only ARVEE Idle is restarted.
+
 ## ARVEE Idle 2.8 — Coffee-inspired Core Polish
 
 Version 2.8 focuses on improving existing gameplay. There are no economy or reward changes and no database migrations.

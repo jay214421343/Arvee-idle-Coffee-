@@ -1,3 +1,13 @@
+# 2.9.0 — Simple Navigation & Smart Idle QoL (pending review)
+
+- Reduced the Command Center navigation dropdown from 18 choices to six, grouping secondary destinations behind short one-step menus without deleting commands.
+- Added transaction-safe operation Buy Max (up to 1,000 per action and 10,000 per operation) using exact cost math and a bounded binary search. Available from inspect cards and `/idle buy max:true`.
+- Display exact already-settled passive IC earned after five minutes away from saved activity; never double-pay or claim time-based rewards.
+- Added a clear approximate time-to-afford hint for the next operation based on the current passive IC/s.
+- Added SQL concurrency, precision and Components V2 regression coverage. Economy rates, guilds, World Bosses and all existing player data remain unchanged.
+
+---
+
 # 2.8.0 — Coffee-inspired Core Polish (pending review)
 
 - Fixed Command Center prestige progress to show accurate integer percentages and remaining IC.
