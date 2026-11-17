@@ -165,7 +165,7 @@ function home(owner, user, p) {
     button(owner, "inventory", "Satchel")
   ]));
   c.addActionRowComponents(navigation(owner));
-  foot(c, "✨ **QUICK TIP:** Use the navigation menu for the Forge, Exchange, Pickaxe, Ascension and more.");
+  foot(c, "✨ **QUICK TIP:** Use the navigation menu for the Forge, Exchange, Pickaxe, Ascension and more.\n🌐 [ARVEE World](" + brand.website + ")");
   return c;
 }
 
