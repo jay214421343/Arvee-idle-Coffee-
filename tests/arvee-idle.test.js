@@ -14,7 +14,8 @@ test("ARVEE Idle branding and slash command are separate from main ARVEE", () =>
   assert.equal(brand.currency, "IC");
   assert.equal(idle.toJSON().name, "idle");
   assert.equal(generators.length, 56);
-  assert.ok(generators.every((g) => /ARVEE|adventurer|realm|operation/i.test(g.description)));
+  assert.ok(generators.every((g) => g.description.length >= 45 && g.description.length <= 180));
+  assert.equal(new Set(generators.map((g) => g.description)).size, generators.length);
 });
 test("PM2 uses the explicit Node runtime and only one isolated fork process", () => {
   assert.equal(ecosystem.apps.length, 1);
