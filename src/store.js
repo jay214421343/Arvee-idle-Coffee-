@@ -4,6 +4,7 @@ const { items, recipes, byId, perks } = require("./catalog");
 const { Decimal, dec, generatorRate, purchaseCost, maxAffordable, settle, PRESTIGE_REQUIREMENT, prestigeMultiplier, pretty } = require("./economy");
 const season = require("./season");
 const { rollRebirthBonus } = require("./rebirth-loot");
+const lootTables=require("./loot-tables");
 const challenges = require("./challenges");
 const exploration = require("./exploration");
 const activity = require("./activity");
@@ -382,38 +383,25 @@ async function openLootbox(userId, quantity, boxType = "lootbox") {
     const drops = {};
     for (let i = 0; i < quantity; i++) {
       if (boxType === "lunchbox") {
-        const ration = ["apple", "bread", "bacon", "cookie"][Math.floor(Math.random()*4)];
-        const tonic = ["coffee", "cola", "jungle_juice", "pumpkin_spice_latte"][Math.floor(Math.random()*4)];
+        const ration=lootTables.LUNCHBOX.ration[Math.floor(Math.random()*lootTables.LUNCHBOX.ration.length)];
+        const tonic=lootTables.LUNCHBOX.tonic[Math.floor(Math.random()*lootTables.LUNCHBOX.tonic.length)];
         drops[ration] = (drops[ration] || 0) + 1;
         drops[tonic] = (drops[tonic] || 0) + 1;
         continue;
       }
-      const roll = Math.random();
-      const item = boxType === "legendary_lootbox" ?
-        (roll < 0.10 ? "orb_of_almanac" : roll < 0.23 ? "gem" : roll < 0.43 ? "pickperk" : roll < 0.65 ? "tinkers_gizmo" : roll >= 0.995 ? "creditus_deletus" : "strange_matter") :
-        boxType === "rare_lootbox" ?
-        (roll < 0.04 ? "gem" : roll < 0.18 ? "pickperk" : roll < 0.40 ? "gold" : roll < 0.60 ? "starfruit" : "strange_matter") :
-        (roll < 0.01 ? "pickperk" : roll < 0.04 ? "gold" : roll < 0.16 ? "silver" : roll < 0.25 ? "apple" : roll < 0.36 ? "bread" : roll < 0.45 ? "cola" : roll < 0.55 ? "cookie" : "ore");
-      drops[item] = (drops[item] || 0) + 1;
-      // Optional bonus finds never replace standard rewards from the existing loot pools.
-      const bonusPool = boxType === "legendary_lootbox" ?
-        ["gnome", "pick_skin", "tag", "genreset"] :
-        boxType === "rare_lootbox" ?
-        ["arthurs_tablet", "mine_alert", "nametag", "stat_card"] :
-        ["kingstones_stone", "reward", "payment", "crafting_materials"];
-      const bonusChance = boxType === "legendary_lootbox" ? 0.05 : boxType === "rare_lootbox" ? 0.04 : 0.02;
-      if (Math.random() < bonusChance) {
-        const extra = bonusPool[Math.floor(Math.random() * bonusPool.length)];
-        drops[extra] = (drops[extra] || 0) + 1;
+      const item=lootTables.mainDrop(boxType,Math.random());
+      drops[item]=(drops[item]||0)+1;
+      // Independent optional rolls do not replace the main item.
+      const bonus=lootTables.BONUS[boxType];
+      if(Math.random()<bonus.chance/100){
+        const extra=bonus.items[Math.floor(Math.random()*bonus.items.length)];
+        drops[extra]=(drops[extra]||0)+1;
       }
-      // Charms are additional, uncommon cache finds; original guaranteed drops remain intact.
-      if (boxType === "rare_lootbox" || boxType === "legendary_lootbox") {
-        const chance = boxType === "legendary_lootbox" ? 0.20 : 0.08;
-        if (Math.random() < chance) {
-          const charms = Object.keys(companions.CHARMS);
-          const charm = charms[Math.floor(Math.random()*charms.length)];
-          drops[charm] = (drops[charm] || 0) + 1;
-        }
+      const charmChance=lootTables.CHARMS[boxType]||0;
+      if(charmChance && Math.random()<charmChance/100){
+        const charms=Object.keys(companions.CHARMS);
+        const charm=charms[Math.floor(Math.random()*charms.length)];
+        drops[charm]=(drops[charm]||0)+1;
       }
     }
     for (const [item, amount] of Object.entries(drops)) await addItem(db, userId, item, amount);

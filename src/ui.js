@@ -16,6 +16,7 @@ const { eligibleMiningReset } = require("./mining-reset");
 const progression = require("./progression");
 const guilds = require("./guilds");
 const { SEASON, rewards, missions, label, tierNeeded } = require("./season");
+const itemGuide=require("./item-guide");
 
 const ACCENT = brand.theme.primary;
 const SUCCESS = brand.theme.success;
@@ -552,6 +553,9 @@ function itemInfo(owner,id,quantity=0) {
   c.addTextDisplayComponents(text("**FIELD NOTES**\n"+entry.description+
     "\n\n**EFFECT / PURPOSE**\n"+effect+
     (ingredients ? "\n\n**FORGE RECIPE**\n"+ingredients : "")+
+    "\n\n**HOW TO OBTAIN**\n"+itemGuide.sources(id).join("\n")+
+    (itemGuide.cacheContents(id) ? "\n\n**POSSIBLE CONTENTS · PER OPEN**\n"+
+      itemGuide.cacheContents(id) : "")+
     "\n\n**ITEM ID**  "+id));
   c.addActionRowComponents(row([
     button(owner,"inventory","My Satchel","1_all_rarity",ButtonStyle.Primary),
