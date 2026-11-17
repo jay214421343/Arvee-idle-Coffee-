@@ -61,13 +61,15 @@ test("restored Coffee items function transactionally and cosmetics survive prest
     assert.equal(rosterAfter.find(g=>g.generator_id==="MSPS").quantity,1);
     assert.equal(rosterAfter.length,rosterBefore.length+1);
     await store.pool.query("UPDATE players SET balance=2000000000,total_earned=2000000000 WHERE user_id=$1",[user]);
+    Math.random=()=>0.99;
     assert.equal((await store.prestige(user)).prestige,1);
+    Math.random=oldRandom;
     const retained=await store.profile(user);
     assert.equal(retained.pickaxeName,"Moonshard");
     assert.equal(retained.pickaxeStyle,"I Skin");
     assert.equal(retained.profileTag,"ARVEE Veteran");
     assert.equal(retained.generators.length,0);
-    assert.equal(retained.inventory.find(x=>x.item_id==="rebirth_cocktail").quantity,1);
+    assert.equal(retained.inventory.find(x=>x.item_id==="rebirth_cocktail"),undefined);
     assert.equal(retained.inventory.find(x=>x.item_id==="mine_alert").quantity,1);
     const atLeastOne=await store.pool.query("SELECT count(*)::integer AS n FROM economy_events WHERE user_id=$1 AND event_type='use_item'",[user]);
     assert.ok(atLeastOne.rows[0].n>=8);

@@ -16,7 +16,7 @@ test("Adventurer's Lunchbox is an openable cache and rebirth preview is explicit
   assert.ok(data.choices.some(x=>x.value==="lunchbox"));
 });
 
-test("lucky rebirth rolls include an extra cocktail without affecting the existing cache odds", () => {
+test("rebirth cocktails are a lucky bonus only, with no guaranteed item", () => {
   assert.equal(rollRebirthBonus(0),"rebirth_cocktail");
   assert.equal(rollRebirthBonus(0.049999),"rebirth_cocktail");
   assert.equal(rollRebirthBonus(0.05),"lunchbox");
@@ -33,11 +33,17 @@ test("lucky rebirth rolls include an extra cocktail without affecting the existi
   const preview = JSON.stringify(ui.prestige(owner, {
     balance:require("../src/economy").dec("1000000000"),prestige:0
   }).toJSON());
-  assert.match(preview,/5% extra Rebirth Cocktail/);
+  assert.match(preview,/5% Rebirth Cocktail/);
+  assert.doesNotMatch(preview,/Prestige reward.*1× Rebirth Cocktail/);
   const result = JSON.stringify(ui.prestigeResult(owner, {
-    prestige:1,multiplier:1.25,itemId:"rebirth_cocktail",bonusItemId:"rebirth_cocktail"
+    prestige:1,multiplier:1.25,bonusItemId:"rebirth_cocktail"
   }).toJSON());
   assert.match(result,/LUCKY BONUS/);
-  assert.match(result,/extra/);
   assert.match(result,/1× Rebirth Cocktail added/);
+  assert.doesNotMatch(result,/\(extra\)/);
+  const noBonus = JSON.stringify(ui.prestigeResult(owner,{
+    prestige:1,multiplier:1.25,bonusItemId:null
+  }).toJSON());
+  assert.match(noBonus,/None this time/);
+  assert.doesNotMatch(noBonus,/Rebirth Cocktail/);
 });

@@ -1,9 +1,10 @@
-# 2.11.1 — Lucky Extra Rebirth Cocktail (pending review)
+# 2.11.1 — Rebirth Cocktail in the Lucky Pool Only (pending review)
 
-- Keep the existing guaranteed Rebirth Cocktail for each successful prestige, and add a 5% chance to receive a **second** cocktail as the optional lucky bonus.
-- Preserve the other lucky reward odds: 30% Supply Cache, 10% Rare Supply Cache and 5% Adventurer's Lunchbox. The chance of no bonus decreases to 50%.
-- Explain the extra cocktail on the prestige preview and completion receipt. Both cocktails are awarded within the same PostgreSQL transaction, without creating duplicate prestige rewards on repeated clicks.
-- Add probability-boundary unit tests and a PostgreSQL concurrency test. No database migrations or slash-command registration changes.
+- Each prestige has one optional reward roll: **5% Rebirth Cocktail**, 5% Adventurer's Lunchbox, 10% Rare Supply Cache, 30% Supply Cache, or **50% no bonus**.
+- **Removed the previously guaranteed cocktail.** Players may prestige without any item award; a lucky cocktail result grants exactly one cocktail.
+- Preserve existing prestige requirements, permanent production multiplier, inventory, and transaction-backed duplicate protection.
+- Update the prestige preview, completion receipt, item description and documentation. Unit and PostgreSQL tests verify all reward outcomes.
+- No database migration or slash-command registration required.
 
 ---
 

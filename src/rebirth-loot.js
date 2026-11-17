@@ -1,6 +1,6 @@
 "use strict";
-// Optional prestige reward: the first Rebirth Cocktail is always granted separately.
-// Probabilities: 5% extra cocktail, 5% lunchbox, 10% rare cache,
+// Each successful prestige has only one optional roll: no items are guaranteed.
+// Probabilities: 5% cocktail, 5% lunchbox, 10% rare cache,
 // 30% regular cache, 50% no bonus.
 function rollRebirthBonus(roll) {
   if (!Number.isFinite(roll) || roll < 0 || roll >= 1)
