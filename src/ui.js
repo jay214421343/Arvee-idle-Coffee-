@@ -538,6 +538,26 @@ function item(owner, id, quantity, back = "1_all_rarity") {
   return c;
 }
 
+function itemInfo(owner,id,quantity=0) {
+  const entry=items[id]; if (!entry) throw new Error("Unknown item.");
+  const effect=entry.use || (BOX_IDS.has(id) ? "Open from your Satchel or with /idle open." :
+    Object.hasOwn(companions.EGG_TIERS,id) ? "Hatch from the Companion Hatchery." :
+    Object.hasOwn(companions.CHARMS,id) ? "Equip from Companion Mastery." :
+    "Material or collectible item.");
+  const ingredients=recipes[id] ?
+    Object.entries(recipes[id]).map(([part,n])=>n+"× "+items[part].name).join(" · ") : null;
+  const c=container(itemArt(id)+"  "+entry.name.toUpperCase(),
+    rarityMark(entry.rarity)+"  "+entry.rarity+"  ·  "+quantity+" owned");
+  c.addTextDisplayComponents(text("**FIELD NOTES**\n"+entry.description+
+    "\n\n**EFFECT / PURPOSE**\n"+effect+
+    (ingredients ? "\n\n**FORGE RECIPE**\n"+ingredients : "")+
+    "\n\n**ITEM ID**  "+id));
+  c.addActionRowComponents(row([
+    button(owner,"inventory","My Satchel","1_all_rarity",ButtonStyle.Primary),
+    ...(ingredients ? [button(owner,"recipe_view","View forge recipe",id)] : [])
+  ]));
+  return c;
+}
 function crafting(owner, p = null, page = 1, filter = "all") {
   const owned = (id) => p?.inventory.find((e) => e.item_id === id)?.quantity || 0;
   let entries = Object.entries(recipes);
@@ -1262,6 +1282,6 @@ function payload(view) {
   return { components: [view], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 module.exports = {
-  custom, button, sectionMenu, customization, companionMastery, companionEggs, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, worldBoss, guildOverview, guildRankings, guildExpeditionBoard, guildLeagueBoard, preferences, challengeBoard, message, home, shop, generator, inventory, inventoryPreview, item, crafting, recipe, season, market, listing,
+  custom, button, sectionMenu, customization, companionMastery, companionEggs, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, worldBoss, guildOverview, guildRankings, guildExpeditionBoard, guildLeagueBoard, preferences, challengeBoard, message, home, shop, generator, inventory, inventoryPreview, item, itemInfo, crafting, recipe, season, market, listing,
   prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, miningResult, dailyResult, craftingResult, cacheResult, purchaseResult, prestigeResult, SUCCESS, WARN, ERROR
 };

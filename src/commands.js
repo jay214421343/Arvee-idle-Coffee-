@@ -23,6 +23,8 @@ idle.addSubcommand((c) => c.setName("companions").setDescription("Collect, level
 idle.addSubcommand((c) => c.setName("equipment").setDescription("Upgrade permanent expedition equipment"));
 idle.addSubcommand((c) => c.setName("settings").setDescription("View and reset your saved filter preferences"));
 idle.addSubcommand((c) => c.setName("inventory").setDescription("Check collected items").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
+idle.addSubcommand((c) => c.setName("info").setDescription("Inspect any item, whether or not you own it")
+  .addStringOption((o) => o.setName("item").setDescription("Item to inspect").setRequired(true).setAutocomplete(true)));
 idle.addSubcommand((c) => c.setName("craft").setDescription("Craft an item")
   .addStringOption((o) => o.setName("item").setDescription("Item to craft (omit to browse recipes)").setAutocomplete(true))
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity (1-100)").setMinValue(1).setMaxValue(100)));
@@ -204,7 +206,7 @@ async function respond(interaction) {
         "**Equipment:** /idle equipment to boost expedition rewards",
         "**Preferences:** /idle settings to view and reset your saved filters",
         "**Activities:** /idle mine, /idle daily, /idle craft, /idle open",
-        "**Items:** /idle inventory, /idle give, /idle market",
+        "**Items:** /idle inventory, /idle info, /idle give, /idle market",
         "Prestige requires 1B IC and increases production by 25% per level.",
         "All progress is stored in PostgreSQL. This is a fresh season."
       ].join("\n");
@@ -250,6 +252,12 @@ async function respond(interaction) {
         const prefs = await store.getPreferences(id);
         view = ui.inventory(id, p, 1, prefs.inventoryFilter, prefs.inventorySort);
       }
+    } else if (command === "info") {
+      const itemId=opts.getString("item",true);
+      if (!Object.hasOwn(items,itemId)) throw new Error("Unknown item.");
+      const inventory=(await store.profile(id)).inventory;
+      const quantity=inventory.find(e=>e.item_id===itemId)?.quantity || 0;
+      view=ui.itemInfo(id,itemId,quantity);
     } else if (command === "craft") {
       const item = opts.getString("item");
       if (!item) {
