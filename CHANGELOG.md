@@ -1,3 +1,14 @@
+# 2.6.0 — Global Player Guilds (unreleased)
+
+- Added global player guild creation, unique tags, one membership per Discord user, 72-hour invitations, permissions for leader/officer/member, safe owner transfer and confirmed disband/leave.
+- Added member roster, guild XP/levels, shared Renown and Hall tiers (up to 32 members), with up to +5% mine IC and +10% World Boss strike damage. Per-user UTC daily guild XP/Renown gain is capped at 250.
+- Guild actions reuse the authoritative PostgreSQL player locks and guild-row locks; membership caps and invitations are validated transactionally across shards/servers.
+- Snapshotted weekly World Boss damage attribution per guild and attacker on committed strikes; weekly guild rankings cannot be manipulated by changing guilds afterward.
+- Added `/idle guild` command group with management functions and a compact Coffee-style Components V2 Guild board, invitation picker, Hall upgrade and rankings. Minimal emojis and contextual buttons only.
+- New additive schema does not reset personal balances, inventory, prestige, companions, seasons or world bosses. No personal IC deposits or guild-admin withdrawals.
+- Added pure model/UI tests and PostgreSQL integration tests for parallel joins, roles, damage attribution, daily caps, upgrade perks, prestige persistence and destructive operations.
+
+---
 # 2.5.0 — World Bosses (unreleased)
 
 - Added globally shared weekly bosses rotating at UTC Monday, with one PostgreSQL boss instance and serializable HP updates across servers/shards.

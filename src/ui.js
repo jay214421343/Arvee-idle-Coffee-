@@ -928,7 +928,7 @@ function leaderboard(owner, rows) {
 function help(owner) {
   const c = container("✦ WELCOME TO ARVEE IDLE", "Begin with your starter wallet, quick mining, and your first operation.");
   divider(c);
-  foot(c, "**START** · /idle daily → /idle mine → /idle shop\n**Grow** · /idle shop, /idle buy, /idle profile\n**Explore** · /idle mine, /idle pickaxe, /idle daily\n**Collect** · /idle inventory, /idle open, /idle craft, /idle use\n**Trade** · /idle give, /idle market\n**Compete** · /idle leaderboard, /idle prestige\n\nUse the buttons below to navigate without typing commands.");
+  foot(c, "**START** · /idle daily → /idle mine → /idle shop\n**Grow** · /idle shop, /idle buy, /idle profile\n**Explore** · /idle mine, /idle pickaxe, /idle daily\n**Collect** · /idle inventory, /idle open, /idle craft, /idle use\n**Trade** · /idle give, /idle market\n**Guilds** · /idle guild view, /idle guild create\n**Compete** · /idle boss, /idle leaderboard, /idle prestige\n\nUse the buttons below to navigate without typing commands.");
   c.addActionRowComponents(row([
     button(owner, "profile", "Dashboard", "", ButtonStyle.Primary),
     button(owner, "shop", "Shop"),

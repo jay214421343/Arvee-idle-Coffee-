@@ -18,6 +18,32 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.6 — Global Player Guilds
+
+Global guilds are **persistent player groups**, not Discord server configuration. A Discord User ID may belong to one guild at a time, even if the player switches Discord servers. Every guild uses the same PostgreSQL database as the global ARVEE Idle economy.
+
+### Getting started
+
+- **/idle guild view** — Open the compact Coffee-style guild board, roster and pending invitations (the Guilds navigation dropdown is also available from the Command Center).
+- **/idle guild create name:<name> tag:<tag>** — Create a guild with a 3–26 character name and unique 2–5 character tag. Names and tags are unique; one guild membership per player.
+- **/idle guild invite user:<player>** — Leader or officer issues a three-day invitation; the invited player sees it under `/idle guild view` and can accept from the single dropdown or `/idle guild accept id:<guild ID>`.
+- **/idle guild decline id:<guild ID>**, **/idle guild leave confirm:true** — Decline or leave. A leader must transfer ownership or explicitly disband before leaving.
+- **/idle guild promote/demote/kick user:<player>** — Leader can promote and demote officers (maximum three); officers may invite and remove regular members. Nobody can kick the leader.
+- **/idle guild transfer user:<player> confirm:true** — Leader-only permanent ownership transfer. **/idle guild disband confirm:true** permanently deletes the guild and its historical rankings/records; personal balances and items are untouched.
+- **/idle guild upgrade** — Leader spends *shared guild Renown*, not anyone's IC, on a Hall upgrade. Hall tier increases the guild member capacity from 12 up to 32, grants +1% mining IC per tier and +2% World Boss strike damage per tier (maximum +5%/+10%).
+- **/idle guild rankings** — Global weekly Guild Boss Rankings. Damage is snapshotted for the guild a player belonged to when the strike committed, so changing guild cannot reassign earlier damage.
+
+### Fair progression and safety
+
+Mining, daily rewards, crafting, expedition claims and World Boss attacks earn Guild XP and Renown together, with a **250 guild XP/renown per-user UTC day cap** to prevent rapid event farming. Guild level follows a bounded quadratic progression (max level 20); Hall upgrades require both Renown and a minimum guild level. No member can withdraw guild funds because there is no IC deposit or withdrawal mechanic.
+
+All guild writes use the existing player-lock transaction engine and guild-row locks. Invitations expire after 72 hours, joining enforces capacity under a lock, roles/ownership are validated server-side, and creation and claiming are constrained by unique database indexes. Global boss damage accounting and guild XP updates occur **in the same transaction as each committed gameplay event**. Historic guild damage survives a member changing guild and is deleted only if the guild itself is permanently disbanded.
+
+The UI keeps ARVEE's restrained purple accent, compact text, minimal emojis, and one Guild board with a contextual Hall upgrade, Boss rankings and Command Center buttons. Guild creation and sensitive management happen via explicit slash commands instead of dangerous one-click buttons.
+
+### Rollout
+
+After CI and review, merge this PR and update only ARVEE Idle (`/Users/gabberjay/Documents/arvee-idle`): `git switch master && git pull --ff-only origin master && npm ci && npm run setup && npm run mac:restart`. The SQL migration is additive. Test invites, role changes, Hall buffs and weekly rankings across two servers with two Discord accounts before considering production verified. The main ARVEE bot and website remain unchanged.
 ## ARVEE Idle 2.5 — World Bosses
 
 **/idle boss** opens one **global, cooperative weekly encounter** shared by every Discord server using the same ARVEE Idle application and PostgreSQL database. No server-specific save files or duplicate boss HP bars.

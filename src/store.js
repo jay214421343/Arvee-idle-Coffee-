@@ -8,6 +8,7 @@ const exploration = require("./exploration");
 const activity = require("./activity");
 const companions = require("./companions");
 const worldBosses = require("./world-bosses");
+const guilds = require("./guilds");
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 10, connectionTimeoutMillis: 10000, idleTimeoutMillis: 30000 });
 pool.on("error", (error) => console.error("[Postgres] Idle connection error", error));
@@ -183,6 +184,7 @@ async function event(db, userId, type, amount, metadata = {}) {
     [userId, type, dec(amount).toFixed(0), JSON.stringify(metadata)]);
   await grantSeasonXp(db, userId, type, metadata);
   await grantCompanionXp(db, userId, type, metadata);
+  await guildStore.grantProgress(db,userId,type,metadata);
 }
 async function addItem(db, userId, itemId, quantity) {
   assertItem(itemId);
@@ -241,10 +243,11 @@ async function mine(userId) {
     if (!remaining.ready) return { cooldown: remaining.seconds };
     const pet = await activeCompanion(db,userId);
     const petBonus = pet?.id === "ember_fox" ? dec(1).plus(dec(companions.boostPct(pet.level)).div(100)) : dec(1);
+    const guildTier = await guildStore.perkTier(db,userId);
     const reward = Decimal.max(150, state.rate.times(30))
       .times(dec(1).plus(dec(state.pickaxeTier).times("0.25")))
       .times(dec(1).plus(dec(perkLevel(state, "miner")).times("0.10")))
-      .times(state.mineBonus).times(petBonus).floor();
+      .times(state.mineBonus).times(petBonus).times(dec(guilds.mineMultiplier(guildTier))).floor();
     state.mineBonus = dec(1);
     state.balance = state.balance.plus(reward);
     state.totalEarned = state.totalEarned.plus(reward);
@@ -799,7 +802,8 @@ async function attackWorldBoss(userId) {
     const player = stateOf(states,userId);
     const pet = await activeCompanion(db,userId);
     const raw = worldBosses.attackPower(player,pet);
-    const damage = Math.min(instance.hp,raw);
+    const guildTier = await guildStore.perkTier(db,userId);
+    const damage = Math.min(instance.hp,Math.min(400,Math.floor(raw*guilds.attackMultiplier(guildTier))));
     const nextAt = new Date(new Date(now).getTime()+worldBosses.attackCooldownMs(pet));
     const owlPoints = pet?.id === "moon_owl"
       ? damage * Math.round(companions.boostPct(pet.level)*100) : 0;
@@ -816,7 +820,7 @@ async function attackWorldBoss(userId) {
       "owl_bonus_points=world_boss_contributions.owl_bonus_points+EXCLUDED.owl_bonus_points",
       [cycle.key,userId,damage,now,nextAt,owlPoints]
     );
-    await event(db,userId,"world_boss_attack",0,{boss:instance.boss_id,damage});
+    await event(db,userId,"world_boss_attack",0,{boss:instance.boss_id,damage,periodKey:cycle.key});
     return { damage, finished: damage === instance.hp, nextAttackAt:nextAt.toISOString(), bossName:cycle.boss.name };
   });
 }
@@ -919,6 +923,7 @@ async function claimSeasonRewards(userId, requested = "all") {
   });
 }
 
-module.exports = { pool, transact, profile, getWorldBoss, attackWorldBoss, claimWorldBossReward, getCompanions, adoptCompanion, equipCompanion, hatchCompanion, getExploration, startExpedition, collectExpedition, upgradeExpeditionGear, getPreferences, setPreferences, resetPreferences, getChallenges, claimChallenge, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
+const guildStore = require("./guild-store")({ transact, pool, stateOf, dec, assertId });
+module.exports = { ...guildStore, pool, transact, profile, getWorldBoss, attackWorldBoss, claimWorldBossReward, getCompanions, adoptCompanion, equipCompanion, hatchCompanion, getExploration, startExpedition, collectExpedition, upgradeExpeditionGear, getPreferences, setPreferences, resetPreferences, getChallenges, claimChallenge, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
   prestige, leaderboard, browseMarket, sellItem, buyListing, cancelListing, getListing, useItem, upgradePickaxe, upgradePerk,
   respecPerks, getStats };

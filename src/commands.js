@@ -54,6 +54,33 @@ idle.addSubcommandGroup((g) => g.setName("market").setDescription("Trade items f
   .addSubcommand((c) => c.setName("cancel").setDescription("Cancel your active listing")
     .addStringOption((o) => o.setName("id").setDescription("Listing ID").setRequired(true))));
 
+idle.addSubcommandGroup((g) => g.setName("guild").setDescription("Manage global ARVEE Idle player guilds")
+  .addSubcommand((c) => c.setName("view").setDescription("Open your guild and invitations"))
+  .addSubcommand((c) => c.setName("rankings").setDescription("Weekly guild boss damage rankings"))
+  .addSubcommand((c) => c.setName("create").setDescription("Create a global player guild")
+    .addStringOption((o) => o.setName("name").setDescription("Guild name (3-26 characters)").setRequired(true).setMinLength(3).setMaxLength(26))
+    .addStringOption((o) => o.setName("tag").setDescription("Short tag (2-5 letters/numbers)").setRequired(true).setMinLength(2).setMaxLength(5)))
+  .addSubcommand((c) => c.setName("invite").setDescription("Invite a player (leader or officer)")
+    .addUserOption((o) => o.setName("user").setDescription("Player to invite").setRequired(true)))
+  .addSubcommand((c) => c.setName("accept").setDescription("Accept your pending guild invitation")
+    .addStringOption((o) => o.setName("id").setDescription("Guild ID from your invitation").setRequired(true)))
+  .addSubcommand((c) => c.setName("decline").setDescription("Decline a guild invitation")
+    .addStringOption((o) => o.setName("id").setDescription("Inviting guild ID").setRequired(true)))
+  .addSubcommand((c) => c.setName("leave").setDescription("Leave your current guild")
+    .addBooleanOption((o) => o.setName("confirm").setDescription("Confirm leaving guild").setRequired(true)))
+  .addSubcommand((c) => c.setName("kick").setDescription("Remove a member (leader or officer)")
+    .addUserOption((o) => o.setName("user").setDescription("Member to remove").setRequired(true)))
+  .addSubcommand((c) => c.setName("promote").setDescription("Promote a member to officer (leader only)")
+    .addUserOption((o) => o.setName("user").setDescription("Member to promote").setRequired(true)))
+  .addSubcommand((c) => c.setName("demote").setDescription("Demote an officer (leader only)")
+    .addUserOption((o) => o.setName("user").setDescription("Officer to demote").setRequired(true)))
+  .addSubcommand((c) => c.setName("transfer").setDescription("Transfer ownership to a member (leader only)")
+    .addUserOption((o) => o.setName("user").setDescription("New leader").setRequired(true))
+    .addBooleanOption((o) => o.setName("confirm").setDescription("Confirm ownership transfer").setRequired(true)))
+  .addSubcommand((c) => c.setName("upgrade").setDescription("Spend shared renown on the Guild Hall (leader only)"))
+  .addSubcommand((c) => c.setName("disband").setDescription("Permanently delete your guild (leader only)")
+    .addBooleanOption((o) => o.setName("confirm").setDescription("Confirm permanent disband").setRequired(true))));
+
 function labelItem(id) { return items[id]?.name || id; }
 async function savedShop(userId, page = 1) {
   const prefs = await store.getPreferences(userId);
@@ -87,7 +114,41 @@ async function respond(interaction) {
     const command = opts.getSubcommand();
     let content = "";
     let view = null;
-    if (group === "market") {
+    if (group === "guild") {
+      let note = "";
+      if (command === "create") {
+        const made = await store.createGuild(id,opts.getString("name",true),opts.getString("tag",true));
+        note = "Guild [" + made.tag + "] " + made.name + " created.";
+      } else if (command === "invite") {
+        const invited = await store.inviteGuild(id,opts.getUser("user",true).id);
+        note = "Invitation saved for <@" + invited.inviteeId + ">. They can find it under /idle guild view.";
+      } else if (command === "accept") {
+        const joined = await store.acceptGuild(id,opts.getString("id",true));
+        note = "Joined [" + joined.tag + "] " + joined.name + ".";
+      } else if (command === "decline") {
+        await store.declineGuild(id,opts.getString("id",true));
+        note = "Invitation declined.";
+      } else if (command === "leave") {
+        if (!opts.getBoolean("confirm",true)) throw new Error("Run /idle guild leave confirm:true to leave.");
+        const left = await store.leaveGuild(id);
+        note = "Left " + left.name + ".";
+      } else if (["kick","promote","demote","transfer"].includes(command)) {
+        if (command === "transfer" && !opts.getBoolean("confirm",true))
+          throw new Error("Use confirm:true to transfer guild leadership.");
+        const changed = await store.manageGuild(id,opts.getUser("user",true).id,command);
+        note = "Guild " + changed.action + " completed for <@" + changed.targetId + ">.";
+      } else if (command === "upgrade") {
+        const upgraded = await store.upgradeGuild(id);
+        note = "Guild Hall upgraded to tier " + upgraded.tier + ".";
+      } else if (command === "disband") {
+        if (!opts.getBoolean("confirm",true)) throw new Error("Use confirm:true to permanently disband your guild.");
+        const removed = await store.disbandGuild(id);
+        note = "Guild " + removed.name + " disbanded. This cannot be undone.";
+      } else if (command !== "view" && command !== "rankings")
+        throw new Error("Unknown guild action.");
+      const board = await store.getGuild(id);
+      view = command === "rankings" ? ui.guildRankings(id,board) : ui.guildOverview(id,board,note);
+    } else if (group === "market") {
       if (command === "browse") {
         const rows = await store.browseMarket();
         view = ui.market(id, rows);
@@ -117,6 +178,7 @@ async function respond(interaction) {
         "**Contracts:** /idle challenges for daily and weekly rewards",
         "**World Map:** /idle explore to send crew on timed expeditions",
         "**World Boss:** /idle boss for a cross-server cooperative battle",
+        "**Guilds:** /idle guild view for global groups, perks and weekly rankings",
         "**Companions:** /idle companions to choose a pet and hatch eggs",
         "**Equipment:** /idle equipment to boost expedition rewards",
         "**Preferences:** /idle settings to view and reset your saved filters",
@@ -262,6 +324,7 @@ async function handleComponent(interaction) {
       else if (selected === "settings") view = ui.preferences(owner, await store.getPreferences(owner));
       else if (selected === "explore") view = ui.expeditionMap(owner, await store.getExploration(owner));
       else if (selected === "boss") view = ui.worldBoss(owner, await store.getWorldBoss(owner));
+      else if (selected === "guild") view = ui.guildOverview(owner,await store.getGuild(owner));
       else if (selected === "companions") view = ui.companionCollection(owner, await store.getCompanions(owner));
       else if (selected === "equipment") view = ui.expeditionGear(owner, await store.getExploration(owner));
       else if (selected === "market") view = ui.market(owner, await store.browseMarket());
@@ -313,6 +376,18 @@ async function handleComponent(interaction) {
       view = ui.companionCollection(owner, await store.getCompanions(owner),
         result.discovered ? "Discovered " + result.name + "!" :
           result.name + " bonded with you. +" + result.bonusXp + " companion XP.");
+    } else if (action === "guild") {
+      view = ui.guildOverview(owner,await store.getGuild(owner));
+    } else if (action === "guild_rankings") {
+      view = ui.guildRankings(owner,await store.getGuild(owner));
+    } else if (action === "guild_accept") {
+      result = await store.acceptGuild(owner,selected);
+      view = ui.guildOverview(owner,await store.getGuild(owner),
+        "Joined [" + result.tag + "] " + result.name + ".");
+    } else if (action === "guild_upgrade") {
+      result = await store.upgradeGuild(owner);
+      view = ui.guildOverview(owner,await store.getGuild(owner),
+        "Guild Hall upgraded to tier " + result.tier + ".");
     } else if (action === "boss") {
       view = ui.worldBoss(owner, await store.getWorldBoss(owner));
     } else if (action === "boss_attack") {
