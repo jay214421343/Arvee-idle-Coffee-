@@ -1,3 +1,18 @@
+# 2.0.0 — ARVEE Idle rebrand and independent service (unreleased)
+
+- Rebranded the Coffee bot as ARVEE Idle; its public Discord command is now /idle and the separate currency is **Idle Credits (IC)**.
+- Rethemed all 56 legacy generator tiers into ARVEE RPG-style expeditions/operations while keeping stable generator IDs and prices.
+- Refreshed Components V2 with a purple command center, prestige progression bar, player avatar, clearer shop affordability/ownership indicators, faster 1/10/100 purchases and an ARVEE World link.
+- Re-themed consumables, caches and equipment to match the ARVEE universe.
+- Added an isolated PM2 ecosystem file that uses the existing Mac Node 22.23.5 interpreter without changing the ARVEE runtime.
+- Added environment validation to refuse use of the main ARVEE databases, a database doctor command, database heartbeat checks and PM2 readiness/shutdown handling.
+- Changed slash-command registration to single-command upsert so it does not overwrite unrelated commands; old /coffee removal is explicit and opt-in.
+- Added serialized schema migrations, repeatable deployment instructions and updated CI checks.
+
+Release is gated on CI and private-server Discord testing. Main ARVEE bot integrations, accounts and Discord SKUs are intentionally not shared automatically.
+
+---
+
 # 1.1.0 — Components V2 and Coffee progression (unreleased)
 
 - Rebuilt Coffee screens with native Components V2: interactive player dashboard, avatar, paginated shop, inventory, crafting, pickaxe, market, and confirmation actions.

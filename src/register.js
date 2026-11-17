@@ -1,15 +1,26 @@
 "use strict";
-require("dotenv").config();
+const { assertNodeVersion, validateDiscord } = require("./config");
 const { REST, Routes } = require("discord.js");
-const { coffee } = require("./commands");
+const { idle } = require("./commands");
 async function main() {
-  const token = process.env.DISCORD_TOKEN;
+  assertNodeVersion();
+  const { guildId } = validateDiscord();
   const clientId = process.env.DISCORD_CLIENT_ID;
-  if (!token || !clientId) throw new Error("Set DISCORD_TOKEN and DISCORD_CLIENT_ID before registering commands.");
-  const guildId = process.env.DISCORD_GUILD_ID;
   const route = guildId ? Routes.applicationGuildCommands(clientId, guildId) : Routes.applicationCommands(clientId);
-  const rest = new REST({ version: "10" }).setToken(token);
-  await rest.put(route, { body: [coffee.toJSON()] });
-  console.log("[Coffee] Registered slash commands " + (guildId ? "in guild " + guildId : "globally"));
+  const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
+  // POST upserts just /idle. Bulk PUT would remove every other command in this scope.
+  await rest.post(route, { body: idle.toJSON() });
+  console.log("[ARVEE Idle] /idle registered " + (guildId ? "in test guild " + guildId : "globally"));
+  if (process.argv.includes("--remove-legacy-coffee")) {
+    const commands = await rest.get(route);
+    const legacy = commands.find((entry) => entry.name === "coffee" && entry.type === 1);
+    if (legacy) {
+      await rest.delete(route + "/" + legacy.id);
+      console.log("[ARVEE Idle] Removed legacy /coffee command from this application/scope");
+    }
+  }
 }
-main().catch((error) => { console.error(error); process.exitCode = 1; });
+main().catch((error) => {
+  console.error("[ARVEE Idle] Command registration failed:", error.message);
+  process.exitCode = 1;
+});

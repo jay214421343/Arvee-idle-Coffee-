@@ -1,7 +1,7 @@
-name: Coffee CI
+name: ARVEE Idle CI
 on:
   push:
-    branches: [master, modernize/postgres-discord-v14]
+    branches: [master, feature/arvee-idle-rebrand-infra]
   pull_request:
 jobs:
   test:

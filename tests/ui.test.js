@@ -2,7 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { MessageFlags } = require("discord.js");
-const { coffee, handleComponent } = require("../src/commands");
+const { idle, handleComponent } = require("../src/commands");
 const { dec } = require("../src/economy");
 const { perks } = require("../src/catalog");
 const ui = require("../src/ui");
@@ -15,8 +15,8 @@ const sample = {
   perks: [{ perk_id: "miner", level: 2 }]
 };
 test("slash command has modern subcommands, valid Discord options and no privileged eval", () => {
-  const commands = coffee.toJSON();
-  assert.equal(commands.name, "coffee");
+  const commands = idle.toJSON();
+  assert.equal(commands.name, "idle");
   const names = commands.options.map((x) => x.name);
   assert.ok(names.includes("pickaxe"));
   assert.ok(names.includes("perks"));
@@ -25,7 +25,7 @@ test("slash command has modern subcommands, valid Discord options and no privile
 });
 test("Components V2 identifiers are owner-bound and compact", () => {
   const id = ui.custom(owner, "shop", "8");
-  assert.equal(id, "cf:1:" + owner + ":shop:8");
+  assert.equal(id, "ai:2:" + owner + ":shop:8");
   assert.ok(id.length < 100);
   assert.throws(() => ui.custom("bad", "shop", "1"));
   assert.throws(() => ui.custom(owner, "weird action", ""));

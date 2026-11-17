@@ -1,493 +1,508 @@
 {
-	"catalogue": [{
-		"name": "MySpace Stocks",
-		"desc": "It won't make you rich, but it's a start.",
-		"baseCost": "100",
-		"baseCostv2": 900,
-		"baseIncome": "1",
-		"baseGrowth": 1.0103,
-		"id": "BP_Item_myspaceStocks",
-		"alias": "MSPS",
-		"emoji": ":chart_with_downwards_trend:",
-		"available": true
-	}, {
-		"name": "Cat Videos",
-		"desc": "Rack in that youtube ad-revenue.",
-		"baseCost": "4.26e+2",
-		"baseCostv2": 6700,
-		"baseIncome": "1.2e+1",
-		"baseGrowth": 1.03,
-		"id": "BP_Item_catVideos",
-		"alias": "CATV",
-		"emoji": ":joy_cat:",
-		"available": true
-	}, {
-		"name": "Trained Monkies",
-		"desc": "These primates are primed BP hunters.",
-		"baseCost": "7.58e+2",
-		"baseIncome": "4.1e+1",
-		"baseGrowth": 1.04,
-		"id": "BP_Item_trainedMonkies",
-		"alias": "MONK",
-		"emoji": ":monkey:",
-		"available": true
-	}, {
-		"name": "Chinese T-Shirt Company",
-		"desc": "Cheap labor, not so cheap returns!",
-		"baseCost": "2.92e+3",
-		"baseIncome": "2.04e+2",
-		"baseGrowth": 1.1,
-		"id": "BP_Item_chineeseTshirtCompany",
-		"alias": "CTSH",
-		"emoji": ":shirt:",
-		"available": true
-	}, {
-		"name": "Horse that poops weapons",
-		"desc": "From a land far far away.",
-		"baseCost": "5.70e+3",
-		"baseIncome": "6.35e+2",
-		"baseGrowth": 1.11,
-		"id": "BP_Item_weaponHorse",
-		"alias": "BSTA",
-		"emoji": ":racehorse:",
-		"available": true
-	}, {
-		"name": "Hydrogen Blockchain Supercapacitor",
-		"desc": "Useless, but shareholders love the idea!",
-		"alias": "HBSC",
-		"baseCost": "3.27e+4",
-		"baseIncome": "2.26e+3",
-		"baseGrowth": 1.115,
-		"id": "BP_Item_weaponHorse",
-		"emoji": ":money_mouth:",
-		"available": true
-	}, {
-		"name": "North Korea's credit card",
-		"desc": "Brought to you by sony hackers!",
-		"alias": "NKCC",
-		"baseCost": "4.13e+5",
-		"baseIncome": "3.93e+4",
-		"baseGrowth": 1.118,
-		"id": "BP_Item_weaponHorse",
-		"emoji": ":credit_card:",
-		"available": true
-	}, {
-		"name": "Boogle Spaceship",
-		"desc": "It's to get you know you better.",
-		"alias": "BGSS",
-		"baseCost": "1.39e+6",
-		"baseIncome": "3.78e+5",
-		"baseGrowth": 1.12,
-		"id": "BP_Item_weaponHorse",
-		"emoji": ":rocket:",
-		"available": true
-	}, {
-		"name": "iMelon 9s",
-		"desc": "An innovation from the iMelon 9.",
-		"alias": "IM9S",
-		"baseCost": "1.35e+9",
-		"baseIncome": "1.96e+6",
-		"baseGrowth": 1.13,
-		"id": "BP_Item_weaponHorse",
-		"emoji": ":iphone:",
-		"available": true
-	}, {
-		"name": "Alien Coffee Beans",
-		"desc": "Coffee that's out of this world",
-		"alias": "ACFB",
-		"baseCost": "4.23e+10",
-		"baseIncome": "2.92e+7",
-		"baseGrowth": 1.14,
-		"id": "BP_Item_weaponHorse",
-		"emoji": ":iphone:",
-		"available": true
-	}, {
-		"name": "Hardit's Tears",
-		"desc": "Got scammed for 40 Quadrillion.",
-		"alias": "HARD",
-		"baseCost": "4.30e+11",
-		"baseIncome": "1.28e+8",
-		"baseGrowth": 1.15,
-		"id": "BP_Item_weaponHorse",
-		"emoji": ":iphone:",
-		"available": true
-	}, {
-		"name": "HappyFakeBoulde",
-		"desc": "His presence is ceased :(",
-		"alias": "HFB",
-		"baseCost": "2.50e+13",
-		"baseIncome": "2.58e+11",
-		"baseGrowth": 1.2,
-		"id": "BP_Item_weaponHorse",
-		"emoji": ":iphone:",
-		"available": true
-	}, {
-		"name": "Vape Trickster",
-		"desc": "He does weddings and kids parties.",
-		"alias": "VAPE",
-		"baseCost": "1.45e+14",
-		"baseIncome": "2.47e+12",
-		"baseGrowth": 1.21,
-		"id": "BP_Item_weaponHorse",
-		"emoji": ":iphone:",
-		"available": true
-	}, {
-		"name": "Chicken Bones Factory",
-		"desc": "All natural, organic, free-range chicken bones.",
-		"alias": "CHBF",
-		"baseCost": "3.61e+16",
-		"baseIncome": "1.13e+14",
-		"baseGrowth": 1.22,
-		"id": "BP_Item_weaponHorse",
-		"emoji": ":iphone:",
-		"available": true
-	}, {
-		"name": "Russian Hacker",
-		"desc": "Trained BP thief.",
-		"alias": "HACK",
-		"baseCost": "4.36e+18",
-		"baseIncome": "3.76e+16",
-		"baseGrowth": 1.23,
-		"id": "BP_Item_weaponHorse",
-		"emoji": ":iphone:",
-		"available": true
-	}, {
-		"name": "Smart Mirror",
-		"desc": "Watching you watch yourself.",
-		"alias": "SMRT",
-		"baseCost": "1.55e+20",
-		"baseIncome": "1.46e+18",
-		"baseGrowth": 1.24,
-		"id": "BP_Item_weaponHorse",
-		"emoji": ":iphone:",
-		"available": true
-	}, {
-		"name": "Actual Database",
-		"desc": "Oopsie-tolerant.",
-		"alias": "ATDB",
-		"baseCost": "2.39e+24",
-		"baseIncome": "1.76e+20",
-		"baseGrowth": 1.25,
-		"id": "BP_Item_weaponHorse",
-		"emoji": ":iphone:",
-		"available": true
-	}, {
-		"name": "Monkey Warloard",
-		"desc": "Chimps up the competition.",
-		"alias": "WARL",
-		"baseCost": "4.33e+27",
-		"baseIncome": "4.72e+23",
-		"baseGrowth": 1.3,
-		"id": "BP_Item_weaponHorse",
-		"emoji": ":iphone:",
-		"available": true
-	}, {
-		"name": "Fallen Atlas",
-		"desc": "Used to hold up every man's sky.",
-		"alias": "FATL",
-		"baseCost": "1.63e+29",
-		"baseIncome": "3.23e+25",
-		"baseGrowth": 1.31,
-		"id": "BP_Item_weaponHorse",
-		"emoji": ":iphone:",
-		"available": true
-	}, {
-		"name": "Cybernetic Cornflakes",
-		"desc": "H A C K E D T H E K E R N E L",
-		"alias": "CORN",
-		"baseCost": "4.37e+32",
-		"baseIncome": "2.28e+28",
-		"baseGrowth": 1.32,
-		"id": "BP_Item_weaponHorse",
-		"emoji": ":iphone:",
-		"available": true
-	}, {
-		"name": "Moocroosoft",
-		"desc": "Farming cash cows since 1967",
-		"alias": "MCFT",
-		"baseCost": "1.49e+35",
-		"baseIncome": "4.20e+31",
-		"baseGrowth": 1.11,
-		"available": true
-	}, {
-		"name": "Siberian Mobsters",
-		"desc": "Мы гопники!",
-		"alias": "GOPN",
-		"baseCost": "4.68e+38",
-		"baseIncome": "4.15e+35",
-		"baseGrowth": 1.12,
-		"available": true
-	}, {
-		"name": "Baco Tell",
-		"desc": "Finest Mexican cusine!",
-		"alias": "BCTL",
-		"baseCost": "4.85e+41",
-		"baseIncome": "4.55e+38",
-		"baseGrowth": 1.11,
-		"available": true
-	}, {
-		"name": "Flying Jackals",
-		"desc": "Move in swarms",
-		"alias": "JACK",
-		"baseCost": "1.44e+44",
-		"baseIncome": "3.24e+41",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Pizza Bagel Dogs",
-		"desc": "The newest innovation in junk foods",
-		"alias": "PBG",
-		"baseCost": "4.16e+49",
-		"baseIncome": "4.43e+44",
-		"baseGrowth": 1.13,
-		"available": true
-	}, {
-		"name": "Post Falone",
-		"desc": "A true rockstar.",
-		"alias": "POST",
-		"baseCost": "3.95e+53",
-		"baseIncome": "3.81e+48",
-		"baseGrowth": 1.14,
-		"available": true
-	}, {
-		"name": "Skype Premium",
-		"desc": "Now with video calls that work!",
-		"alias": "SKYP",
-		"baseCost": "4.99e+56",
-		"baseIncome": "4.57e+51",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Abnormally Large Frog",
-		"desc": "With a small brain.",
-		"alias": "FROG",
-		"baseCost": "1.21e+60",
-		"baseIncome": "1.95e+55",
-		"baseGrowth": 1.21,
-		"available": true
-	}, {
-		"name": "Gravy Lake",
-		"desc": "Umami paradise.",
-		"alias": "GRAV",
-		"baseCost": "4.33e+64",
-		"baseIncome": "2.17e+59",
-		"baseGrowth": 1.22,
-		"available": true
-	}, {
-		"name": "Senile Grandfather",
-		"desc": "His war stories turned hollywood hits.",
-		"alias": "SENG",
-		"baseCost": "3.49e+68",
-		"baseIncome": "1.22e+63",
-		"baseGrowth": 1.23,
-		"available": true
-	}, {
-		"name": "Blue ruse rus",
-		"desc": "He's a commrade with a steady growing business.",
-		"alias": "BRUS",
-		"baseCost": "1.68e+72",
-		"baseIncome": "2.25e+67",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Dystopian Bounce House",
-		"desc": "A place where happiness is enforced.",
-		"alias": "DYST",
-		"baseCost": "4.38e+77",
-		"baseIncome": "1.58e+73",
-		"baseGrowth": 1.26,
-		"available": true
-	}, {
-		"name": "Geothermal Goat Facility",
-		"desc": "Warming the hearts and homes of many.",
-		"alias": "GOAT",
-		"baseCost": "2.08e+83",
-		"baseIncome": "2.06e+77",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Weaponized Mass Destruction",
-		"desc": "Every casualty packed into a neat little package.",
-		"alias": "WMDS",
-		"baseCost": "4.19e+88",
-		"baseIncome": "2.29e+82",
-		"baseGrowth": 1.3,
-		"available": true
-	}, {
-		"name": "The RMS Gigantic",
-		"desc": "The world's largest unsinkable iceberg.",
-		"alias": "RMSG",
-		"baseCost": "4.98e+93",
-		"baseIncome": "4.85e+87",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Pluto's Moon",
-		"desc": "It's worth its weight in BP!",
-		"alias": "PLUT",
-		"baseCost": "4.99e+98",
-		"baseIncome": "3.86e+92",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "A Bloody Arrow",
-		"desc": "Pulled from an Liam Neeson's niece's son's knee.",
-		"alias": "ARRW",
-		"baseCost": "3.13e+103",
-		"baseIncome": "3.58e+97",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Mars One's Debt",
-		"desc": "It only took 6 years to realize it was too ambitious.",
-		"alias": "MARS",
-		"baseCost": "3.95e+108",
-		"baseIncome": "1.81e+102",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Virtual Pasta",
-		"desc": "Just like real pasta, but online!",
-		"alias": "VIPA",
-		"baseCost": "3.94e+113",
-		"baseIncome": "2.12e+107",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Shapeshifting Dolphin",
-		"desc": "It can only shapeshift into a dolphin.",
-		"alias": "SSDO",
-		"baseCost": "2.61e+119",
-		"baseIncome": "4.95e+113",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Somalian Knock-off Chinese Tech Co.",
-		"desc": "They've managed to pirate China's industries.",
-		"alias": "SOML",
-		"baseCost": "3.92e+126",
-		"baseIncome": "3.60e+118",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Amalgamation of Half a Million Cats",
-		"desc": "Who would do such a thing...",
-		"alias": "ACAT",
-		"baseCost": "1.26e+132",
-		"baseIncome": "2.24e+125",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Yosemite Ultra Volcano",
-		"desc": "A ticking timebomb",
-		"alias": "YOUV",
-		"baseCost": "4.50e+138",
-		"baseIncome": "3.45e+131",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Catamari Ball of Death",
-		"desc": "Rolls over the competition",
-		"alias": "CATI",
-		"baseCost": "2.32e+144",
-		"baseIncome": "4.75e+137",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Jupiter-Sized Nut",
-		"desc": "The largest nut in the universe!",
-		"alias": "JNUT",
-		"baseCost": "1.72e+150",
-		"baseIncome": "1.77e+143",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Lost in Translation",
-		"desc": "redacted",
-		"alias": "LOST",
-		"baseCost": "4.25e+157",
-		"baseIncome": "1.96e+150",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Snail-Cat",
-		"desc": "Half snail, half cat. Which halves? Dunno.",
-		"alias": "SCAT",
-		"baseCost": "4.91e+163",
-		"baseIncome": "1.59e+156",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "French Buttercake Cargo Ship",
-		"desc": "If it sinks, use the buttercakes.",
-		"alias": "FBCS",
-		"baseCost": "2.46e+170",
-		"baseIncome": "4.61e+163",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Jazz but made by Aboriginals",
-		"desc": "Featuring the digeridoo!",
-		"alias": "JAZA",
-		"baseCost": "1.34e+179",
-		"baseIncome": "1.44e+170",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Bottle 'o Thunder",
-		"desc": "Found this in the garbage.",
-		"alias": "BOTH",
-		"baseCost": "3.31e+186",
-		"baseIncome": "3.27e+177",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Rolling Ham",
-		"desc": "Be the ball.",
-		"alias": "HAMO",
-		"baseCost": "2.51e+193",
-		"baseIncome": "1.42e+184",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "King-Cat II.",
-		"desc": "He rules them all.",
-		"alias": "KING",
-		"baseCost": "2.13e+200",
-		"baseIncome": "4.06e+192",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Fruit of Oblivion",
-		"desc": "Yeetus Deletus",
-		"alias": "FOBL",
-		"baseCost": "2.74e+207",
-		"baseIncome": "2.60e+199",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Jesus Jams",
-		"desc": "Holy grooves",
-		"alias": "JUJU",
-		"baseCost": "3.09e+215",
-		"baseIncome": "4.17e+207",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "AI Cure for Cancer",
-		"desc": "Using state-of-the-art coding and algorithms",
-		"alias": "AICC",
-		"baseCost": "3.29e+222",
-		"baseIncome": "1.01e+214",
-		"baseGrowth": 1.07,
-		"available": true
-	}, {
-		"name": "Free-range Burritos",
-		"desc": "Our Burritos are left to roam as they please",
-		"alias": "FRBR",
-		"baseCost": "4.29e+230",
-		"baseIncome": "1.53e+222",
-		"baseGrowth": 1.07,
-		"available": true
-	}]
+  "catalogue": [
+    {
+      "name": "Rookie Adventurer",
+      "desc": "A growing operation in the ARVEE world. Recruit allies, gather supplies, and earn Idle Credits.",
+      "baseCost": "100",
+      "baseIncome": "1",
+      "alias": "MSPS",
+      "emoji": "🗡️",
+      "available": true
+    },
+    {
+      "name": "Campfire Scavengers",
+      "desc": "A growing operation in the ARVEE world. Recruit allies, gather supplies, and earn Idle Credits.",
+      "baseCost": "4.26e+2",
+      "baseIncome": "1.2e+1",
+      "alias": "CATV",
+      "emoji": "🔥",
+      "available": true
+    },
+    {
+      "name": "Copper Mining Crew",
+      "desc": "A growing operation in the ARVEE world. Recruit allies, gather supplies, and earn Idle Credits.",
+      "baseCost": "7.58e+2",
+      "baseIncome": "4.1e+1",
+      "alias": "MONK",
+      "emoji": "⛏️",
+      "available": true
+    },
+    {
+      "name": "Village Outpost",
+      "desc": "A growing operation in the ARVEE world. Recruit allies, gather supplies, and earn Idle Credits.",
+      "baseCost": "2.92e+3",
+      "baseIncome": "2.04e+2",
+      "alias": "CTSH",
+      "emoji": "🏕️",
+      "available": true
+    },
+    {
+      "name": "Goblin Patrol",
+      "desc": "A growing operation in the ARVEE world. Recruit allies, gather supplies, and earn Idle Credits.",
+      "baseCost": "5.70e+3",
+      "baseIncome": "6.35e+2",
+      "alias": "BSTA",
+      "emoji": "🛡️",
+      "available": true
+    },
+    {
+      "name": "Quest Board",
+      "desc": "A growing operation in the ARVEE world. Recruit allies, gather supplies, and earn Idle Credits.",
+      "baseCost": "3.27e+4",
+      "baseIncome": "2.26e+3",
+      "alias": "HBSC",
+      "emoji": "📜",
+      "available": true
+    },
+    {
+      "name": "Runesmith Workshop",
+      "desc": "A growing operation in the ARVEE world. Recruit allies, gather supplies, and earn Idle Credits.",
+      "baseCost": "4.13e+5",
+      "baseIncome": "3.93e+4",
+      "alias": "NKCC",
+      "emoji": "ᚠ",
+      "available": true
+    },
+    {
+      "name": "Merchant Caravan",
+      "desc": "A growing operation in the ARVEE world. Recruit allies, gather supplies, and earn Idle Credits.",
+      "baseCost": "1.39e+6",
+      "baseIncome": "3.78e+5",
+      "alias": "BGSS",
+      "emoji": "🛒",
+      "available": true
+    },
+    {
+      "name": "Forest Rangers",
+      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "baseCost": "1.35e+9",
+      "baseIncome": "1.96e+6",
+      "alias": "IM9S",
+      "emoji": "🏹",
+      "available": true
+    },
+    {
+      "name": "Ancient Ruins Expedition",
+      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "baseCost": "4.23e+10",
+      "baseIncome": "2.92e+7",
+      "alias": "ACFB",
+      "emoji": "🏚️",
+      "available": true
+    },
+    {
+      "name": "Alchemy Circle",
+      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "baseCost": "4.30e+11",
+      "baseIncome": "1.28e+8",
+      "alias": "HARD",
+      "emoji": "⚗️",
+      "available": true
+    },
+    {
+      "name": "Dwarven Foundry",
+      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "baseCost": "2.50e+13",
+      "baseIncome": "2.58e+11",
+      "alias": "HFB",
+      "emoji": "⚒️",
+      "available": true
+    },
+    {
+      "name": "Moonlit Library",
+      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "baseCost": "1.45e+14",
+      "baseIncome": "2.47e+12",
+      "alias": "VAPE",
+      "emoji": "📚",
+      "available": true
+    },
+    {
+      "name": "Dragon Hatchery",
+      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "baseCost": "3.61e+16",
+      "baseIncome": "1.13e+14",
+      "alias": "CHBF",
+      "emoji": "🐉",
+      "available": true
+    },
+    {
+      "name": "Dungeon Delvers",
+      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "baseCost": "4.36e+18",
+      "baseIncome": "3.76e+16",
+      "alias": "HACK",
+      "emoji": "⚔️",
+      "available": true
+    },
+    {
+      "name": "Crystal Caverns",
+      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "baseCost": "1.55e+20",
+      "baseIncome": "1.46e+18",
+      "alias": "SMRT",
+      "emoji": "💎",
+      "available": true
+    },
+    {
+      "name": "Starfall Observatory",
+      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "baseCost": "2.39e+24",
+      "baseIncome": "1.76e+20",
+      "alias": "ATDB",
+      "emoji": "🔭",
+      "available": true
+    },
+    {
+      "name": "Void Researchers",
+      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "baseCost": "4.33e+27",
+      "baseIncome": "4.72e+23",
+      "alias": "WARL",
+      "emoji": "🌌",
+      "available": true
+    },
+    {
+      "name": "Celestial Armory",
+      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "baseCost": "1.63e+29",
+      "baseIncome": "3.23e+25",
+      "alias": "FATL",
+      "emoji": "🛡️",
+      "available": true
+    },
+    {
+      "name": "Arcane Citadel",
+      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "baseCost": "4.37e+32",
+      "baseIncome": "2.28e+28",
+      "alias": "CORN",
+      "emoji": "🏰",
+      "available": true
+    },
+    {
+      "name": "Abyss Watchers",
+      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "baseCost": "1.49e+35",
+      "baseIncome": "4.20e+31",
+      "alias": "MCFT",
+      "emoji": "🕳️",
+      "available": true
+    },
+    {
+      "name": "Stormguard Keep",
+      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "baseCost": "4.68e+38",
+      "baseIncome": "4.15e+35",
+      "alias": "GOPN",
+      "emoji": "⚡",
+      "available": true
+    },
+    {
+      "name": "Titan Excavators",
+      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "baseCost": "4.85e+41",
+      "baseIncome": "4.55e+38",
+      "alias": "BCTL",
+      "emoji": "🪨",
+      "available": true
+    },
+    {
+      "name": "Forgotten Gateway",
+      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "baseCost": "1.44e+44",
+      "baseIncome": "3.24e+41",
+      "alias": "JACK",
+      "emoji": "🚪",
+      "available": true
+    },
+    {
+      "name": "Mythic Forge",
+      "desc": "An advanced adventurer operation gathering Idle Credits from dangerous realms.",
+      "baseCost": "4.16e+49",
+      "baseIncome": "4.43e+44",
+      "alias": "PBG",
+      "emoji": "🔨",
+      "available": true
+    },
+    {
+      "name": "Dungeon Nexus",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "3.95e+53",
+      "baseIncome": "3.81e+48",
+      "alias": "POST",
+      "emoji": "🏛️",
+      "available": true
+    },
+    {
+      "name": "Soulbound Atelier",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "4.99e+56",
+      "baseIncome": "4.57e+51",
+      "alias": "SKYP",
+      "emoji": "✨",
+      "available": true
+    },
+    {
+      "name": "Astral Rift Explorers",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "1.21e+60",
+      "baseIncome": "1.95e+55",
+      "alias": "FROG",
+      "emoji": "🌠",
+      "available": true
+    },
+    {
+      "name": "Sky Fortress",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "4.33e+64",
+      "baseIncome": "2.17e+59",
+      "alias": "GRAV",
+      "emoji": "☁️",
+      "available": true
+    },
+    {
+      "name": "Dragon Dominion",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "3.49e+68",
+      "baseIncome": "1.22e+63",
+      "alias": "SENG",
+      "emoji": "🐲",
+      "available": true
+    },
+    {
+      "name": "Silverguard Legion",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "1.68e+72",
+      "baseIncome": "2.25e+67",
+      "alias": "BRUS",
+      "emoji": "🛡️",
+      "available": true
+    },
+    {
+      "name": "Arcane Council",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "4.38e+77",
+      "baseIncome": "1.58e+73",
+      "alias": "DYST",
+      "emoji": "🧙",
+      "available": true
+    },
+    {
+      "name": "Sunstone Kingdom",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "2.08e+83",
+      "baseIncome": "2.06e+77",
+      "alias": "GOAT",
+      "emoji": "☀️",
+      "available": true
+    },
+    {
+      "name": "Chrono Sanctuary",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "4.19e+88",
+      "baseIncome": "2.29e+82",
+      "alias": "WMDS",
+      "emoji": "⌛",
+      "available": true
+    },
+    {
+      "name": "Elysian Vault",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "4.98e+93",
+      "baseIncome": "4.85e+87",
+      "alias": "RMSG",
+      "emoji": "💠",
+      "available": true
+    },
+    {
+      "name": "Rune Singularity",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "4.99e+98",
+      "baseIncome": "3.86e+92",
+      "alias": "PLUT",
+      "emoji": "ᚷ",
+      "available": true
+    },
+    {
+      "name": "Ember Sovereigns",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "3.13e+103",
+      "baseIncome": "3.58e+97",
+      "alias": "ARRW",
+      "emoji": "🔥",
+      "available": true
+    },
+    {
+      "name": "Elder Titans",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "3.95e+108",
+      "baseIncome": "1.81e+102",
+      "alias": "MARS",
+      "emoji": "🗿",
+      "available": true
+    },
+    {
+      "name": "Nightmare Foundry",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "3.94e+113",
+      "baseIncome": "2.12e+107",
+      "alias": "VIPA",
+      "emoji": "🌑",
+      "available": true
+    },
+    {
+      "name": "Celestial Realm",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "2.61e+119",
+      "baseIncome": "4.95e+113",
+      "alias": "SSDO",
+      "emoji": "🌟",
+      "available": true
+    },
+    {
+      "name": "Eternal Throne",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "3.92e+126",
+      "baseIncome": "3.60e+118",
+      "alias": "SOML",
+      "emoji": "👑",
+      "available": true
+    },
+    {
+      "name": "Infinite Labyrinth",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "1.26e+132",
+      "baseIncome": "2.24e+125",
+      "alias": "ACAT",
+      "emoji": "♾️",
+      "available": true
+    },
+    {
+      "name": "Worldseed Nexus",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "4.50e+138",
+      "baseIncome": "3.45e+131",
+      "alias": "YOUV",
+      "emoji": "🌱",
+      "available": true
+    },
+    {
+      "name": "Elemental Empire",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "2.32e+144",
+      "baseIncome": "4.75e+137",
+      "alias": "CATI",
+      "emoji": "🌊",
+      "available": true
+    },
+    {
+      "name": "Fabled Pantheon",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "1.72e+150",
+      "baseIncome": "1.77e+143",
+      "alias": "JNUT",
+      "emoji": "🔱",
+      "available": true
+    },
+    {
+      "name": "Quantum Legion",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "4.25e+157",
+      "baseIncome": "1.96e+150",
+      "alias": "LOST",
+      "emoji": "🌀",
+      "available": true
+    },
+    {
+      "name": "Primal Nebula",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "4.91e+163",
+      "baseIncome": "1.59e+156",
+      "alias": "SCAT",
+      "emoji": "🌌",
+      "available": true
+    },
+    {
+      "name": "Timekeeper's Gate",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "2.46e+170",
+      "baseIncome": "4.61e+163",
+      "alias": "FBCS",
+      "emoji": "⌚",
+      "available": true
+    },
+    {
+      "name": "Forbidden Archive",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "1.34e+179",
+      "baseIncome": "1.44e+170",
+      "alias": "JAZA",
+      "emoji": "📖",
+      "available": true
+    },
+    {
+      "name": "Phoenix Ascendant",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "3.31e+186",
+      "baseIncome": "3.27e+177",
+      "alias": "BOTH",
+      "emoji": "🔥",
+      "available": true
+    },
+    {
+      "name": "Grand ARVEE Citadel",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "2.51e+193",
+      "baseIncome": "1.42e+184",
+      "alias": "HAMO",
+      "emoji": "🏰",
+      "available": true
+    },
+    {
+      "name": "Immortal Dynasty",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "2.13e+200",
+      "baseIncome": "4.06e+192",
+      "alias": "KING",
+      "emoji": "🏅",
+      "available": true
+    },
+    {
+      "name": "Realmforge Engine",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "2.74e+207",
+      "baseIncome": "2.60e+199",
+      "alias": "FOBL",
+      "emoji": "⚙️",
+      "available": true
+    },
+    {
+      "name": "Cosmic Arbiter",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "3.09e+215",
+      "baseIncome": "4.17e+207",
+      "alias": "JUJU",
+      "emoji": "🌠",
+      "available": true
+    },
+    {
+      "name": "Genesis Architects",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "3.29e+222",
+      "baseIncome": "1.01e+214",
+      "alias": "AICC",
+      "emoji": "🪄",
+      "available": true
+    },
+    {
+      "name": "ARVEE Core",
+      "desc": "A mythic ARVEE realm operation producing immense Idle Credits while you are away.",
+      "baseCost": "4.29e+230",
+      "baseIncome": "1.53e+222",
+      "alias": "FRBR",
+      "emoji": "🌐",
+      "available": true
+    }
+  ]
 }
