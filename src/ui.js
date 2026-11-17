@@ -534,6 +534,86 @@ function companionCollection(owner, state, note = "") {
   return c;
 }
 
+function guildExpeditionBoard(owner, data, note = "") {
+  const c=container("ARVEE IDLE  /  GUILD EXPEDITIONS",
+    data.guild ? "**[" + data.guild.tag + "] " + escapeMarkdown(data.guild.name) +
+    "** · Shared weekly objectives" :
+    "Team objectives across every ARVEE Idle server.");
+  if (data.guild) {
+    const weekEnd=Math.floor(Date.parse(data.weekEndsAt)/1000);
+    c.addTextDisplayComponents(text("**WEEKLY PROGRESS**  " + data.weekScore + " / 400 league points" +
+      "\nResets <t:" + weekEnd + ":R> · Complete objectives with at least two guildmates."));
+    if(data.seasonLockedElsewhere) {
+      c.addTextDisplayComponents(text("**SEASON LOCK**\nYour league participation is locked to a previous guild for this four-week season." +
+        " You can join this guild's expeditions next season."));
+    }
+    c.addTextDisplayComponents(text(data.missions.map(mission=>{
+      const bar=Math.max(0,Math.min(10,Math.floor(10*mission.progress/Math.max(1,mission.goal))));
+      return "**" + mission.name + "**  ·  " +
+        (mission.completed ? "Completed" : mission.progress + "/" + mission.goal) +
+        "\n" + "▰".repeat(bar) + "▱".repeat(10-bar) +
+        " ·  " + mission.contributors + " contributors" +
+        "\nYour contribution: " + mission.myUnits + " · +" + mission.renown + " shared Renown on completion";
+    }).join("\n\n")));
+  } else {
+    c.addTextDisplayComponents(text("**NO GUILD**\nJoin or create a guild to contribute to team expeditions." +
+      " Rewards you already earned with an old guild remain claimable."));
+  }
+  divider(c);
+  if(data.pending) c.addTextDisplayComponents(text("**REWARD READY**\n" +
+    data.pending.name + " · Week " + data.pending.periodKey +
+    "\n+" + pretty(data.pending.ic) + " IC and " + data.pending.quantity +
+    "× " + (items[data.pending.itemId]?.name||"Materials") + " · " +
+    data.pending.units + " accepted actions"));
+  else c.addTextDisplayComponents(text("**PERSONAL REWARDS**\nContribute at least two accepted actions to a completed objective." +
+    " Claims persist after the weekly reset or leaving a guild."));
+  if(note)c.addTextDisplayComponents(text("**" + note.slice(0,250) + "**"));
+  const actions=[];
+  if(data.pending) actions.push(button(owner,"gexp_claim","Claim reward","",ButtonStyle.Primary));
+  actions.push(button(owner,"gexp_league","Guild Leagues","",data.pending?ButtonStyle.Secondary:ButtonStyle.Primary));
+  actions.push(button(owner,"guild","Guild home"));
+  c.addActionRowComponents(row(actions));
+  foot(c,"League progress is capped per member and day. Guild switching cannot carry over accepted actions.");
+  return c;
+}
+function guildLeagueBoard(owner,data,note="") {
+  const c=container("ARVEE IDLE  /  GUILD LEAGUES",
+    "Weekly competition and four-week seasons · one global leaderboard");
+  const ends=Math.floor(Date.parse(data.seasonEndsAt)/1000);
+  c.addTextDisplayComponents(text("**SEASON**  " + data.seasonKey +
+    "  ·  Ends <t:" + ends + ":R>" +
+    "\n**YOUR GUILD**  " + (data.guild ?
+      "["+data.guild.tag+"] " + escapeMarkdown(data.guild.name) +
+      " · " + data.seasonTier + " · " + data.seasonScore + "/1600 points" : "No guild") +
+    (data.seasonLockedElsewhere ? "\nYour contribution is locked to an earlier guild this season." : "")));
+  divider(c);
+  c.addTextDisplayComponents(text("**WEEKLY STANDINGS**  ·  " + data.weekKey + "\n" +
+    (data.weekly.length ? data.weekly.map(r=>
+      r.rank + ". [" + r.tag + "] " + escapeMarkdown(r.name) +
+      " · " + r.score + " pts").join("\n") : "No weekly objectives completed yet.")));
+  c.addTextDisplayComponents(text("**SEASONAL STANDINGS**\n" +
+    (data.seasonal.length ? data.seasonal.map(r=>
+      r.rank + ". [" + r.tag + "] " + escapeMarkdown(r.name) +
+      " · " + r.score + " pts · " + r.tier).join("\n") : "Season standings are empty.")));
+  c.addTextDisplayComponents(text("**FAIR PLAY**\nEvery completed team objective awards 100 points, regardless of guild size." +
+    " League milestones unlock Bronze (400), Silver (800), Gold (1200) and Diamond (1600)." +
+    " After the season, members with 6+ accepted actions may claim one tier-based reward."));
+  if(data.pendingSeason) {
+    const r=data.pendingSeason;
+    c.addTextDisplayComponents(text("**SEASON REWARD AVAILABLE**  ·  " +
+      r.seasonKey + "\n" + r.tier + " · " + pretty(r.ic) +
+      " IC + " + r.quantity + "× " + (items[r.itemId]?.name||"Supply Cache")));
+  }
+  if(note)c.addTextDisplayComponents(text("**" + note.slice(0,250) + "**"));
+  const actions=[];
+  if(data.pendingSeason) actions.push(button(owner,"gexp_season_claim",
+    "Claim season reward",data.pendingSeason.seasonKey,ButtonStyle.Primary));
+  actions.push(button(owner,"gexp","Expeditions","",data.pendingSeason?ButtonStyle.Secondary:ButtonStyle.Primary));
+  actions.push(button(owner,"guild","Guild home"));
+  c.addActionRowComponents(row(actions));
+  return c;
+}
+
 function guildOverview(owner, data, note = "") {
   const g = data.guild;
   const c = container("ARVEE IDLE  /  GUILDS",
@@ -584,7 +664,7 @@ function guildOverview(owner, data, note = "") {
   if(g && data.role==="leader" && g.hall<5 &&
     g.renown>=guilds.hallCost(g.hall) && g.level>=g.hall+2)
     actions.push(button(owner,"guild_upgrade","Upgrade Hall","",ButtonStyle.Primary));
-  actions.push(button(owner,"guild_rankings","Boss rankings","",g?ButtonStyle.Primary:ButtonStyle.Secondary));
+  actions.push(button(owner,"gexp","Expeditions","",g?ButtonStyle.Primary:ButtonStyle.Secondary));
   actions.push(button(owner,"profile","Command Center"));
   c.addActionRowComponents(row(actions));
   return c;
@@ -1014,6 +1094,6 @@ function payload(view) {
   return { components: [view], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 module.exports = {
-  custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, worldBoss, guildOverview, guildRankings, preferences, challengeBoard, message, home, shop, generator, inventory, inventoryPreview, item, crafting, recipe, season, market, listing,
+  custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, worldBoss, guildOverview, guildRankings, guildExpeditionBoard, guildLeagueBoard, preferences, challengeBoard, message, home, shop, generator, inventory, inventoryPreview, item, crafting, recipe, season, market, listing,
   prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, miningResult, dailyResult, craftingResult, cacheResult, SUCCESS, WARN, ERROR
 };

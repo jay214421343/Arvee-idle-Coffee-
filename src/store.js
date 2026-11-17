@@ -185,6 +185,7 @@ async function event(db, userId, type, amount, metadata = {}) {
   await grantSeasonXp(db, userId, type, metadata);
   await grantCompanionXp(db, userId, type, metadata);
   await guildStore.grantProgress(db,userId,type,metadata);
+  await guildExpeditionStore.grantExpeditionProgress(db,userId,type,metadata);
 }
 async function addItem(db, userId, itemId, quantity) {
   assertItem(itemId);
@@ -924,6 +925,7 @@ async function claimSeasonRewards(userId, requested = "all") {
 }
 
 const guildStore = require("./guild-store")({ transact, pool, stateOf, dec, assertId });
-module.exports = { ...guildStore, pool, transact, profile, getWorldBoss, attackWorldBoss, claimWorldBossReward, getCompanions, adoptCompanion, equipCompanion, hatchCompanion, getExploration, startExpedition, collectExpedition, upgradeExpeditionGear, getPreferences, setPreferences, resetPreferences, getChallenges, claimChallenge, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
+const guildExpeditionStore = require("./guild-expedition-store")({ transact, stateOf, addItem, event });
+module.exports = { ...guildStore, ...guildExpeditionStore, pool, transact, profile, getWorldBoss, attackWorldBoss, claimWorldBossReward, getCompanions, adoptCompanion, equipCompanion, hatchCompanion, getExploration, startExpedition, collectExpedition, upgradeExpeditionGear, getPreferences, setPreferences, resetPreferences, getChallenges, claimChallenge, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
   prestige, leaderboard, browseMarket, sellItem, buyListing, cancelListing, getListing, useItem, upgradePickaxe, upgradePerk,
   respecPerks, getStats };

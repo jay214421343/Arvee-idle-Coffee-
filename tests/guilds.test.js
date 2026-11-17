@@ -30,7 +30,7 @@ function inspect(view) {
   const actions=j.components.filter(c=>c.type===1).flatMap(c=>c.components);
   assert.ok(actions.filter(c=>c.type===2).length<=3);
   actions.filter(c=>c.type===2 || c.type===3).forEach(c=>
-    assert.match(c.custom_id,new RegExp("^ai:2:"+owner+":guild|^ai:2:"+owner+":profile:")));
+    assert.match(c.custom_id,new RegExp("^ai:2:"+owner+":(?:guild|gexp)|^ai:2:"+owner+":profile:")));
   return {j,raw,actions};
 }
 test("guild names and tags are validated without accepting Discord markup",()=>{
@@ -81,7 +81,7 @@ test("compact guild board uses contextual actions without emoji overload",()=>{
   assert.match(raw,/MEMBERS/);
   assert.match(raw,/WEEKLY BOSS CONTRIBUTION/);
   assert.equal(actions.filter(x=>x.type===2).length,2);
-  assert.ok(actions.some(x=>x.custom_id===ui.custom(owner,"guild_rankings")));
+  assert.ok(actions.some(x=>x.custom_id===ui.custom(owner,"gexp")));
   const upgraded=sample({guild:{...sample().guild,renown:350,hall:1}});
   assert.equal(inspect(ui.guildOverview(owner,upgraded)).actions.filter(x=>x.type===2).length,2);
   const allowed=sample({guild:{...sample().guild,renown:350,hall:1,level:3,levelGoal:900}});
