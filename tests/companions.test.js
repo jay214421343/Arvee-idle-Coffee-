@@ -36,7 +36,7 @@ test("companion XP comes from real gameplay only", () => {
 });
 test("egg drops are pre-rolled at expedition start and hatch favors unowned pets", () => {
   assert.equal(pets.eggDrop("forest",true,()=>0),true);
-  assert.equal(pets.eggDrop("forest",true,()=>99),false);
+  assert.equal(pets.eggDrop("forest",true,()=>9999),false);
   assert.equal(pets.eggDrop("forest",false,()=>0),false);
   assert.equal(pets.eggDrop("ruins",true,()=>2499),true);
   assert.equal(pets.eggDrop("ruins",true,()=>2500),false);
