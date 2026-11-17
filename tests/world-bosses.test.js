@@ -11,7 +11,7 @@ const { WEEKLY } = require("../src/challenges");
 const owner = "123456789012345678";
 function status(extra = {}) {
   return { periodKey:"20261116", bossId:"hollow_guardian",name:"Hollow Guardian",
-    description:"A forgotten guardian",maxHp:2500,hp:1900,endsAt:"2026-11-23T00:00:00.000Z",
+    description:"A forgotten guardian",maxHp:2500,hp:1900,rewardPool:5000,endsAt:"2026-11-23T00:00:00.000Z",
     defeated:false,ended:false,participants:8,myDamage:90,myAttacks:2,
     qualified:true,minDamage:80,minAttacks:2,canAttack:true,nextAttackAt:null,
     leaders:[{userId:"999999999999999999",damage:350}],pending:null,...extra };
@@ -88,7 +88,8 @@ test("world boss board uses one contextual attack action plus navigation",()=>{
   assert.equal(buttons[1].custom_id,ui.custom(owner,"profile"));
   assert.match(text,/Hollow Guardian/);
   assert.match(text,/TOP CONTRIBUTORS/);
-  assert.match(text,/1900/);
+  assert.match(text,/1,900/);
+  assert.match(text,/5K IC/);
   assert.match(text,/90 damage/);
   assert.match(text,/PARTICIPANTS|Participants/);
   const c=controls(ui.worldBoss(owner,status({canAttack:false,
