@@ -4,6 +4,7 @@
 - Add 80 gradual reward milestones across four new reward chapters, with 25,000 XP at tier 100 and no daily XP ceiling.
 - Add direct 25-page Season Journey navigation while keeping the mobile layout to four rewards per page.
 - Add guild-scoped, owner-authorized `/admin` with auditing and transactional state controls.
+- Add public `/idle info item:<item>` and group Settings/Stats beneath `/idle account` to remain within Discord's 25 top-level slash option limit.
 - Widen existing PostgreSQL season claims check to 1–100 and add administration records additively.
 - Add regression and integration tests for new tier claims, owner restrictions and admin economy integrity.
 

@@ -21,7 +21,6 @@ idle.addSubcommand((c) => c.setName("explore").setDescription("World Map: send y
 idle.addSubcommand((c) => c.setName("boss").setDescription("Fight the shared weekly world boss and claim rewards"));
 idle.addSubcommand((c) => c.setName("companions").setDescription("Collect, level and equip an adventure companion"));
 idle.addSubcommand((c) => c.setName("equipment").setDescription("Upgrade permanent expedition equipment"));
-idle.addSubcommand((c) => c.setName("settings").setDescription("View and reset your saved filter preferences"));
 idle.addSubcommand((c) => c.setName("inventory").setDescription("Check collected items").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
 idle.addSubcommand((c) => c.setName("info").setDescription("Inspect any item, whether or not you own it")
   .addStringOption((o) => o.setName("item").setDescription("Item to inspect").setRequired(true).setAutocomplete(true)));
@@ -40,12 +39,15 @@ idle.addSubcommand((c) => c.setName("give").setDescription("Give another player 
 idle.addSubcommand((c) => c.setName("leaderboard").setDescription("Top players by earned IC"));
 idle.addSubcommand((c) => c.setName("pickaxe").setDescription("Upgrade your pickaxe and view mining stats"));
 idle.addSubcommand((c) => c.setName("perks").setDescription("View and upgrade permanent pickaxe perks"));
-idle.addSubcommand((c) => c.setName("stats").setDescription("View unlocked achievements and game activity"));
 idle.addSubcommand((c) => c.setName("use").setDescription("Use an item from your inventory")
   .addStringOption((o) => o.setName("item").setDescription("Item to use").setRequired(true).setAutocomplete(true))
   .addStringOption((o) => o.setName("name").setDescription("Optional custom name for a Nametag or Profile Tag").setMaxLength(24)));
 idle.addSubcommand((c) => c.setName("prestige").setDescription("Restart your generators with a permanent boost")
   .addBooleanOption((o) => o.setName("confirm").setDescription("Confirm resetting your generators and IC")));
+idle.addSubcommandGroup((g) => g.setName("account").setDescription("Your preferences and lifetime records")
+  .addSubcommand((c) => c.setName("settings").setDescription("View and reset saved filters"))
+  .addSubcommand((c) => c.setName("stats").setDescription("View achievements and game activity")));
+
 idle.addSubcommandGroup((g) => g.setName("market").setDescription("Trade items for IC")
   .addSubcommand((c) => c.setName("browse").setDescription("Browse active listings"))
   .addSubcommand((c) => c.setName("sell").setDescription("List items for sale")

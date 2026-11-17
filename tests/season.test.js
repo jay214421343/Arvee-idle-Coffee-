@@ -101,6 +101,7 @@ test("no claim buttons remain enabled after a season ends", () => {
   const p={xp:5000,dailyXp:0,claimed:[],phase:"finished",activities:{}};
   const j=ui.season(owner,p,5).toJSON();
   assert.ok(j.components.filter(c=>c.type===9).every(c=>c.accessory.disabled));
-  const claimAll=j.components.filter(c=>c.type===1).flatMap(c=>c.components).find(c=>c.label.includes("claim")||c.label.includes("Nothing"));
+  const claimAll=j.components.filter(c=>c.type===1).flatMap(c=>c.components).filter(c=>c.type===2)
+    .find(c=>c.label.includes("claim")||c.label.includes("Nothing"));
   assert.equal(claimAll.disabled,true);
 });
