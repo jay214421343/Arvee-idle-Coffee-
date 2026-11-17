@@ -72,8 +72,8 @@ test("prestige shortcut appears next to 100% only for the owning player", () => 
   assert.equal(shortcut.accessory.style, 1);
   assert.match(JSON.stringify(shortcut.components), /PRESTIGE PROGRESS/);
   assert.match(JSON.stringify(shortcut.components), /100%/);
-  assert.equal(buttons(json).filter((c) => c.custom_id === ui.custom(owner, "prestige")).length, 1);
-  assert.equal(buttons(json).length, 5, "existing four quick actions are unchanged");
+  assert.equal(shortcut.accessory.custom_id, ui.custom(owner, "prestige"));
+  assert.equal(buttons(json).length, 4, "existing four quick actions are unchanged");
   const near = ui.home(owner, visitor, state({ balance: dec("999999999") })).toJSON();
   assert.ok(!near.components.some((c) => c.type === 9 && c.accessory?.custom_id === ui.custom(owner, "prestige")));
   assert.match(JSON.stringify(near), /99%/);
