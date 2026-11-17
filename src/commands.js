@@ -21,8 +21,9 @@ idle.addSubcommand((c) => c.setName("explore").setDescription("World Map: send y
 idle.addSubcommand((c) => c.setName("boss").setDescription("Fight the shared weekly world boss and claim rewards"));
 idle.addSubcommand((c) => c.setName("companions").setDescription("Collect, level and equip an adventure companion"));
 idle.addSubcommand((c) => c.setName("equipment").setDescription("Upgrade permanent expedition equipment"));
-idle.addSubcommand((c) => c.setName("settings").setDescription("View and reset your saved filter preferences"));
 idle.addSubcommand((c) => c.setName("inventory").setDescription("Check collected items").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
+idle.addSubcommand((c) => c.setName("info").setDescription("Inspect any item, whether or not you own it")
+  .addStringOption((o) => o.setName("item").setDescription("Item to inspect").setRequired(true).setAutocomplete(true)));
 idle.addSubcommand((c) => c.setName("craft").setDescription("Craft an item")
   .addStringOption((o) => o.setName("item").setDescription("Item to craft (omit to browse recipes)").setAutocomplete(true))
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity (1-100)").setMinValue(1).setMaxValue(100)));
@@ -38,12 +39,15 @@ idle.addSubcommand((c) => c.setName("give").setDescription("Give another player 
 idle.addSubcommand((c) => c.setName("leaderboard").setDescription("Top players by earned IC"));
 idle.addSubcommand((c) => c.setName("pickaxe").setDescription("Upgrade your pickaxe and view mining stats"));
 idle.addSubcommand((c) => c.setName("perks").setDescription("View and upgrade permanent pickaxe perks"));
-idle.addSubcommand((c) => c.setName("stats").setDescription("View unlocked achievements and game activity"));
 idle.addSubcommand((c) => c.setName("use").setDescription("Use an item from your inventory")
   .addStringOption((o) => o.setName("item").setDescription("Item to use").setRequired(true).setAutocomplete(true))
   .addStringOption((o) => o.setName("name").setDescription("Optional custom name for a Nametag or Profile Tag").setMaxLength(24)));
 idle.addSubcommand((c) => c.setName("prestige").setDescription("Restart your generators with a permanent boost")
   .addBooleanOption((o) => o.setName("confirm").setDescription("Confirm resetting your generators and IC")));
+idle.addSubcommandGroup((g) => g.setName("account").setDescription("Your preferences and lifetime records")
+  .addSubcommand((c) => c.setName("settings").setDescription("View and reset saved filters"))
+  .addSubcommand((c) => c.setName("stats").setDescription("View achievements and game activity")));
+
 idle.addSubcommandGroup((g) => g.setName("market").setDescription("Trade items for IC")
   .addSubcommand((c) => c.setName("browse").setDescription("Browse active listings"))
   .addSubcommand((c) => c.setName("sell").setDescription("List items for sale")
@@ -204,7 +208,7 @@ async function respond(interaction) {
         "**Equipment:** /idle equipment to boost expedition rewards",
         "**Preferences:** /idle settings to view and reset your saved filters",
         "**Activities:** /idle mine, /idle daily, /idle craft, /idle open",
-        "**Items:** /idle inventory, /idle give, /idle market",
+        "**Items:** /idle inventory, /idle info, /idle give, /idle market",
         "Prestige requires 1B IC and increases production by 25% per level.",
         "All progress is stored in PostgreSQL. This is a fresh season."
       ].join("\n");
@@ -250,6 +254,12 @@ async function respond(interaction) {
         const prefs = await store.getPreferences(id);
         view = ui.inventory(id, p, 1, prefs.inventoryFilter, prefs.inventorySort);
       }
+    } else if (command === "info") {
+      const itemId=opts.getString("item",true);
+      if (!Object.hasOwn(items,itemId)) throw new Error("Unknown item.");
+      const inventory=(await store.profile(id)).inventory;
+      const quantity=inventory.find(e=>e.item_id===itemId)?.quantity || 0;
+      view=ui.itemInfo(id,itemId,quantity);
     } else if (command === "craft") {
       const item = opts.getString("item");
       if (!item) {
@@ -376,9 +386,14 @@ async function handleComponent(interaction) {
       else throw new Error("Unknown navigation destination.");
     } else if (action === "season") {
       view = ui.season(owner, await store.seasonStatus(owner), Number(argument) || 1);
+    } else if (action === "season_jump") {
+      const page = Number(selected);
+      if (!Number.isInteger(page) || page < 1 || page > Math.ceil(require("./season").rewards.length/4))
+        throw new Error("Invalid season page.");
+      view = ui.season(owner, await store.seasonStatus(owner), page);
     } else if (action === "season_claim") {
       const tier = Number(argument);
-      if (!Number.isInteger(tier) || tier < 1 || tier > 20) throw new Error("Invalid season tier.");
+      if (!Number.isInteger(tier) || tier < 1 || tier > require("./season").rewards.length) throw new Error("Invalid season tier.");
       result = await store.claimSeasonRewards(owner, tier);
       view = ui.season(owner, await store.seasonStatus(owner), Math.ceil(tier / 4),
         result.grants.length ? "Tier " + tier + " reward claimed!" : "Already collected.");
