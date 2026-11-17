@@ -61,6 +61,26 @@ test("mining cooldown stays descriptive and never shows invented loot", () => {
   assert.match(serialized, /<t:\d+:R>/);
   assert.doesNotMatch(serialized, /EARNED|FOUND|Supply Cache \(bonus\)/);
 });
+test("mining reset is visible only when the cooldown is active and an eligible item is owned", () => {
+  const base = { ...profile, mineBonus:dec(1), mineBoostCharges:0, mineBoostMultiplier:dec(1) };
+  const run = (p, cooldown=40) => verify(ui.miningResult(owner,{cooldown},p)).buttons;
+  assert.equal(run({ ...base, inventory:[] })[0].label,"View pickaxe");
+  assert.equal(run({ ...base, inventory:[{item_id:"coffee",quantity:0}] })[0].label,"View pickaxe");
+  assert.equal(run({ ...base, inventory:[{item_id:"coffee",quantity:1}] },0)[0].label,"View pickaxe");
+  const coffee = run({ ...base, inventory:[{item_id:"coffee",quantity:1},{item_id:"rebirth_cocktail",quantity:1}] });
+  assert.equal(coffee.length,2);
+  assert.equal(coffee[0].label,"Use Campfire Brew");
+  assert.equal(coffee[0].custom_id,ui.custom(owner,"mine_reset","coffee"));
+  assert.equal(coffee[1].label,"Command Center");
+  const rare=run({ ...base, inventory:[{item_id:"rebirth_cocktail",quantity:1}] });
+  assert.equal(rare[0].label,"Use Rebirth Cocktail");
+  const active=run({ ...base, inventory:[{item_id:"rebirth_cocktail",quantity:1}],
+    mineBoostCharges:2,mineBoostMultiplier:dec(2) });
+  assert.equal(active[0].label,"View pickaxe");
+  const capped=run({ ...base, inventory:[{item_id:"cola",quantity:1}],
+    mineBonus:dec(20) });
+  assert.equal(capped[0].label,"View pickaxe");
+});
 test("daily delivery shows all actual rewards in a tidy receipt", () => {
   const view = ui.dailyResult(owner, { received: [
     "750 IC", "3 Supply Caches", "1 Campfire Brew", "4 Rune Ore", "2 Moonsteel"

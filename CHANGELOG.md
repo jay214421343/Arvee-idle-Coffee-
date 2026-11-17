@@ -1,3 +1,14 @@
+# 2.11.2 — Eligible-Only Quick Mining Reset (pending review)
+
+- Show a context-aware `Use Campfire Brew` or specific reset-item button only while mining is cooling down, if an eligible consumable is owned.
+- Prioritize common Campfire Brew before less common resets. Respect active multi-dig food boosts and the 20× combined boost ceiling.
+- Show `View pickaxe` instead of a useless disabled reset button when no item qualifies. Always keep the 2-action mobile-friendly receipt.
+- On success, offer `Mine now`. Server-side transaction revalidates the cooldown, item compatibility and inventory before consuming anything.
+- Unit, routing and PostgreSQL tests cover ineligible state, stale/expired cooldown, missing inventory, boost conflicts and owner-only interactions.
+- No database migration or slash-command re-registration required.
+
+---
+
 # 2.11.0 — Companion Builds & Mastery (pending review)
 
 - Remove the Founders' Journey 500 XP/day cap and its progress counter. All qualifying actions contribute full season XP; historical XP and claims are preserved.
