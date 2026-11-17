@@ -1,6 +1,7 @@
 # 2.1.0 — polished collection and easier progression (unreleased)
 
 - Reworked inventory, operations and forging into individual Components V2 cards with buttons, filtering, sorting and pagination.
+- Pickaxe upgrades now show owned/required material counts and disable the upgrade action until affordable, avoiding misleading errors.
 - Made the early game less grindy: 500 IC starting balance, 150 IC mine minimum, 90-second mining cooldown, 750 IC daily credits, larger material drops and cheaper starter pickaxe tiers.
 - Renamed lingering user-facing item names, achievements, help and slash-command descriptions while keeping database IDs compatible.
 - Added simple Mac setup/PM2 scripts matched to the existing PM2 6.0.14 daemon and isolated to arvee-idle.

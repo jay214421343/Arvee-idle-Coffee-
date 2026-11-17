@@ -72,3 +72,18 @@ test("all cards are owner bound and refuse invalid custom IDs", () => {
   assert.equal(ui.category("ore"), "materials");
   assert.throws(() => ui.custom("not-a-snowflake", "inventory", "1"));
 });
+
+test("pickaxe displays owned materials and disables unavailable upgrades", () => {
+  const initial = ui.pickaxe(owner, sample).toJSON();
+  const message = JSON.stringify(initial);
+  assert.match(message, /Rune Ore/);
+  assert.match(message, /Moonsteel/);
+  const buttons = initial.components.find((part) => part.type === 1).components;
+  assert.equal(buttons[0].disabled, true);
+  const ready = ui.pickaxe(owner, { ...sample, inventory: [
+    { item_id: "ore", quantity: 8 }, { item_id: "silver", quantity: 2 }
+  ]}).toJSON();
+  assert.equal(ready.components.find((part) => part.type === 1).components[0].disabled, false);
+  const max = ui.pickaxe(owner, { ...sample, pickaxeTier: 10 }).toJSON();
+  assert.equal(max.components.find((part) => part.type === 1).components[0].disabled, true);
+});

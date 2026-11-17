@@ -321,16 +321,31 @@ function prestige(owner, p) {
 }
 function pickaxe(owner, p) {
   const tier = p.pickaxeTier || 0;
-  const c = container("⛏ ARVEE Idle Pickaxe", "Upgrade your pickaxe using minerals. Higher tiers improve your mining rewards.");
+  const max = tier >= 10;
+  const requirements = [
+    { id: "ore", amount: 8 * (tier + 1) },
+    { id: "silver", amount: 2 * (tier + 1) },
+    ...(tier >= 3 ? [{ id: "gold", amount: Math.ceil(tier / 2) }] : [])
+  ];
+  const owned = (id) => p.inventory?.find((entry) => entry.item_id === id)?.quantity || 0;
+  const ready = !max && requirements.every(({ id, amount }) => owned(id) >= amount);
+  const c = container("⛏ ARVEE IDLE  /  PICKAXE", "Craft stronger mining equipment with your collected materials.");
   divider(c);
-  foot(c, "**Tier**  " + tier + " / 10   ·   **Mining XP**  " + p.mineXp +
-    "\n**Reward multiplier**  " + (1 + tier * 0.25).toFixed(2) + "×" +
-    "\n**Upgrade cost**  " + (8 * (tier + 1)) + " Rune Ore + " + (2 * (tier + 1)) + " Moonsteel" +
-    (tier >= 3 ? " + " + Math.ceil(tier / 2) + " Sunforged Gold" : "") +
-    "\n**Perks**  " + (p.perks?.length ? p.perks.map((r) => r.perk_id + " Lv." + r.level).join(", ") : "None yet"));
+  c.addTextDisplayComponents(text("**Pickaxe tier**  " + tier + " / 10  ·  **Mining XP**  " + p.mineXp +
+    "\n**Mining multiplier**  " + (1 + tier * 0.25).toFixed(2) + "×" +
+    "\n**Next tier**  " + (max ? "Maximum reached" : tier + 1)));
+  divider(c);
+  if (max) {
+    c.addTextDisplayComponents(text("### MAXIMUM TIER UNLOCKED\nYour pickaxe is fully upgraded."));
+  } else {
+    c.addTextDisplayComponents(text("### REQUIRED MATERIALS\n" + requirements.map(({ id, amount }) =>
+      (owned(id) >= amount ? "✅ " : "▫️ ") + "**" + items[id].name + "**  " + owned(id) + " / " + amount
+    ).join("\n") + "\n\n" + (ready ? "**Ready to upgrade!**" : "Gather the remaining materials by mining and opening supply caches.")));
+  }
   c.addActionRowComponents(row([
-    button(owner, "pickaxe_upgrade", "Upgrade", "", ButtonStyle.Primary, tier >= 10),
-    button(owner, "perks", "Manage perks"),
+    button(owner, "pickaxe_upgrade", max ? "Max tier" : ready ? "Upgrade pickaxe" : "Need materials",
+      "", ButtonStyle.Primary, !ready),
+    button(owner, "perks", "Runes & perks"),
     button(owner, "mine", "Mine"),
     button(owner, "profile", "Command Center")
   ]));
