@@ -7,7 +7,9 @@ const XP_BY_EVENT = Object.freeze({
   world_boss_attack: 25, world_boss_reward: 35, companion_hatch: 5
 });
 function validName(name) {
-  const value = String(name || "").trim().replace(/\s+/g, " ");
+  const raw = String(name || "");
+  if (/[\r\n\t\p{Cc}]/u.test(raw)) throw new Error("Guild name contains invalid whitespace or control characters.");
+  const value = raw.trim().replace(/ +/g, " ");
   if (value.length < 3 || value.length > 26 || !/^[\p{L}\p{N}][\p{L}\p{N} '.-]*$/u.test(value))
     throw new Error("Guild name must be 3–26 characters, using letters, numbers, spaces, apostrophes, periods or hyphens.");
   return value;

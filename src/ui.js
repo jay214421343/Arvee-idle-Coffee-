@@ -10,6 +10,7 @@ const challengeData = require("./challenges");
 const exploration = require("./exploration");
 const companions = require("./companions");
 const activity = require("./activity");
+const guilds = require("./guilds");
 const { SEASON, rewards, missions, label, tierNeeded } = require("./season");
 
 const ACCENT = brand.theme.primary;
@@ -57,6 +58,7 @@ function navigation(owner) {
     { label: "Adventurer Contracts", value: "challenges", description: "Daily and weekly challenges with claimable rewards" },
     { label: "World Map", value: "explore", description: "Send a crew on timed missions to discover loot" },
     { label: "World Boss", value: "boss", description: "Cooperate across servers in weekly battles" },
+    { label: "Guilds", value: "guild", description: "Global groups, Hall upgrades and boss rankings" },
     { label: "Companions", value: "companions", description: "Collect, level and equip your pets" },
     { label: "Expedition Gear", value: "equipment", description: "Upgrade your kit, compass and protective ward" },
     { label: "Saved Preferences", value: "settings", description: "View or reset your personal filters" },
@@ -532,6 +534,77 @@ function companionCollection(owner, state, note = "") {
   return c;
 }
 
+function guildOverview(owner, data, note = "") {
+  const g = data.guild;
+  const c = container("ARVEE IDLE  /  GUILDS",
+    g ? "**[" + g.tag + "] " + escapeMarkdown(g.name) + "**  ·  Level " + g.level +
+      "  ·  " + data.role.toUpperCase() : "One persistent player guild across every ARVEE Idle server.");
+  if (!g) {
+    c.addTextDisplayComponents(text("**NO GUILD YET**\nCreate your own with " +
+      "/idle guild create name:<name> tag:<tag> or accept a player invitation."));
+    if (data.invitations.length) {
+      c.addTextDisplayComponents(text("**PENDING INVITATIONS**\n" +
+        data.invitations.map(i => "[" + i.tag + "] " + escapeMarkdown(i.name)).join("\n")));
+      c.addActionRowComponents(selector(owner,"guild_accept","",
+        "Accept a guild invitation",data.invitations.map(i=>({
+          label: i.name.slice(0,75), value:i.id, description:"[" + i.tag + "] Join this guild"
+        }))));
+    }
+  } else {
+    const levelAt = guilds.xpForLevel(g.level);
+    const goal = g.levelGoal;
+    const bars = g.level===guilds.MAX_LEVEL ? 10 :
+      Math.min(10,Math.max(0,Math.floor(10*(g.xp-levelAt)/Math.max(1,goal-levelAt))));
+    c.addTextDisplayComponents(text("**GUILD PROGRESS**\n" +
+      "Level " + g.level + "  ·  " + g.xp.toLocaleString("en-US") + " XP" +
+      (g.level===guilds.MAX_LEVEL ? "  ·  Max level" : " / " + goal.toLocaleString("en-US")) +
+      "\n" + "▰".repeat(bars) + "▱".repeat(10-bars) +
+      "\n**Hall**  Tier " + g.hall + "/5  ·  **Renown**  " +
+      g.renown.toLocaleString("en-US") + "  ·  **Members**  " +
+      g.memberCount + "/" + g.capacity));
+    c.addTextDisplayComponents(text("**SHARED PERKS**\n" +
+      "+" + g.hall + "% mining IC  ·  +" + (g.hall*2) + "% boss strike damage" +
+      "\nGuild XP and Renown are earned from real activity, never deducted from personal IC."));
+    c.addTextDisplayComponents(text("**MEMBERS**\n" + data.members.slice(0,6).map(r=>
+      "<@" + r.userId + "> · " + r.role + " · " + r.xp + " guild XP"
+    ).join("\n")+(g.memberCount>6?"\n+" + (g.memberCount-6) + " more members":"")));
+    c.addTextDisplayComponents(text("**WEEKLY BOSS CONTRIBUTION**  " +
+      g.damage.toLocaleString("en-US") + " damage\n" +
+      "Guilds are ranked by damage dealt during each UTC week."));
+    if (data.role==="leader" && g.hall<5) {
+      const cost=guilds.hallCost(g.hall);
+      c.addTextDisplayComponents(text("**NEXT HALL UPGRADE**  " + cost +
+        " Renown  ·  Guild level " + (g.hall+2) + " required"));
+    }
+    foot(c,"Manage members with /idle guild invite, promote, demote, kick or transfer. " +
+      "Leaving and disbanding require explicit confirmation.");
+  }
+  if(note)c.addTextDisplayComponents(text("**" + note.slice(0,240) + "**"));
+  const actions=[];
+  if(g && data.role==="leader" && g.hall<5 &&
+    g.renown>=guilds.hallCost(g.hall) && g.level>=g.hall+2)
+    actions.push(button(owner,"guild_upgrade","Upgrade Hall","",ButtonStyle.Primary));
+  actions.push(button(owner,"guild_rankings","Boss rankings","",g?ButtonStyle.Primary:ButtonStyle.Secondary));
+  actions.push(button(owner,"profile","Command Center"));
+  c.addActionRowComponents(row(actions));
+  return c;
+}
+function guildRankings(owner,data) {
+  const c=container("ARVEE IDLE  /  GUILD RANKINGS",
+    "Global guild boss-damage leaderboard · UTC week " + data.periodKey);
+  divider(c);
+  c.addTextDisplayComponents(text(data.rankings.length ?
+    data.rankings.map(r=>"**"+r.rank+". ["+r.tag+"] "+escapeMarkdown(r.name)+"**  ·  "+
+      r.damage.toLocaleString("en-US")+" damage").join("\n") :
+    "No guild has damaged this week's boss yet."));
+  foot(c,"Damage stays with the guild that earned it, even if a player changes guilds later.");
+  c.addActionRowComponents(row([
+    button(owner,"guild","My guild","",ButtonStyle.Primary),
+    button(owner,"profile","Command Center")
+  ]));
+  return c;
+}
+
 function worldBoss(owner, status, note = "") {
   const max = Math.max(1, status.maxHp);
   const progress = Math.max(0,Math.min(10,Math.round(10*status.hp/max)));
@@ -941,6 +1014,6 @@ function payload(view) {
   return { components: [view], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 module.exports = {
-  custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, worldBoss, preferences, challengeBoard, message, home, shop, generator, inventory, inventoryPreview, item, crafting, recipe, season, market, listing,
+  custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, worldBoss, guildOverview, guildRankings, preferences, challengeBoard, message, home, shop, generator, inventory, inventoryPreview, item, crafting, recipe, season, market, listing,
   prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, miningResult, dailyResult, craftingResult, cacheResult, SUCCESS, WARN, ERROR
 };
