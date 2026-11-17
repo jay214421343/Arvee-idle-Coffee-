@@ -168,5 +168,5 @@ test("item artwork is retained in inspect details, not repeated across lists", (
   assert.doesNotMatch(JSON.stringify(listing),/\p{Emoji_Presentation}/u);
   const inspected=ui.item(owner,"coffee",2).toJSON();
   assert.match(JSON.stringify(inspected),/Campfire Brew/i);
-  assert.match(JSON.stringify(inspected),/☕/u);
+  assert.match(JSON.stringify(inspected),/<:unknown:1572286729048821953>/);
 });

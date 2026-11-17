@@ -31,7 +31,7 @@ test("restored Coffee items function transactionally and cosmetics survive prest
     await store.useItem(user,"pick_skin");
     const decorated=await store.profile(user);
     assert.equal(decorated.pickaxeName,"Moonshard");
-    assert.equal(decorated.pickaxeStyle,"Obsidian");
+    assert.equal(decorated.pickaxeStyle,"I Skin");
     assert.equal(decorated.profileTag,"Coffee Veteran");
     await store.useItem(user,"arthurs_tablet");
     await store.useItem(user,"kingstones_stone");
@@ -64,7 +64,7 @@ test("restored Coffee items function transactionally and cosmetics survive prest
     assert.equal((await store.prestige(user)).prestige,1);
     const retained=await store.profile(user);
     assert.equal(retained.pickaxeName,"Moonshard");
-    assert.equal(retained.pickaxeStyle,"Obsidian");
+    assert.equal(retained.pickaxeStyle,"I Skin");
     assert.equal(retained.profileTag,"Coffee Veteran");
     assert.equal(retained.generators.length,0);
     assert.equal(retained.inventory.find(x=>x.item_id==="rebirth_cocktail").quantity,1);

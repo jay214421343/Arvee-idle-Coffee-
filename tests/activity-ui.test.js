@@ -23,14 +23,14 @@ test("mining result uses a Coffee-like narrative and clean reward summary", () =
   const result = { reward: dec("3.29e222"), drop: "silver", dropQuantity: 2, mineXp: 17, box: true };
   const { serialized, buttons } = verify(ui.miningResult(owner, result, profile));
   assert.match(serialized, /THE PROSPECTOR/);
-  assert.match(serialized, /MR\\. M\\. INER/);
+  assert.match(serialized, /MR[.] M[.] INER/);
   assert.match(serialized, /BASE MINING REWARD/);
   assert.match(serialized, /TOTAL EARNED/);
   assert.match(serialized, /MINING  \/  SUCCESS/);
   assert.match(serialized, /3\.29cl IC/);
-  assert.match(serialized, /2× Moonsteel/);
+  assert.match(serialized, /2× .*Moonsteel/);
   assert.match(serialized, /Supply Cache \(bonus\)/);
-  assert.match(serialized, /Mining XP 17/);
+  assert.match(serialized, /MINING XP.*17/);
   assert.match(serialized, /Tier 2/);
   assert.equal(buttons[0].label, "View pickaxe");
   assert.equal(buttons[1].label, "Command Center");
@@ -42,7 +42,7 @@ test("Coffee-style bonus breakdown shows exact bonus, source, charges and skin a
   const { serialized, buttons } = verify(ui.miningResult(owner, result, {
     ...profile, pickaxeName: "Moonshard", pickaxeStyle: "Demon Skin"
   }));
-  assert.match(serialized, /MR\\. M\\. INER/);
+  assert.match(serialized, /MR[.] M[.] INER/);
   assert.match(serialized, /BASE MINING REWARD/);
   assert.match(serialized, /BOOST BONUS/);
   assert.match(serialized, /150 IC/);

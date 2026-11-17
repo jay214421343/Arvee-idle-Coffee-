@@ -459,7 +459,7 @@ function inventory(owner, p, page = 1, filter = "all", sort = "rarity") {
   if (!visible.length) c.addTextDisplayComponents(text("**Nothing in this category yet.**\nTry Filters, /idle mine, or your daily reward."));
   else c.addTextDisplayComponents(text(visible.map((e) => {
     const item = items[e.item_id];
-    return itemArt(e.item_id) + "  **" + escapeMarkdown(item.name) + "**" +
+    return rarityMark(item.rarity) + "  **" + escapeMarkdown(item.name) + "**" +
       "  ×" + e.quantity + "\n" + "   " + item.rarity + "  ·  " + (category(e.item_id) === "caches" ? "Supply cache" :
       category(e.item_id) === "usable" ? "Consumable" : "Forge material");
   }).join("\n\n")));
@@ -488,7 +488,7 @@ function inventoryPreview(owner, user, player) {
   for (let i = 0; i < entries.length && i < 80; i += 16) {
     c.addTextDisplayComponents(text(entries.slice(i, i + 16).map((r) => {
       const item = items[r.item_id];
-      return itemArt(r.item_id) + "  " + escapeMarkdown(item.name) + "  ×" + r.quantity;
+      return rarityMark(item.rarity) + "  " + escapeMarkdown(item.name) + "  ×" + r.quantity;
     }).join("\n")));
   }
   if (entries.length > 80) foot(c, "Showing 80 of " + entries.length + " unique items.");
