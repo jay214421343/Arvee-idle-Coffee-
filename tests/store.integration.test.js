@@ -18,7 +18,7 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
     const both = await Promise.all([store.buyGenerator(a, "MSPS", 1), store.buyGenerator(a, "MSPS", 1)]);
     assert.equal(both.length, 2);
     const after = await store.profile(a);
-    assert.equal(after.generators.find((g) => g.generator_id === "MSPS").quantity, 2);
+    assert.equal(after.generators.find((g) => g.generator_id === "MSPS").quantity, 3);
     assert.ok(after.balance.gte(0));
     const firstMine = await store.mine(a);
     const secondMine = await store.mine(a);

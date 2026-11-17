@@ -12,7 +12,7 @@ idle.addSubcommand((c) => c.setName("help").setDescription("Commands and getting
 idle.addSubcommand((c) => c.setName("profile").setDescription("View a player profile").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
 idle.addSubcommand((c) => c.setName("shop").setDescription("Browse IC generators").addIntegerOption((o) => o.setName("page").setDescription("Page number").setMinValue(1)));
 idle.addSubcommand((c) => c.setName("buy").setDescription("Buy generators with IC")
-  .addStringOption((o) => o.setName("generator").setDescription("Generator code from /idle shop").setRequired(true))
+  .addStringOption((o) => o.setName("generator").setDescription("Operation to recruit").setRequired(true).setAutocomplete(true))
   .addIntegerOption((o) => o.setName("amount").setDescription("How many (1-1000)").setMinValue(1).setMaxValue(1000)));
 idle.addSubcommand((c) => c.setName("mine").setDescription("Mine Idle Credits and crafting materials (90-second cooldown)"));
 idle.addSubcommand((c) => c.setName("daily").setDescription("Claim your daily Idle Credits and supply caches"));
@@ -180,6 +180,18 @@ async function respond(interaction) {
     await interaction.editReply({ content: null, embeds: [], ...ui.payload(ui.message("Something went wrong", "✦ " + reply.slice(0, 1800), interaction.user.id, { color: ui.ERROR })) }).catch(console.error);
   }
 }
+async function handleAutocomplete(interaction) {
+  if (!interaction.isAutocomplete() || interaction.commandName !== "idle") return false;
+  const focus = interaction.options.getFocused(true);
+  if (focus.name !== "generator") return false;
+  const term = String(focus.value || "").toLowerCase().slice(0, 100);
+  const choices = generators
+    .filter((g) => (g.name + " " + g.id).toLowerCase().includes(term))
+    .slice(0, 25)
+    .map((g) => ({ name: g.name.slice(0, 100), value: g.id }));
+  await interaction.respond(choices);
+  return true;
+}
 function uiError(error) {
   if (!error || !error.message) return "An unexpected error occurred.";
   return /SQL|relation|column|syntax|connect|pool|password|database|duplicate key/i.test(error.message)
@@ -302,4 +314,4 @@ async function handleComponent(interaction) {
   }
   return true;
 }
-module.exports = { idle, respond, handleComponent, shop };
+module.exports = { idle, respond, handleAutocomplete, handleComponent, shop };
