@@ -38,7 +38,19 @@ const items = Object.freeze({
   bohemian_cocktail: { name: "Moonshadow Elixir", emoji: "🍹", rarity: "Epic", description: "Moonlit alchemy distilled by ARVEE artificers.", use: "Receive 1 Rare Supply Cache.", effect: { grant: "rare_lootbox", grantAmount: 1 } },
   jungle_juice: { name: "Forest Tonic", emoji: "🧃", rarity: "Rare", description: "A burst of concentrated energy.", use: "Gain 10 mining XP.", effect: { xp: 10 } },
   gilded_slurry: { name: "Golden Elixir", emoji: "🏺", rarity: "Epic", description: "Expensive but fruitful alchemy.", use: "Receive an Astral Gem.", effect: { grant: "gem", grantAmount: 1 } },
-  creditus_deletus: { name: "Creditus Deletus", emoji: "🪄", rarity: "Epic", description: "A dubious spell scroll from the original Coffee archives. The dramatic vanishing trick is harmless.", use: "Make a dramatic fake IC deletion. Your credits and progress stay intact.", effect: { prank: true } }
+  creditus_deletus: { name: "Creditus Deletus", emoji: "🪄", rarity: "Epic", description: "A dubious spell scroll from the original Coffee archives. The dramatic vanishing trick is harmless.", use: "Make a dramatic fake IC deletion. Your credits and progress stay intact.", effect: { prank: true } },
+  arthurs_tablet: { name: "Arthur's Tablet", emoji: "📜", rarity: "Rare", description: "An ancient stone tablet filled with lessons for patient miners.", use: "Gain 32 mining XP.", effect: {"xp":32} },
+  crafting_materials: { name: "Crafting Supply Bundle", emoji: "🎒", rarity: "Common", description: "A packed satchel of basic supplies, inspired by Coffee's crafting materials.", use: "Unpack 4 Rune Ore and 2 Moonsteel.", effect: {"materials":{"ore":4,"silver":2}} },
+  genreset: { name: "Crew Reboot Voucher", emoji: "🎟️", rarity: "Epic", description: "Coffee's unfinished generator-reset token returns as a safe new recruit. It never wipes a roster or keeps free output.", use: "Recruit one Rookie Adventurer without deleting existing Operations.", effect: {"crew":"MSPS"} },
+  gnome: { name: "Gnome's Rocket Brew", emoji: "🧪", rarity: "Epic", description: "An extremely suspicious gnome-made tonic. It smells like heroic decisions.", use: "Reset mining cooldown and boost the next mine by 4x (subject to boost cap).", effect: {"nextMine":"4","cooldownReset":true} },
+  kingstones_stone: { name: "Kingstone's Stone", emoji: "🪨", rarity: "Uncommon", description: "A chipped rune stone with a surprising amount of practical mining wisdom.", use: "Gain 5 mining XP.", effect: {"xp":5} },
+  mine_alert: { name: "Mine Alert", emoji: "⏰", rarity: "Uncommon", description: "A pocket clock that displays your live mining cooldown. Reusable, with no disruptive pings.", use: "Check whether mining is ready or see when it returns. This does not send alerts.", effect: {"timer":true} },
+  nametag: { name: "Pickaxe Nametag", emoji: "🏷️", rarity: "Rare", description: "Engrave a permanent custom name on your pickaxe, or choose a short preset.", use: "Use the Customize action, or /idle use item:nametag name:YourName.", effect: {"renamePickaxe":true} },
+  payment: { name: "Merchant Pay Slip", emoji: "🪙", rarity: "Uncommon", description: "A properly accounted payment from the old guild treasury. The clerk insists the math is correct.", use: "Redeem a fixed 500 IC payment.", effect: {"bp":"500"} },
+  pick_skin: { name: "Pickaxe Skin Token", emoji: "🎨", rarity: "Epic", description: "A rare cosmetic token that cycles your pickaxe's visible finish. It changes no mining stats.", use: "Switch your pickaxe's appearance between Copper, Obsidian and Astral.", effect: {"skin":true} },
+  reward: { name: "Miner's Reward", emoji: "🥨", rarity: "Uncommon", description: "A morale booster issued for productive expeditions. Accounting calls it a performance incentive.", use: "Multiply your next mining reward by 1.6x.", effect: {"nextMine":"1.6"} },
+  stat_card: { name: "Stat Card", emoji: "📊", rarity: "Rare", description: "A reusable field ledger that opens your achievements and gameplay records.", use: "Open your player statistics without consuming the card.", effect: {"stats":true} },
+  tag: { name: "Profile Tag", emoji: "🎗️", rarity: "Epic", description: "A single-use badge that sets a persistent title under your player name.", use: "Choose a profile title with Customize, or /idle use item:tag name:YourTitle.", effect: {"tag":true} }
 });
 const recipes = Object.freeze({
   coffee: { ore: 3, silver: 1 },
@@ -52,7 +64,19 @@ const recipes = Object.freeze({
   legendary_lootbox: { rare_lootbox: 4, gem: 2 },
   bohemian_cocktail: { coffee: 4, gold: 2, strange_matter: 3 },
   gilded_slurry: { gold: 8, strange_matter: 3 },
-  creditus_deletus: { strange_matter: 10, silver: 15, cookie: 1 }
+  creditus_deletus: { strange_matter: 10, silver: 15, cookie: 1 },
+  arthurs_tablet: { strange_matter: 5, silver: 12, gold: 2 },
+  crafting_materials: { ore: 8, silver: 4 },
+  genreset: { gold: 12, strange_matter: 12, gem: 1 },
+  gnome: { cola: 3, jungle_juice: 2, gold: 2 },
+  kingstones_stone: { ore: 15, silver: 2 },
+  mine_alert: { ore: 5, silver: 8 },
+  nametag: { silver: 10, gold: 3 },
+  payment: { silver: 5, gold: 1 },
+  pick_skin: { strange_matter: 8, gem: 1, silver: 15 },
+  reward: { bread: 2, ore: 5 },
+  stat_card: { silver: 8, coffee: 2 },
+  tag: { gold: 10, strange_matter: 8 }
 });
 const perks = Object.freeze({
   miner: { name: "Power Strike", description: "+10% mining IC per level", max: 10 },

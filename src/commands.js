@@ -39,9 +39,9 @@ idle.addSubcommand((c) => c.setName("leaderboard").setDescription("Top players b
 idle.addSubcommand((c) => c.setName("pickaxe").setDescription("Upgrade your pickaxe and view mining stats"));
 idle.addSubcommand((c) => c.setName("perks").setDescription("View and upgrade permanent pickaxe perks"));
 idle.addSubcommand((c) => c.setName("stats").setDescription("View unlocked achievements and game activity"));
-idle.addSubcommand((c) => c.setName("use").setDescription("Consume an item from your inventory")
-  .addStringOption((o) => o.setName("item").setDescription("Item to consume").setRequired(true)
-    .addChoices(...Object.entries(items).filter(([, i]) => !!i.effect).map(([value, i]) => ({ name: i.name, value })))));
+idle.addSubcommand((c) => c.setName("use").setDescription("Use an item from your inventory")
+  .addStringOption((o) => o.setName("item").setDescription("Item to use").setRequired(true).setAutocomplete(true))
+  .addStringOption((o) => o.setName("name").setDescription("Optional custom name for a Nametag or Profile Tag").setMaxLength(24)));
 idle.addSubcommand((c) => c.setName("prestige").setDescription("Restart your generators with a permanent boost")
   .addBooleanOption((o) => o.setName("confirm").setDescription("Confirm resetting your generators and IC")));
 idle.addSubcommandGroup((g) => g.setName("market").setDescription("Trade items for IC")
@@ -289,8 +289,19 @@ async function respond(interaction) {
     } else if (command === "stats") {
       view = ui.stats(id, await store.getStats(id));
     } else if (command === "use") {
-      const used = await store.useItem(id, opts.getString("item", true));
-      content = "Used **" + labelItem(used.itemId) + "**. " + used.message;
+      const itemId = opts.getString("item", true), name = opts.getString("name");
+      if (!items[itemId]?.effect) throw new Error("Unknown or unusable item.");
+      if (name && !items[itemId].effect.renamePickaxe && !items[itemId].effect.tag)
+        throw new Error("Custom names work only with a Nametag or Profile Tag.");
+      if ((items[itemId].effect.renamePickaxe || items[itemId].effect.tag) && !name) {
+        const owned = (await store.profile(id)).inventory.some((r) => r.item_id === itemId && r.quantity>0);
+        if (!owned) throw new Error("Item not owned.");
+        view = ui.customization(id,itemId);
+      } else {
+        const used = await store.useItem(id,itemId,name || "");
+        view = used.showStats ? ui.stats(id,await store.getStats(id)) : null;
+        content = "Used **" + labelItem(used.itemId) + "**. " + used.message;
+      }
     } else content = "Unknown command.";
     view ||= ui.message("✦ ARVEE Idle", content.slice(0, 2900), id);
     await interaction.editReply({ content: null, embeds: [], ...ui.payload(view) });
@@ -522,9 +533,17 @@ async function handleComponent(interaction) {
       const p = await store.profile(owner);
       const quantity = p.inventory.find((r) => r.item_id === selected)?.quantity || 0;
       view = ui.item(owner, selected, quantity, argument);
+    } else if (action === "customize") {
+      const p = await store.profile(owner);
+      if (!p.inventory.some((x) => x.item_id === argument && x.quantity>0)) throw new Error("Item not owned.");
+      view = ui.customization(owner,argument);
+    } else if (action === "customize_set") {
+      result = await store.useItem(owner,argument,selected);
+      view = ui.message("Customization saved",result.message,owner,{ color: ui.SUCCESS });
     } else if (action === "use_item") {
       result = await store.useItem(owner, argument);
-      view = ui.message("Item used", "**" + labelItem(result.itemId) + "** · " + result.message, owner, { color: ui.SUCCESS });
+      view = result.showStats ? ui.stats(owner,await store.getStats(owner)) :
+        ui.message("Item used", "**" + labelItem(result.itemId) + "** · " + result.message, owner, { color: ui.SUCCESS });
     } else if (action === "open_one") {
       const drops = await store.openLootbox(owner, 1, argument);
       view = ui.cacheResult(owner, drops);

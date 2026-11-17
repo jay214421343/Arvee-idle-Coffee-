@@ -296,7 +296,8 @@ function home(owner, user, p, readOnly = false) {
   const c = container("✦ ARVEE IDLE  /  COMMAND CENTER",
     readOnly ? "PLAYER PROFILE  /  READ ONLY" : "THE ADVENTURE CONTINUES WHILE YOU'RE AWAY");
   const s = new SectionBuilder().addTextDisplayComponents(
-    text("### " + escapeMarkdown(user.username).slice(0, 80) + "\n**" +
+    text("### " + escapeMarkdown(user.username).slice(0, 80) +
+      (p.profileTag ? "\n*" + escapeMarkdown(p.profileTag).slice(0, 24) + "*" : "") + "\n**" +
       pretty(p.balance) + " IC**  ·  **+" + pretty(p.rate) + " IC/s**"),
     text("Crew " + operations + "   ·   Prestige " + p.prestige +
       "\nMining XP " + p.mineXp + "   ·   " + pretty(p.totalEarned) + " IC earned this run")
@@ -473,6 +474,19 @@ function inventoryPreview(owner, user, player) {
   return c;
 }
 
+const CUSTOM_PRESETS = Object.freeze({
+  nametag: ["Moonshard", "Sunbreaker", "Cinderpick"],
+  tag: ["Trailblazer", "Coffee Veteran", "Astral Cartographer"]
+});
+function customization(owner, id) {
+  const names = CUSTOM_PRESETS[id];
+  if (!names) throw new Error("This item has no naming options.");
+  const c = container("ARVEE IDLE  /  CUSTOMIZE", "Choose a name below, or use /idle use item:" + id + " name:YourName");
+  c.addActionRowComponents(selector(owner,"customize_set",id,"Choose a name",
+    names.map((name)=>({label:name,value:name}))));
+  c.addActionRowComponents(row([button(owner,"inventory","Back to Satchel","1_all_rarity",ButtonStyle.Primary)]));
+  return c;
+}
 function item(owner, id, quantity, back = "1_all_rarity") {
   const entry = items[id]; if (!entry) throw new Error("Unknown item.");
   const canOpen = BOX_IDS.has(id);
@@ -483,7 +497,8 @@ function item(owner, id, quantity, back = "1_all_rarity") {
     (entry.use ? "\n\n**Effect**  " + entry.use : "") +
     (recipes[id] ? "\n\n**Forge recipe**  " + Object.entries(recipes[id]).map(([part, q]) => q + "× " + items[part].name).join(" · ") : "")));
   c.addActionRowComponents(row([
-    button(owner, canOpen ? "open_one" : "use_item", canOpen ? "Open cache" : "Use item",
+    button(owner, canOpen ? "open_one" : (CUSTOM_PRESETS[id] ? "customize" : "use_item"),
+      canOpen ? "Open cache" : (CUSTOM_PRESETS[id] ? "Customize" : "Use item"),
       id, ButtonStyle.Secondary, (!entry.effect && !canOpen) || quantity < 1),
     button(owner, "inventory", "◀ Back to Satchel", String(back).includes("_") ? String(back) : "1_all_rarity"),
     ...(recipes[id] ? [button(owner, "recipe_view", "Forge recipe", id)] : [])
@@ -1060,7 +1075,9 @@ function pickaxe(owner, p) {
   const ready = !max && requirements.every(({ id, amount }) => owned(id) >= amount);
   const c = container("ARVEE IDLE  /  PICKAXE", "Craft stronger mining equipment with your collected materials.");
   divider(c);
-  c.addTextDisplayComponents(text("**Pickaxe tier**  " + tier + " / 10  ·  **Mining XP**  " + p.mineXp +
+  c.addTextDisplayComponents(text("**Pickaxe name**  " + escapeMarkdown(p.pickaxeName || "Pickaxe").slice(0,24) +
+    "  ·  **Finish**  " + (p.pickaxeStyle || "Copper") +
+    "\n**Pickaxe tier**  " + tier + " / 10  ·  **Mining XP**  " + p.mineXp +
     "\n**Mining multiplier**  " + (1 + tier * 0.25).toFixed(2) + "×" +
     "\n**Next tier**  " + (max ? "Maximum reached" : tier + 1)));
   divider(c);
@@ -1152,6 +1169,6 @@ function payload(view) {
   return { components: [view], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 module.exports = {
-  custom, button, sectionMenu, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, worldBoss, guildOverview, guildRankings, guildExpeditionBoard, guildLeagueBoard, preferences, challengeBoard, message, home, shop, generator, inventory, inventoryPreview, item, crafting, recipe, season, market, listing,
+  custom, button, sectionMenu, customization, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, worldBoss, guildOverview, guildRankings, guildExpeditionBoard, guildLeagueBoard, preferences, challengeBoard, message, home, shop, generator, inventory, inventoryPreview, item, crafting, recipe, season, market, listing,
   prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, miningResult, dailyResult, craftingResult, cacheResult, purchaseResult, prestigeResult, SUCCESS, WARN, ERROR
 };
