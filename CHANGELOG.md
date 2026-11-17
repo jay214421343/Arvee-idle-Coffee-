@@ -1,3 +1,14 @@
+# 2.15.0 — Beyond Rebirth, Companion Build Diversity & Item Discovery (pending review)
+
+- Add seven **retroactive** late-game milestone thresholds at rebirth 5/10/20/35/50/75/100 with independent rare mining finds and three prestige-gated operations integrated into the existing shop.
+- Choose a compact Miner/Tycoon/Treasure Hunter specialization for the next successful rebirth. No extra currency, skill tree, or gameplay loop.
+- Give all 18 existing specialist companions 2–3 unique, capped gameplay bonuses. Omni-Mythics and the Secret stay versatile; all existing companion ownership and saved mastery remain intact.
+- Upgrade /idle info to explain item locations, crafting, Season tiers, Contracts and caches. All cache primary/bonus/charm loot odds are sourced from the same tables used by actual cache opening.
+- Preserve existing main mining rewards, base Supply Cache odds, rebirth cocktail RNG, season claims and player progress.
+- Add additive persistence for rebirth path choices, server-side operation gates, unit/UI/integration tests.
+
+---
+
 # 2.14.0 — First-Play Guided Introduction (pending review)
 
 - Auto-show a seven-page interactive beginners' guide only for first-time /idle users, before carrying out any game action. No automatic items, purchases, or rewards.
