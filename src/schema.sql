@@ -30,6 +30,8 @@ ALTER TABLE players ADD COLUMN IF NOT EXISTS mine_boost_multiplier NUMERIC NOT N
 ALTER TABLE players ADD COLUMN IF NOT EXISTS mine_boost_charges INTEGER NOT NULL DEFAULT 0 CHECK (mine_boost_charges BETWEEN 0 AND 6);
 ALTER TABLE players ADD COLUMN IF NOT EXISTS mine_boost_source TEXT NOT NULL DEFAULT '' CHECK (length(mine_boost_source) <= 64);
 ALTER TABLE players ADD COLUMN IF NOT EXISTS next_mine_source TEXT NOT NULL DEFAULT '' CHECK (length(next_mine_source) <= 64);
+-- Count only successfully committed digs; never grant fragments on cooldown failures.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS mine_fragment_progress INTEGER NOT NULL DEFAULT 0 CHECK (mine_fragment_progress BETWEEN 0 AND 19);
 
 
 CREATE TABLE IF NOT EXISTS player_generators (
@@ -148,7 +150,7 @@ CREATE INDEX IF NOT EXISTS expedition_missions_recent ON expedition_missions(use
 -- Companions are a separate collection and are not wiped by prestige.
 CREATE TABLE IF NOT EXISTS player_companions (
   user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
-  pet_id TEXT NOT NULL CHECK(pet_id IN ('ember_fox','moss_wisp','moon_owl')),
+  pet_id TEXT NOT NULL CHECK(pet_id IN ('ember_fox','moss_wisp','moon_owl','cave_ferret','iron_cub','clockwork_sparrow','trail_sprite','zephyr_finch','ash_wolf','nest_fox','tempest_roc','gem_serpent','void_moth','rune_gecko','phoenix_drake','runebound_golem','star_stag','hatchling_drake')),
   xp BIGINT NOT NULL DEFAULT 0 CHECK(xp BETWEEN 0 AND 43500),
   discovered_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY(user_id,pet_id)
@@ -156,8 +158,13 @@ CREATE TABLE IF NOT EXISTS player_companions (
 CREATE TABLE IF NOT EXISTS companion_settings (
   user_id TEXT PRIMARY KEY REFERENCES players(user_id) ON DELETE CASCADE,
   starter_claimed BOOLEAN NOT NULL DEFAULT FALSE,
-  active_pet_id TEXT CHECK(active_pet_id IN ('ember_fox','moss_wisp','moon_owl'))
+  active_pet_id TEXT CHECK(active_pet_id IN ('ember_fox','moss_wisp','moon_owl','cave_ferret','iron_cub','clockwork_sparrow','trail_sprite','zephyr_finch','ash_wolf','nest_fox','tempest_roc','gem_serpent','void_moth','rune_gecko','phoenix_drake','runebound_golem','star_stag','hatchling_drake'))
 );
+-- Extend legacy CHECK constraints for existing accounts without deleting any companion records.
+ALTER TABLE player_companions DROP CONSTRAINT IF EXISTS player_companions_pet_id_check;
+ALTER TABLE player_companions ADD CONSTRAINT player_companions_pet_id_check CHECK(pet_id IN ('ember_fox','moss_wisp','moon_owl','cave_ferret','iron_cub','clockwork_sparrow','trail_sprite','zephyr_finch','ash_wolf','nest_fox','tempest_roc','gem_serpent','void_moth','rune_gecko','phoenix_drake','runebound_golem','star_stag','hatchling_drake'));
+ALTER TABLE companion_settings DROP CONSTRAINT IF EXISTS companion_settings_active_pet_id_check;
+ALTER TABLE companion_settings ADD CONSTRAINT companion_settings_active_pet_id_check CHECK(active_pet_id IS NULL OR active_pet_id IN ('ember_fox','moss_wisp','moon_owl','cave_ferret','iron_cub','clockwork_sparrow','trail_sprite','zephyr_finch','ash_wolf','nest_fox','tempest_roc','gem_serpent','void_moth','rune_gecko','phoenix_drake','runebound_golem','star_stag','hatchling_drake'));
 ALTER TABLE expedition_missions ADD COLUMN IF NOT EXISTS companion_egg BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- Global weekly bosses are keyed by UTC Monday; never by Discord guild/server.
