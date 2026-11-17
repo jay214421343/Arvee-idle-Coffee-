@@ -1,3 +1,12 @@
+# 2.11.1 — Lucky Extra Rebirth Cocktail (pending review)
+
+- Keep the existing guaranteed Rebirth Cocktail for each successful prestige, and add a 5% chance to receive a **second** cocktail as the optional lucky bonus.
+- Preserve the other lucky reward odds: 30% Supply Cache, 10% Rare Supply Cache and 5% Adventurer's Lunchbox. The chance of no bonus decreases to 50%.
+- Explain the extra cocktail on the prestige preview and completion receipt. Both cocktails are awarded within the same PostgreSQL transaction, without creating duplicate prestige rewards on repeated clicks.
+- Add probability-boundary unit tests and a PostgreSQL concurrency test. No database migrations or slash-command registration changes.
+
+---
+
 # 2.11.0 — Companion Builds & Mastery (pending review)
 
 - Remove the Founders' Journey 500 XP/day cap and its progress counter. All qualifying actions contribute full season XP; historical XP and claims are preserved.

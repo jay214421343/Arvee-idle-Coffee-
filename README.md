@@ -26,7 +26,7 @@ The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They on
 
 **Egg rarities:** ordinary Companion Eggs keep their original possible species; craft three ordinary eggs and materials into an Enchanted Egg, or combine three Enchanted Eggs with rare resources into an Astral Egg. The higher-rarity eggs use explicit rarity-weighted pools, not guaranteed Mythics. The compact Hatchery and Mastery screens sit one tap away from Companions, keeping the Command Center uncluttered.
 
-**Rebirth bonuses:** each successful prestige always grants one Rebirth Cocktail, then independently rolls for exactly one optional bonus: **30% Supply Cache**, **10% Rare Supply Cache**, **5% Adventurer's Lunchbox**, or **55% nothing extra**. Lunchboxes yield one ration and one tonic when opened from the Satchel or with `/idle open`. The bonus roll and rewards are committed in the same database transaction as the prestige reset: failed/replayed requests do not duplicate them.
+**Rebirth bonuses:** each successful prestige always grants one Rebirth Cocktail, then independently rolls for exactly one optional bonus: **5% extra Rebirth Cocktail**, **30% Supply Cache**, **10% Rare Supply Cache**, **5% Adventurer's Lunchbox**, or **50% nothing extra**. Lunchboxes yield one ration and one tonic when opened from the Satchel or with `/idle open`. The bonus roll and rewards are committed in the same database transaction as the prestige reset: failed/replayed requests do not duplicate them.
 
 **Craft slash command:** as the Forge grows beyond Discord's 25-choice limit, `/idle craft item:` now uses autocomplete. Recipes remain accessible through the Forge menus.
 
