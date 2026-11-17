@@ -29,7 +29,7 @@ Version 2.8 focuses on improving existing gameplay. There are no economy or rewa
 - **Error handling:** Unexpected Discord failures after an interaction acknowledgement now show a private fallback rather than leaving players without feedback.
 - **Tests:** New regression tests cover progress boundaries, guidance, cross-server-safe receipts and UI component limits.
 
-**After PR review:** Run `npm ci && npm run check && npm test`. After the PR is merged, update only ARVEE Idle in `/Users/gabberjay/Documents/arvee-idle`: `git switch master && git pull --ff-only origin master && npm ci && npm run mac:restart`. No slash-command re-registration or SQL migration is required for 2.8.
+**After PR review:** Run `npm ci && npm run check && npm test`. After the PR is merged, update only ARVEE Idle in `/Users/gabberjay/Documents/arvee-idle`: `git switch master && git pull --ff-only origin master && npm ci && npm run register && npm run mac:restart`. Run registration for updated slash-command descriptions; no SQL migration is required for 2.8.
 
 ## ARVEE Idle 2.7 — Guild Expeditions & Seasonal Guild Leagues
 
