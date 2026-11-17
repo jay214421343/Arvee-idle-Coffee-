@@ -63,7 +63,8 @@ test("mining cooldown stays descriptive and never shows invented loot", () => {
 });
 test("mining reset is visible only when the cooldown is active and an eligible item is owned", () => {
   const base = { ...profile, mineBonus:dec(1), mineBoostCharges:0, mineBoostMultiplier:dec(1) };
-  const run = (p, cooldown=40) => verify(ui.miningResult(owner,{cooldown},p)).buttons;
+  const run = (p, cooldown=40) => verify(ui.miningResult(owner,
+    cooldown > 0 ? {cooldown} : {reward:dec(150),drop:"ore",dropQuantity:3,mineXp:18,box:false},p)).buttons;
   assert.equal(run({ ...base, inventory:[] })[0].label,"View pickaxe");
   assert.equal(run({ ...base, inventory:[{item_id:"coffee",quantity:0}] })[0].label,"View pickaxe");
   assert.equal(run({ ...base, inventory:[{item_id:"coffee",quantity:1}] },0)[0].label,"View pickaxe");
