@@ -85,6 +85,10 @@ test("slash command and navigation expose companions without extra buttons", () 
     generators:[],mineXp:0,prestige:0}).toJSON();
   const options=home.components.filter(c=>c.type===1).flatMap(c=>c.components)
     .filter(c=>c.type===3).flatMap(c=>c.options);
-  assert.ok(options.some(o=>o.value==="companions"));
-  assert.equal(options.length,18);
+  assert.ok(options.some(o=>o.value==="adventure_menu"));
+  assert.equal(options.length,6);
+  const adventure=ui.sectionMenu(owner,"adventure").toJSON();
+  const destinations=adventure.components.filter(c=>c.type===1).flatMap(c=>c.components)
+    .filter(c=>c.type===3).flatMap(c=>c.options);
+  assert.ok(destinations.some(o=>o.value==="companions"));
 });
