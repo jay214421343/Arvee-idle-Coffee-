@@ -9,8 +9,8 @@ const recipeChoices = Object.keys(recipes).map((id) => ({ name: items[id].name, 
 const idle = new SlashCommandBuilder().setName("idle").setDescription("ARVEE Idle — build, explore, mine and trade");
 idle.addSubcommand((c) => c.setName("help").setDescription("Commands and getting started"));
 idle.addSubcommand((c) => c.setName("profile").setDescription("View a player profile").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
-idle.addSubcommand((c) => c.setName("shop").setDescription("Browse IC generators").addIntegerOption((o) => o.setName("page").setDescription("Page number").setMinValue(1)));
-idle.addSubcommand((c) => c.setName("buy").setDescription("Buy generators with IC")
+idle.addSubcommand((c) => c.setName("shop").setDescription("Browse passive IC operations").addIntegerOption((o) => o.setName("page").setDescription("Page number").setMinValue(1)));
+idle.addSubcommand((c) => c.setName("buy").setDescription("Recruit passive operations with IC")
   .addStringOption((o) => o.setName("generator").setDescription("Operation to recruit").setRequired(true).setAutocomplete(true))
   .addIntegerOption((o) => o.setName("amount").setDescription("How many (1-1000)").setMinValue(1).setMaxValue(1000)));
 idle.addSubcommand((c) => c.setName("mine").setDescription("Mine Idle Credits and crafting materials (90-second cooldown)"));
@@ -230,8 +230,7 @@ async function respond(interaction) {
       content = shop(opts.getInteger("page") || 1);
     } else if (command === "buy") {
       const result = await store.buyGenerator(id, opts.getString("generator", true), opts.getInteger("amount") || 1);
-      content = "Bought " + result.quantity + " × **" + result.generator.name + "** for **" +
-        pretty(result.cost) + " IC**.\nNew balance: " + pretty(result.balance) + " IC · Income: " + pretty(result.rate) + " IC/s.";
+      view = ui.purchaseResult(id, result);
     } else if (command === "mine") {
       const result = await store.mine(id);
       view = ui.miningResult(id, result, await store.profile(id));
@@ -276,7 +275,7 @@ async function respond(interaction) {
         content = "Prestige costs **" + pretty(PRESTIGE_REQUIREMENT) + " IC**. It resets your IC and generators (not inventory) and adds +25% permanent production per prestige.\nRun /idle prestige confirm:true when ready.";
       } else {
         const result = await store.prestige(id);
-        content = "Prestige **" + result.prestige + "**! Permanent production multiplier: " + result.multiplier.toString() + "×.";
+        view = ui.prestigeResult(id, result);
       }
     } else if (command === "pickaxe") {
       view = ui.pickaxe(id, await store.profile(id));
@@ -483,8 +482,7 @@ async function handleComponent(interaction) {
     } else if (action === "buy_one" || action === "buy_ten" || action === "buy_hundred") {
       const amount = action === "buy_hundred" ? 100 : action === "buy_ten" ? 10 : 1;
       result = await store.buyGenerator(owner, argument, amount);
-      const page = Math.floor(Math.max(0, generators.findIndex((g) => g.id === argument)) / 4) + 1;
-      view = ui.generator(owner, argument, page, await store.profile(owner), "Purchased " + amount + " for " + pretty(result.cost) + " IC.");
+      view = ui.purchaseResult(owner, result);
     } else if (action === "mine") {
       result = await store.mine(owner);
       view = ui.miningResult(owner, result, await store.profile(owner));
@@ -555,7 +553,7 @@ async function handleComponent(interaction) {
       view = ui.prestige(owner, await store.profile(owner));
     } else if (action === "prestige_confirm") {
       result = await store.prestige(owner);
-      view = ui.message("Prestige complete", "You are now **Prestige " + result.prestige + "**!", owner, { color: ui.SUCCESS });
+      view = ui.prestigeResult(owner, result);
     } else if (action === "pickaxe") {
       view = ui.pickaxe(owner, await store.profile(owner));
     } else if (action === "pickaxe_upgrade") {

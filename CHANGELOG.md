@@ -1,3 +1,14 @@
+# 2.8.0 — Coffee-inspired Core Polish (pending review)
+
+- Fixed Command Center prestige progress to show accurate integer percentages and remaining IC.
+- Added contextual next-action guidance using actual daily, mining, passive-income and prestige readiness without extra database reads.
+- Clarified passive Operations versus timed and cooperative Expeditions in main navigation.
+- Unified operation-purchase and prestige success receipts across slash commands and buttons, with two relevant actions and committed amounts.
+- Added a private error fallback for unexpected post-acknowledgement Discord failures.
+- Added deterministic regression tests. Preserved all PostgreSQL data, economy formulas, 1e222+ suffixes and reward protections.
+
+---
+
 # 2.7.0 — Guild Expeditions & Seasonal Guild Leagues (unreleased)
 
 - Added four team-based weekly contracts (Mining Run, Frontier Survey, Siege Support, Supply Line), advancing only through committed gameplay events. Per-user daily caps and two distinct contributors are required.

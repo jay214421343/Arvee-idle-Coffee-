@@ -3,7 +3,7 @@ const { assertNodeVersion, validateDatabaseUrl, validateDiscord } = require("./c
 assertNodeVersion();
 validateDatabaseUrl();
 validateDiscord();
-const { Client, GatewayIntentBits, Events } = require("discord.js");
+const { Client, GatewayIntentBits, Events, MessageFlags } = require("discord.js");
 const { pool } = require("./store");
 const { respond, handleAutocomplete, handleComponent } = require("./commands");
 const brand = require("./brand");
@@ -44,8 +44,15 @@ async function main() {
       interaction.isButton() || interaction.isStringSelectMenu() ? handleComponent(interaction) : respond(interaction);
     void runner.catch(async (error) => {
       console.error("[ARVEE Idle] Interaction failed:", error.message);
-      if (!interaction.deferred && !interaction.replied) {
-        await interaction.reply({ content: "ARVEE Idle could not complete that action. Please retry.", ephemeral: true }).catch(() => {});
+      const payload = {
+        content: "ARVEE Idle could not complete that action. Please retry.",
+        flags: MessageFlags.Ephemeral,
+        allowedMentions: { parse: [] }
+      };
+      if (interaction.deferred || interaction.replied) {
+        await interaction.followUp(payload).catch(() => {});
+      } else {
+        await interaction.reply(payload).catch(() => {});
       }
     });
   });
