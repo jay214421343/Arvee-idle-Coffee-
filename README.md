@@ -18,6 +18,12 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.11.2 — Contextual Mining Reset
+
+The mining cooldown receipt now offers **Use Campfire Brew** (or another owned, compatible cooldown-reset consumable) only when mining is genuinely resting **and** the player has the item. It prefers a common Campfire Brew before rarer tonics, caps the receipt at two buttons, and preserves the View Pickaxe fallback when no reset is eligible. The button labels the exact item that will be consumed. After a valid one-click reset, the receipt offers **Mine now**.
+
+The reset action is not a cooldown bypass: it re-checks mining readiness, the selected item's effect and current boost limits **inside the locked player transaction**, then consumes exactly one owned item via the existing item-use logic. An expired cooldown, stale button, exhausted inventory, or incompatible active boost cannot consume or create items. No gameplay economy, schema, or command registration changes.
+
 ## ARVEE Idle 2.11 — Companion Builds & Mastery
 
 **Season XP no longer has a daily cap.** Every qualifying action awards its full normal XP, even after 500 XP earned in a UTC day. The confusing “Today's XP: 500 / 500” bar is removed; season tier thresholds and once-only reward claims remain unchanged. Historic daily XP rows are retained but no longer used.

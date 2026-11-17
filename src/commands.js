@@ -1,5 +1,5 @@
 "use strict";
-const { SlashCommandBuilder, MessageFlags } = require("discord.js");
+const { SlashCommandBuilder, MessageFlags, ButtonStyle } = require("discord.js");
 const { generators, byId, items, recipes } = require("./catalog");
 const { dec, pretty, purchaseCost, PRESTIGE_REQUIREMENT } = require("./economy");
 const store = require("./store");
@@ -554,6 +554,17 @@ async function handleComponent(interaction) {
     } else if (action === "customize_set") {
       result = await store.useItem(owner,argument,selected);
       view = ui.message("Customization saved",result.message,owner,{ color: ui.SUCCESS });
+    } else if (action === "mine_reset") {
+      result = await store.useItem(owner, argument, "", { requireMiningCooldown: true });
+      view = ui.message("MINING  /  READY",
+        "**" + labelItem(result.itemId) + "** consumed. " + result.message +
+        "\nYour pickaxe is ready for another dig.", owner, {
+          color: ui.SUCCESS,
+          buttons: [
+            ui.button(owner, "mine", "Mine now", "", ButtonStyle.Primary),
+            ui.button(owner, "profile", "Command Center")
+          ]
+        });
     } else if (action === "use_item") {
       result = await store.useItem(owner, argument);
       view = result.showStats ? ui.stats(owner,await store.getStats(owner)) :

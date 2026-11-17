@@ -11,6 +11,7 @@ const challengeData = require("./challenges");
 const exploration = require("./exploration");
 const companions = require("./companions");
 const activity = require("./activity");
+const { eligibleMiningReset } = require("./mining-reset");
 const progression = require("./progression");
 const guilds = require("./guilds");
 const { SEASON, rewards, missions, label, tierNeeded } = require("./season");
@@ -203,15 +204,19 @@ function miningResult(owner, result, profile = null) {
     "**ACTIVE BOOST**  " + escapeMarkdown(profile.mineBoostSource || "Food boost") +
       " · " + profile.mineBoostCharges + " digs left" : "";
   if (waiting) {
+    const resetItem = profile ? eligibleMiningReset(profile, result.cooldown) : null;
     return activityCard(owner, "MINING  /  RESTING", "MR. M. INER  /  THE PROSPECTOR",
       "The mountain can wait. Even a legendary pickaxe needs a break.",
       "**NEXT DIG**  " + retryTime(result.cooldown) +
       "\n**COOLDOWN**  " + countdown(result.cooldown) +
       (charged ? "\n" + charged : "") +
       (pickaxe ? "\n" + pickaxe : ""),
-      [button(owner, "pickaxe", "View pickaxe", "", ButtonStyle.Primary),
+      [resetItem ?
+        button(owner, "mine_reset", "Use " + items[resetItem].name, resetItem, ButtonStyle.Primary) :
+        button(owner, "pickaxe", "View pickaxe", "", ButtonStyle.Primary),
        button(owner, "profile", "Command Center")],
-      "Campfire Brew and selected tonics can reset or shorten mining cooldowns."
+      resetItem ? "Uses 1× " + items[resetItem].name + " to reset the cooldown; mine again right away." :
+        "Campfire Brew and selected tonics can reset or shorten mining cooldowns."
     );
   }
   const drop = items[result.drop], qty = result.dropQuantity || 1;

@@ -7,6 +7,7 @@ const { rollRebirthBonus } = require("./rebirth-loot");
 const challenges = require("./challenges");
 const exploration = require("./exploration");
 const activity = require("./activity");
+const { isUsableReset } = require("./mining-reset");
 const companions = require("./companions");
 const worldBosses = require("./world-bosses");
 const guilds = require("./guilds");
@@ -504,12 +505,17 @@ function cosmeticName(raw) {
   }
   return name;
 }
-async function useItem(userId, itemId, chosenName = "") {
+async function useItem(userId, itemId, chosenName = "", options = {}) {
   const item = items[itemId];
   if (!item || !item.effect) throw new Error("This item cannot be consumed.");
   return transact([userId], async (db, states) => {
     const state = stateOf(states, userId);
     const e = item.effect;
+    if (options.requireMiningCooldown) {
+      const cooldown = activity.playerReadiness(state).mine;
+      if (!isUsableReset(state, itemId, cooldown.seconds))
+        throw new Error("Mining is ready or this reset item is no longer eligible. Nothing was consumed.");
+    }
     if (e.orb && state.orbs >= 20) throw new Error("Orb limit reached (20).");
     const charged = state.mineBoostCharges > 0 ? state.mineBoostMultiplier : dec(1);
     if (e.mineBoost) {
