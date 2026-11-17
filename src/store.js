@@ -71,11 +71,15 @@ async function transact(ids, action) {
 }
 async function activeCompanion(db, userId) {
   const row = (await db.query(
-    "SELECT p.pet_id,p.xp FROM companion_settings s JOIN player_companions p " +
-    "ON p.user_id=s.user_id AND p.pet_id=s.active_pet_id WHERE s.user_id=$1",
+    "SELECT p.pet_id,p.xp,p.talent_id,s.equipped_charm_id,i.quantity AS charm_owned " +
+    "FROM companion_settings s JOIN player_companions p " +
+    "ON p.user_id=s.user_id AND p.pet_id=s.active_pet_id " +
+    "LEFT JOIN inventory i ON i.user_id=s.user_id AND i.item_id=s.equipped_charm_id " +
+    "WHERE s.user_id=$1",
     [userId]
   )).rows[0];
-  return row ? { id: row.pet_id, xp: Number(row.xp), level: companions.level(Number(row.xp)) } : null;
+  return row ? { id: row.pet_id, xp: Number(row.xp), level: companions.level(Number(row.xp)),
+    talentId: row.talent_id, charmId: Number(row.charm_owned || 0) > 0 ? row.equipped_charm_id : null } : null;
 }
 async function grantCompanionXp(db, userId, type, metadata = {}) {
   const amount = companions.eventXp(type, metadata);
@@ -88,19 +92,27 @@ async function grantCompanionXp(db, userId, type, metadata = {}) {
 }
 async function getCompanions(userId) {
   return transact([userId], async (db) => {
-    const settings = await db.query("SELECT starter_claimed,active_pet_id FROM companion_settings WHERE user_id=$1", [userId]);
-    const owned = await db.query("SELECT pet_id,xp,discovered_at FROM player_companions WHERE user_id=$1 ORDER BY discovered_at,pet_id", [userId]);
-    const eggs = await db.query("SELECT quantity FROM inventory WHERE user_id=$1 AND item_id='companion_egg'", [userId]);
+    const settings = await db.query("SELECT starter_claimed,active_pet_id,equipped_charm_id FROM companion_settings WHERE user_id=$1", [userId]);
+    const owned = await db.query("SELECT pet_id,xp,talent_id,discovered_at FROM player_companions WHERE user_id=$1 ORDER BY discovered_at,pet_id", [userId]);
+    const collected = await db.query("SELECT item_id,quantity FROM inventory WHERE user_id=$1 AND item_id=ANY($2::text[])",
+      [userId,[...Object.keys(companions.EGG_TIERS),...Object.keys(companions.CHARMS)]]);
+    const counts = Object.fromEntries(collected.rows.map(row=>[row.item_id,Number(row.quantity)]));
+    const eggCounts = Object.fromEntries(Object.keys(companions.EGG_TIERS).map(id=>[id,counts[id] || 0]));
     const status = settings.rows[0];
     return {
       starterClaimed: status?.starter_claimed || false,
       activeId: status?.active_pet_id || null,
-      eggs: Number(eggs.rows[0]?.quantity || 0),
+      eggs: eggCounts.companion_egg, eggCounts,
+      charms: Object.fromEntries(Object.keys(companions.CHARMS).map(id=>[id,counts[id] || 0])),
+      equippedCharmId: counts[status?.equipped_charm_id] > 0 ? status.equipped_charm_id : null,
       owned: owned.rows.map((row) => {
         const xp = Number(row.xp);
         const level = companions.level(xp);
-        return { id: row.pet_id, xp, level, stage: companions.stage(level),
-          bonus: companions.bonus({ id: row.pet_id, level }),
+        const talentId = row.talent_id || null;
+        const charmId = row.pet_id === status?.active_pet_id && counts[status?.equipped_charm_id] > 0 ?
+          status.equipped_charm_id : null;
+        return { id: row.pet_id, xp, level, stage: companions.stage(level), talentId,
+          bonus: companions.bonus({ id: row.pet_id, level, talentId, charmId }),
           nextXp: level === companions.MAX_LEVEL ? companions.MAX_XP : companions.xpFor(level + 1),
           startXp: companions.xpFor(level), discoveredAt: row.discovered_at.toISOString() };
       })
@@ -141,11 +153,12 @@ async function equipCompanion(userId, petId) {
     return { petId:pet.id,name:pet.name };
   });
 }
-async function hatchCompanion(userId) {
+async function hatchCompanion(userId, eggType = "companion_egg") {
+  if (!Object.hasOwn(companions.EGG_TIERS,eggType)) throw new Error("Unknown companion egg.");
   return transact([userId], async (db) => {
-    await removeItem(db,userId,"companion_egg",1);
+    await removeItem(db,userId,eggType,1);
     const rows = (await db.query("SELECT pet_id FROM player_companions WHERE user_id=$1",[userId])).rows;
-    const pet = companions.hatch(rows.map((row)=>row.pet_id));
+    const pet = companions.hatch(rows.map((row)=>row.pet_id),undefined,eggType);
     const discovered = !rows.some((row) => row.pet_id === pet.id);
     await db.query(
       "INSERT INTO player_companions(user_id,pet_id,xp) VALUES($1,$2,0) " +
@@ -162,6 +175,33 @@ async function hatchCompanion(userId) {
   });
 }
 
+async function chooseCompanionTalent(userId, talentId) {
+  if (!Object.hasOwn(companions.TALENTS,talentId)) throw new Error("Unknown companion talent.");
+  return transact([userId], async (db) => {
+    const current=await activeCompanion(db,userId);
+    if (!current) throw new Error("Choose an active companion first.");
+    if (current.level < 10) throw new Error("Companion talents unlock at level 10.");
+    await db.query("UPDATE player_companions SET talent_id=$3 WHERE user_id=$1 AND pet_id=$2",
+      [userId,current.id,talentId]);
+    return { petId:current.id,talentId, name:companions.TALENTS[talentId].name };
+  });
+}
+async function equipCompanionCharm(userId, charmId) {
+  if (charmId !== "none" && !Object.hasOwn(companions.CHARMS,charmId))
+    throw new Error("Unknown companion charm.");
+  return transact([userId], async (db) => {
+    const current=await activeCompanion(db,userId);
+    if (!current) throw new Error("Choose an active companion first.");
+    if (charmId !== "none") {
+      const owned=await db.query("SELECT quantity FROM inventory WHERE user_id=$1 AND item_id=$2",
+        [userId,charmId]);
+      if (Number(owned.rows[0]?.quantity || 0) < 1) throw new Error("You do not own this charm.");
+    }
+    await db.query("UPDATE companion_settings SET equipped_charm_id=$2 WHERE user_id=$1",
+      [userId,charmId === "none" ? null : charmId]);
+    return { charmId:charmId === "none" ? null : charmId };
+  });
+}
 async function grantSeasonXp(db, userId, type, metadata = {}) {
   if (season.phase() !== "active") return 0;
   const amount = season.eventXp(type, metadata);
@@ -349,6 +389,15 @@ async function openLootbox(userId, quantity, boxType = "lootbox") {
       if (Math.random() < bonusChance) {
         const extra = bonusPool[Math.floor(Math.random() * bonusPool.length)];
         drops[extra] = (drops[extra] || 0) + 1;
+      }
+      // Charms are additional, uncommon cache finds; original guaranteed drops remain intact.
+      if (boxType === "rare_lootbox" || boxType === "legendary_lootbox") {
+        const chance = boxType === "legendary_lootbox" ? 0.20 : 0.08;
+        if (Math.random() < chance) {
+          const charms = Object.keys(companions.CHARMS);
+          const charm = charms[Math.floor(Math.random()*charms.length)];
+          drops[charm] = (drops[charm] || 0) + 1;
+        }
       }
     }
     for (const [item, amount] of Object.entries(drops)) await addItem(db, userId, item, amount);
@@ -1060,6 +1109,6 @@ async function claimSeasonRewards(userId, requested = "all") {
 
 const guildStore = require("./guild-store")({ transact, pool, stateOf, dec, assertId });
 const guildExpeditionStore = require("./guild-expedition-store")({ transact, stateOf, addItem, event });
-module.exports = { ...guildStore, ...guildExpeditionStore, pool, transact, profile, getWorldBoss, attackWorldBoss, claimWorldBossReward, getCompanions, adoptCompanion, equipCompanion, hatchCompanion, getExploration, startExpedition, collectExpedition, upgradeExpeditionGear, getPreferences, setPreferences, resetPreferences, getChallenges, claimChallenge, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
+module.exports = { ...guildStore, ...guildExpeditionStore, pool, transact, profile, getWorldBoss, attackWorldBoss, claimWorldBossReward, getCompanions, adoptCompanion, equipCompanion, hatchCompanion, chooseCompanionTalent, equipCompanionCharm, getExploration, startExpedition, collectExpedition, upgradeExpeditionGear, getPreferences, setPreferences, resetPreferences, getChallenges, claimChallenge, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
   prestige, leaderboard, browseMarket, sellItem, buyListing, cancelListing, getListing, useItem, upgradePickaxe, upgradePerk,
   respecPerks, getStats };
