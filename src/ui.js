@@ -309,8 +309,8 @@ function prestigeResult(owner, result) {
     "A new chapter begins with lasting strength.",
     "**PRESTIGE LEVEL**  " + result.prestige +
     "\n**PRODUCTION MULTIPLIER**  " + dec(result.multiplier).toString() + "×" +
-    (result.itemId === "rebirth_cocktail" ? "\n**REWARD**  1× Rebirth Cocktail added to your Satchel" : "") +
-    (result.bonusItemId ? "\n**LUCKY BONUS**  1× " + items[result.bonusItemId].name : "") +
+    (result.bonusItemId ? "\n**LUCKY BONUS**  1× " + items[result.bonusItemId].name +
+      " added to your Satchel" : "\n**LUCKY BONUS**  None this time") +
     "\nYour operation roster and wallet have reset; your permanent progress remains.",
     [button(owner, "shop", "Recruit operations", "", ButtonStyle.Primary),
      button(owner, "profile", "Command Center")],
@@ -1142,8 +1142,8 @@ function prestige(owner, p) {
   foot(c, "**Your IC**  " + pretty(p.balance) + " / " + pretty(PRESTIGE_REQUIREMENT) +
     "\n**Current level**  " + p.prestige + "\n**Next level**  " + (p.prestige + 1) +
     "\n**Permanent production**  +" + ((p.prestige + 1) * 25) + "%" +
-    "\n**Prestige reward**  1× Rebirth Cocktail (cooldown reset, 2× for 3 digs)" +
-    "\n**Lucky bonus**  30% Supply Cache · 10% Rare Cache · 5% Adventurer's Lunchbox");
+    "\n**Lucky reward**  5% Rebirth Cocktail · 5% Lunchbox · 10% Rare Cache · 30% Supply Cache" +
+    "\n50% chance of no bonus item.");
   c.addActionRowComponents(row([
     button(owner, "prestige_confirm", "Confirm prestige", "", ButtonStyle.Danger, !eligible),
     button(owner, "profile", "Cancel")

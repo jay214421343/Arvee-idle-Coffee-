@@ -57,7 +57,7 @@ const items = Object.freeze({
   reward: { name: "Miner's Reward", emoji: "🥨", rarity: "Uncommon", description: "A morale booster issued for productive expeditions. Accounting calls it a performance incentive.", use: "Boost your next 3 successful digs by 60%. Food buffs do not stack.", effect: {"mineBoost":{"multiplier":"1.6","charges":3}} },
   stat_card: { name: "Stat Card", emoji: "📊", rarity: "Rare", description: "A reusable field ledger that opens your achievements and gameplay records.", use: "Open your player statistics without consuming the card.", effect: {"stats":true} },
   tag: { name: "Profile Tag", emoji: "🎗️", rarity: "Epic", description: "A single-use badge that sets a persistent title under your player name.", use: "Choose a profile title with Customize, or /idle use item:tag name:YourTitle.", effect: {"tag":true} },
-  rebirth_cocktail: { name: "Rebirth Cocktail", emoji: "🍹", rarity: "Legendary", description: "A celebratory draught awarded for a successful prestige. One toast to a new beginning.", use: "Reset mining cooldown and boost your next 3 successful digs by 100%. Cannot stack with another food boost.", effect: { mineBoost: { multiplier: "2", charges: 3 }, cooldownReset: true } }
+  rebirth_cocktail: { name: "Rebirth Cocktail", emoji: "🍹", rarity: "Legendary", description: "A rare lucky rebirth reward. One toast to a new beginning.", use: "Reset mining cooldown and boost your next 3 successful digs by 100%. Cannot stack with another food boost.", effect: { mineBoost: { multiplier: "2", charges: 3 }, cooldownReset: true } }
 });
 const recipes = Object.freeze({
   coffee: { ore: 3, silver: 1 },

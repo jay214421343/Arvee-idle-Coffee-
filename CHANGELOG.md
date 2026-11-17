@@ -9,6 +9,16 @@
 
 ---
 
+# 2.11.1 — Rebirth Cocktail in the Lucky Pool Only (pending review)
+
+- Each prestige has one optional reward roll: **5% Rebirth Cocktail**, 5% Adventurer's Lunchbox, 10% Rare Supply Cache, 30% Supply Cache, or **50% no bonus**.
+- **Removed the previously guaranteed cocktail.** Players may prestige without any item award; a lucky cocktail result grants exactly one cocktail.
+- Preserve existing prestige requirements, permanent production multiplier, inventory, and transaction-backed duplicate protection.
+- Update the prestige preview, completion receipt, item description and documentation. Unit and PostgreSQL tests verify all reward outcomes.
+- No database migration or slash-command registration required.
+
+---
+
 # 2.11.0 — Companion Builds & Mastery (pending review)
 
 - Remove the Founders' Journey 500 XP/day cap and its progress counter. All qualifying actions contribute full season XP; historical XP and claims are preserved.
