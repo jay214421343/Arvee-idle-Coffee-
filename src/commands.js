@@ -5,7 +5,6 @@ const { dec, pretty, purchaseCost, PRESTIGE_REQUIREMENT } = require("./economy")
 const store = require("./store");
 const ui = require("./ui");
 
-const itemChoices = Object.entries(items).map(([value, info]) => ({ name: info.name, value }));
 const recipeChoices = Object.keys(recipes).map((id) => ({ name: items[id].name, value: id }));
 const idle = new SlashCommandBuilder().setName("idle").setDescription("ARVEE Idle — build, explore, mine and trade");
 idle.addSubcommand((c) => c.setName("help").setDescription("Commands and getting started"));
@@ -32,7 +31,7 @@ idle.addSubcommand((c) => c.setName("open").setDescription("Open your Supply Cac
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity (1-20)").setMinValue(1).setMaxValue(20)));
 idle.addSubcommand((c) => c.setName("give").setDescription("Give another player an item")
   .addUserOption((o) => o.setName("user").setDescription("Recipient").setRequired(true))
-  .addStringOption((o) => o.setName("item").setDescription("Item").setRequired(true).addChoices(...itemChoices))
+  .addStringOption((o) => o.setName("item").setDescription("Item").setRequired(true).setAutocomplete(true))
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity").setMinValue(1).setMaxValue(1000)));
 idle.addSubcommand((c) => c.setName("leaderboard").setDescription("Top players by earned IC"));
 idle.addSubcommand((c) => c.setName("pickaxe").setDescription("Upgrade your pickaxe and view mining stats"));
@@ -46,7 +45,7 @@ idle.addSubcommand((c) => c.setName("prestige").setDescription("Restart your gen
 idle.addSubcommandGroup((g) => g.setName("market").setDescription("Trade items for IC")
   .addSubcommand((c) => c.setName("browse").setDescription("Browse active listings"))
   .addSubcommand((c) => c.setName("sell").setDescription("List items for sale")
-    .addStringOption((o) => o.setName("item").setDescription("Item").setRequired(true).addChoices(...itemChoices))
+    .addStringOption((o) => o.setName("item").setDescription("Item").setRequired(true).setAutocomplete(true))
     .addIntegerOption((o) => o.setName("amount").setDescription("Quantity").setRequired(true).setMinValue(1).setMaxValue(1000))
     .addStringOption((o) => o.setName("price").setDescription("Total IC price, as a whole number").setRequired(true)))
   .addSubcommand((c) => c.setName("buy").setDescription("Buy one listing")
@@ -220,12 +219,17 @@ async function respond(interaction) {
 async function handleAutocomplete(interaction) {
   if (!interaction.isAutocomplete() || interaction.commandName !== "idle") return false;
   const focus = interaction.options.getFocused(true);
-  if (focus.name !== "generator") return false;
   const term = String(focus.value || "").toLowerCase().slice(0, 100);
-  const choices = generators
-    .filter((g) => (g.name + " " + g.id).toLowerCase().includes(term))
-    .slice(0, 25)
-    .map((g) => ({ name: g.name.slice(0, 100), value: g.id }));
+  let choices;
+  if (focus.name === "generator") {
+    choices = generators.filter((g) =>
+      (g.name + " " + g.id).toLowerCase().includes(term))
+      .slice(0, 25).map((g) => ({ name: g.name.slice(0, 100), value: g.id }));
+  } else if (focus.name === "item") {
+    choices = Object.entries(items).filter(([id, data]) =>
+      (data.name + " " + id).toLowerCase().includes(term))
+      .slice(0, 25).map(([id, data]) => ({ name: data.name.slice(0, 100), value: id }));
+  } else return false;
   await interaction.respond(choices);
   return true;
 }
