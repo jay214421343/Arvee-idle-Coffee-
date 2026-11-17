@@ -109,7 +109,7 @@ test("command center groups primary actions and a clean text navigation menu", (
   assert.equal(actions.length,1);
   assert.equal(actions[0].components.length,4);
   assert.equal(selects.length,1);
-  assert.equal(selects[0].options.length,15);
+  assert.equal(selects[0].options.length,16);
   assert.equal(selects[0].custom_id,ui.custom(owner,"navigate"));
   assert.ok(selects[0].options.some((o)=>o.value==="market"));
 });
@@ -158,7 +158,7 @@ test("high-traffic screens use restrained text labels instead of decorative emoj
   const home=ui.home(owner,user,sample).toJSON();
   const nav=home.components.filter(c=>c.type===1).flatMap(c=>c.components)
     .find(c=>c.type===3);
-  assert.equal(nav.options.length,15);
+  assert.equal(nav.options.length,16);
   assert.ok(nav.options.some(c=>c.value==="explore"));
 });
 test("item artwork is retained in inspect details, not repeated across lists", () => {

@@ -16,7 +16,8 @@ const WEEKLY = Object.freeze([
   { id: "weekly_provisions", label: "Keep the Camp Supplied", event: "daily", metric: "count", goal: 4, reward: { kind: "ic", amount: 2500 } },
   { id: "weekly_caches", label: "Uncover Relics", event: "open_lootbox", metric: "quantity", goal: 6, reward: { kind: "item", item: "gold", quantity: 2 } },
   { id: "weekly_forge", label: "Supply the Vanguard", event: "craft", metric: "quantity", goal: 4, reward: { kind: "ic", amount: 1800 } },
-  { id: "weekly_explorer", label: "World Pathfinder", event: "expedition_complete", metric: "count", goal: 6, reward: { kind: "item", item: "rare_lootbox", quantity: 1 } }
+  { id: "weekly_explorer", label: "World Pathfinder", event: "expedition_complete", metric: "count", goal: 6, reward: { kind: "item", item: "rare_lootbox", quantity: 1 } },
+  { id: "weekly_pet_hunt", label: "Companion Discovery", event: "expedition_complete", metric: "count", goal: 4, reward: { kind: "item", item: "companion_egg", quantity: 1 } }
 ].map((x) => Object.freeze(x)));
 function cycle(scope, now = new Date()) {
   if (scope !== "daily" && scope !== "weekly") throw new Error("Invalid challenge period.");

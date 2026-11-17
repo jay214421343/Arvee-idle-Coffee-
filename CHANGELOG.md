@@ -1,3 +1,13 @@
+# 2.4.0 — Companions (unreleased)
+
+- Added Ember Fox, Moss Wisp and Moon Owl, with one-time free starter choice, permanent collection, one active companion and XP-based evolution stages.
+- Bonuses improve actual mining IC, expedition duration or material drops, with effects calculated server-side and snapshotted on mission start.
+- Successful expeditions may grant a pre-rolled Companion Egg; hatching is transactional, with duplicate pets granting 150 XP. A rotating weekly contract can award eggs too.
+- Added owner-bound /idle companions and compact Components V2 adoption, equip and hatch interactions without decorative emoji overload.
+- Additive PostgreSQL migrations preserve existing balances, inventories, season claims, preferences and missions. Pets persist through prestige.
+- Added unit, Discord serialization and database integration tests for progression, rewards and concurrent actions.
+
+---
 # 2.3.0 — Expeditions 2.0 (unreleased)
 
 - Added three persistent explorable regions with progression gates, mission timers, loot tables, outcomes and exploration XP.

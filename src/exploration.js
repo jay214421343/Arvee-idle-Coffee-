@@ -1,5 +1,6 @@
 "use strict";
 const crypto = require("node:crypto");
+const companions = require("./companions");
 const REGIONS = Object.freeze([
   Object.freeze({ id: "forest", name: "Whispering Forest", icon: "🌲",
     description: "Scout forgotten paths and gather the first expedition supplies.",
@@ -39,8 +40,11 @@ function levels(rows = []) {
 function unlocked(region, crew, xp) {
   return Number(crew) >= region.crew && Number(xp) >= region.xp;
 }
-function duration(region, gear = {}) {
-  return Math.max(60, Math.ceil(region.durationSeconds * (1 - Math.min(5, gear.kit || 0) * 0.07)));
+function duration(region, gear = {}, pet = null) {
+  const petFactor = pet?.id === "moss_wisp"
+    ? 1 - companions.boostPct(pet.level) / 100 : 1;
+  return Math.max(60, Math.ceil(region.durationSeconds *
+    (1 - Math.min(5, gear.kit || 0) * 0.07) * petFactor));
 }
 function chance(region, gear = {}) {
   return Math.min(0.98, region.success + Math.min(5, gear.ward || 0) * 0.05);
@@ -54,13 +58,14 @@ function upgradeCost(id, currentLevel) {
     materials: { ore: (4 + index * 2) * n, silver: (index + 1) * n,
       ...(currentLevel >= 2 ? { gold: currentLevel - 1 } : {}) } };
 }
-function reward(region, gear, rng = () => crypto.randomInt(0, 1000000) / 1000000) {
+function reward(region, gear, rng = () => crypto.randomInt(0, 1000000) / 1000000, pet = null) {
   if (!region || !regionById.has(region.id)) throw new Error("Unknown expedition region.");
   const success = rng() < chance(region, gear);
   let roll = rng() * 100;
   const drop = region.drops.find((d) => (roll -= d.weight) < 0) || region.drops.at(-1);
   const baseQty = drop.min + Math.floor(rng() * (drop.max - drop.min + 1));
-  const quantity = Math.max(1, Math.floor(baseQty * (1 + 0.12 * (gear.compass || 0))));
+  let quantity = Math.max(1, Math.floor(baseQty * (1 + 0.12 * (gear.compass || 0))));
+  if (pet?.id === "moon_owl") quantity = Math.ceil(quantity * (1 + companions.boostPct(pet.level) / 100));
   return { outcome: success ? "success" : "setback",
     credits: Math.floor(region.credits * (success ? 1 : 0.35)),
     experience: success ? region.experience : Math.floor(region.experience / 2),

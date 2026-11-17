@@ -5,6 +5,7 @@ const { Decimal, dec, generatorRate, purchaseCost, settle, PRESTIGE_REQUIREMENT,
 const season = require("./season");
 const challenges = require("./challenges");
 const exploration = require("./exploration");
+const companions = require("./companions");
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 10, connectionTimeoutMillis: 10000, idleTimeoutMillis: 30000 });
 pool.on("error", (error) => console.error("[Postgres] Idle connection error", error));
@@ -59,6 +60,99 @@ async function transact(ids, action) {
     client.release();
   }
 }
+async function activeCompanion(db, userId) {
+  const row = (await db.query(
+    "SELECT p.pet_id,p.xp FROM companion_settings s JOIN player_companions p " +
+    "ON p.user_id=s.user_id AND p.pet_id=s.active_pet_id WHERE s.user_id=$1",
+    [userId]
+  )).rows[0];
+  return row ? { id: row.pet_id, xp: Number(row.xp), level: companions.level(Number(row.xp)) } : null;
+}
+async function grantCompanionXp(db, userId, type, metadata = {}) {
+  const amount = companions.eventXp(type, metadata);
+  if (!amount) return;
+  await db.query(
+    "UPDATE player_companions p SET xp=LEAST(p.xp+$2, $3) FROM companion_settings s " +
+    "WHERE p.user_id=$1 AND s.user_id=p.user_id AND s.active_pet_id=p.pet_id",
+    [userId, amount, companions.MAX_XP]
+  );
+}
+async function getCompanions(userId) {
+  return transact([userId], async (db) => {
+    const settings = await db.query("SELECT starter_claimed,active_pet_id FROM companion_settings WHERE user_id=$1", [userId]);
+    const owned = await db.query("SELECT pet_id,xp,discovered_at FROM player_companions WHERE user_id=$1 ORDER BY discovered_at,pet_id", [userId]);
+    const eggs = await db.query("SELECT quantity FROM inventory WHERE user_id=$1 AND item_id='companion_egg'", [userId]);
+    const status = settings.rows[0];
+    return {
+      starterClaimed: status?.starter_claimed || false,
+      activeId: status?.active_pet_id || null,
+      eggs: Number(eggs.rows[0]?.quantity || 0),
+      owned: owned.rows.map((row) => {
+        const xp = Number(row.xp);
+        const level = companions.level(xp);
+        return { id: row.pet_id, xp, level, stage: companions.stage(level),
+          bonus: companions.bonus({ id: row.pet_id, level }),
+          nextXp: level === companions.MAX_LEVEL ? companions.MAX_XP : companions.xpFor(level + 1),
+          startXp: companions.xpFor(level), discoveredAt: row.discovered_at.toISOString() };
+      })
+    };
+  });
+}
+async function adoptCompanion(userId, petId) {
+  const pet = companions.byId.get(String(petId));
+  if (!pet) throw new Error("Unknown companion.");
+  return transact([userId], async (db) => {
+    await db.query("INSERT INTO companion_settings(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING", [userId]);
+    const settings = (await db.query(
+      "SELECT starter_claimed FROM companion_settings WHERE user_id=$1 FOR UPDATE", [userId]
+    )).rows[0];
+    if (settings.starter_claimed) throw new Error("You already chose your starter companion.");
+    await db.query("INSERT INTO player_companions(user_id,pet_id) VALUES($1,$2) ON CONFLICT(user_id,pet_id) DO NOTHING",
+      [userId,pet.id]);
+    await db.query(
+      "UPDATE companion_settings SET starter_claimed=TRUE,active_pet_id=$2 WHERE user_id=$1",
+      [userId,pet.id]
+    );
+    await event(db,userId,"companion_adopt",0,{petId:pet.id});
+    return { petId:pet.id,name:pet.name };
+  });
+}
+async function equipCompanion(userId, petId) {
+  const pet = companions.byId.get(String(petId));
+  if (!pet) throw new Error("Unknown companion.");
+  return transact([userId], async (db) => {
+    const owned = (await db.query(
+      "SELECT 1 FROM player_companions WHERE user_id=$1 AND pet_id=$2",[userId,pet.id]
+    )).rowCount > 0;
+    if (!owned) throw new Error("You haven't discovered that companion.");
+    await db.query(
+      "INSERT INTO companion_settings(user_id,active_pet_id) VALUES($1,$2) " +
+      "ON CONFLICT(user_id) DO UPDATE SET active_pet_id=$2",[userId,pet.id]
+    );
+    return { petId:pet.id,name:pet.name };
+  });
+}
+async function hatchCompanion(userId) {
+  return transact([userId], async (db) => {
+    await removeItem(db,userId,"companion_egg",1);
+    const rows = (await db.query("SELECT pet_id FROM player_companions WHERE user_id=$1",[userId])).rows;
+    const pet = companions.hatch(rows.map((row)=>row.pet_id));
+    const discovered = !rows.some((row) => row.pet_id === pet.id);
+    await db.query(
+      "INSERT INTO player_companions(user_id,pet_id,xp) VALUES($1,$2,0) " +
+      "ON CONFLICT(user_id,pet_id) DO UPDATE SET xp=LEAST(player_companions.xp+150,$3)",
+      [userId,pet.id,companions.MAX_XP]
+    );
+    await db.query(
+      "INSERT INTO companion_settings(user_id,active_pet_id) VALUES($1,$2) " +
+      "ON CONFLICT(user_id) DO UPDATE SET active_pet_id=COALESCE(companion_settings.active_pet_id,$2)",
+      [userId,pet.id]
+    );
+    await event(db,userId,"companion_hatch",0,{petId:pet.id,discovered});
+    return { petId:pet.id,name:pet.name,discovered,bonusXp:discovered?0:150 };
+  });
+}
+
 async function grantSeasonXp(db, userId, type, metadata = {}) {
   if (season.phase() !== "active") return 0;
   const amount = season.eventXp(type, metadata);
@@ -86,6 +180,7 @@ async function event(db, userId, type, amount, metadata = {}) {
   await db.query("INSERT INTO economy_events(user_id, event_type, amount, metadata) VALUES($1,$2,$3,$4)",
     [userId, type, dec(amount).toFixed(0), JSON.stringify(metadata)]);
   await grantSeasonXp(db, userId, type, metadata);
+  await grantCompanionXp(db, userId, type, metadata);
 }
 async function addItem(db, userId, itemId, quantity) {
   assertItem(itemId);
@@ -143,10 +238,12 @@ async function mine(userId) {
     const cooldown = Math.max(30000, (90 - 6 * perkLevel(state, "sprinter")) * 1000);
     const remaining = state.lastMine ? cooldown - (now - new Date(state.lastMine).getTime()) : 0;
     if (remaining > 0) return { cooldown: Math.ceil(remaining / 1000) };
+    const pet = await activeCompanion(db,userId);
+    const petBonus = pet?.id === "ember_fox" ? dec(1).plus(dec(companions.boostPct(pet.level)).div(100)) : dec(1);
     const reward = Decimal.max(150, state.rate.times(30))
       .times(dec(1).plus(dec(state.pickaxeTier).times("0.25")))
       .times(dec(1).plus(dec(perkLevel(state, "miner")).times("0.10")))
-      .times(state.mineBonus).floor();
+      .times(state.mineBonus).times(petBonus).floor();
     state.mineBonus = dec(1);
     state.balance = state.balance.plus(reward);
     state.totalEarned = state.totalEarned.plus(reward);
@@ -472,11 +569,9 @@ async function getChallenges(userId) {
     const result = {};
     for (const scope of ["daily", "weekly"]) {
       const c = challenges.cycle(scope, now);
-      const [activities, claims] = await Promise.all([
-        challengeActivities(db, userId, c),
-        db.query("SELECT challenge_id FROM challenge_claims WHERE user_id=$1 AND scope=$2 AND period_key=$3",
-          [userId, scope, c.key])
-      ]);
+      const activities = await challengeActivities(db, userId, c);
+      const claims = await db.query("SELECT challenge_id FROM challenge_claims WHERE user_id=$1 AND scope=$2 AND period_key=$3",
+        [userId, scope, c.key]);
       result[scope] = challenges.board(c, activities, claims.rows.map((r) => r.challenge_id));
     }
     return result;
@@ -516,13 +611,12 @@ async function claimChallenge(userId, scope, periodKey, challengeId) {
 
 
 async function readExploration(db, userId, state) {
-  const [progress, equipment, current, clock, inventory] = await Promise.all([
-    db.query("SELECT xp FROM exploration_progress WHERE user_id=$1", [userId]),
-    db.query("SELECT gear_id,level FROM expedition_equipment WHERE user_id=$1 ORDER BY gear_id", [userId]),
-    db.query("SELECT * FROM expedition_missions WHERE user_id=$1 AND claimed_at IS NULL ORDER BY id DESC LIMIT 1", [userId]),
-    db.query("SELECT clock_timestamp() AS now"),
-    db.query("SELECT item_id,quantity FROM inventory WHERE user_id=$1 AND quantity>0", [userId])
-  ]);
+  const progress = await db.query("SELECT xp FROM exploration_progress WHERE user_id=$1", [userId]);
+  const equipment = await db.query("SELECT gear_id,level FROM expedition_equipment WHERE user_id=$1 ORDER BY gear_id", [userId]);
+  const current = await db.query("SELECT * FROM expedition_missions WHERE user_id=$1 AND claimed_at IS NULL ORDER BY id DESC LIMIT 1", [userId]);
+  const clock = await db.query("SELECT clock_timestamp() AS now");
+  const inventory = await db.query("SELECT item_id,quantity FROM inventory WHERE user_id=$1 AND quantity>0", [userId]);
+  const activePet = await activeCompanion(db,userId);
   const xp = Number(progress.rows[0]?.xp || 0);
   const gear = exploration.levels(equipment.rows);
   const crew = state.generators.reduce((sum, g) => sum + g.quantity, 0);
@@ -534,7 +628,7 @@ async function readExploration(db, userId, state) {
     outcome: row.outcome, credits: dec(row.reward_ic), experience: row.reward_xp,
     itemId: row.reward_item_id, quantity: row.reward_quantity
   } : null;
-  return { xp, gear, crew, balance: state.balance, inventory: inventory.rows, active,
+  return { xp, gear, crew, balance: state.balance, inventory: inventory.rows, companion: activePet, active,
     regions: exploration.REGIONS.map((region) => ({
       id: region.id, unlocked: exploration.unlocked(region, crew, xp)
     })) };
@@ -551,15 +645,16 @@ async function startExpedition(userId, regionId) {
     if (info.active) throw new Error("Finish or collect your current expedition first.");
     if (!exploration.unlocked(region, info.crew, info.xp))
       throw new Error("Region locked. Recruit " + region.crew + " adventurers and earn " + region.xp + " exploration XP.");
-    const seconds = exploration.duration(region, info.gear);
-    const rewards = exploration.reward(region, info.gear);
+    const seconds = exploration.duration(region, info.gear, info.companion);
+    const rewards = exploration.reward(region, info.gear, undefined, info.companion);
+    const egg = companions.eggDrop(region.id,rewards.outcome === "success");
     const clock = (await db.query("SELECT clock_timestamp() AS now")).rows[0].now;
     const finishes = new Date(new Date(clock).getTime() + seconds * 1000);
     const result = (await db.query(
-      "INSERT INTO expedition_missions(user_id,region_id,started_at,finishes_at,outcome,reward_ic,reward_xp,reward_item_id,reward_quantity) " +
-      "VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id,finishes_at",
+      "INSERT INTO expedition_missions(user_id,region_id,started_at,finishes_at,outcome,reward_ic,reward_xp,reward_item_id,reward_quantity,companion_egg) " +
+      "VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id,finishes_at",
       [userId, region.id, clock, finishes, rewards.outcome, rewards.credits, rewards.experience,
-        rewards.itemId, rewards.quantity]
+        rewards.itemId, rewards.quantity,egg]
     )).rows[0];
     await event(db, userId, "expedition_start", 0, { region: region.id });
     return { id: String(result.id), region: region.name, finishesAt: result.finishes_at.toISOString() };
@@ -584,6 +679,7 @@ async function collectExpedition(userId) {
     state.balance = state.balance.plus(credits);
     state.totalEarned = state.totalEarned.plus(credits);
     await addItem(db, userId, row.reward_item_id, row.reward_quantity);
+    if (row.companion_egg) await addItem(db,userId,"companion_egg",1);
     await db.query(
       "INSERT INTO exploration_progress(user_id,xp) VALUES($1,$2) " +
       "ON CONFLICT(user_id) DO UPDATE SET xp=exploration_progress.xp+EXCLUDED.xp",
@@ -592,7 +688,7 @@ async function collectExpedition(userId) {
     await event(db, userId, "expedition_complete", credits,
       { region: row.region_id, outcome: row.outcome, xp: row.reward_xp });
     return { regionId: row.region_id, outcome: row.outcome, credits,
-      experience: row.reward_xp, itemId: row.reward_item_id, quantity: row.reward_quantity };
+      experience: row.reward_xp, itemId: row.reward_item_id, quantity: row.reward_quantity, egg:row.companion_egg };
   });
 }
 async function upgradeExpeditionGear(userId, gearId) {
@@ -679,6 +775,6 @@ async function claimSeasonRewards(userId, requested = "all") {
   });
 }
 
-module.exports = { pool, transact, profile, getExploration, startExpedition, collectExpedition, upgradeExpeditionGear, getPreferences, setPreferences, resetPreferences, getChallenges, claimChallenge, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
+module.exports = { pool, transact, profile, getCompanions, adoptCompanion, equipCompanion, hatchCompanion, getExploration, startExpedition, collectExpedition, upgradeExpeditionGear, getPreferences, setPreferences, resetPreferences, getChallenges, claimChallenge, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
   prestige, leaderboard, browseMarket, sellItem, buyListing, cancelListing, getListing, useItem, upgradePickaxe, upgradePerk,
   respecPerks, getStats };

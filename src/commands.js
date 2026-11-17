@@ -5,7 +5,6 @@ const { dec, pretty, purchaseCost, PRESTIGE_REQUIREMENT } = require("./economy")
 const store = require("./store");
 const ui = require("./ui");
 
-const itemChoices = Object.entries(items).map(([value, info]) => ({ name: info.name, value }));
 const recipeChoices = Object.keys(recipes).map((id) => ({ name: items[id].name, value: id }));
 const idle = new SlashCommandBuilder().setName("idle").setDescription("ARVEE Idle — build, explore, mine and trade");
 idle.addSubcommand((c) => c.setName("help").setDescription("Commands and getting started"));
@@ -19,6 +18,7 @@ idle.addSubcommand((c) => c.setName("daily").setDescription("Claim your daily Id
 idle.addSubcommand((c) => c.setName("season").setDescription("Season Journey: tiers, challenges and free rewards"));
 idle.addSubcommand((c) => c.setName("challenges").setDescription("Daily and weekly adventurer contracts with rewards"));
 idle.addSubcommand((c) => c.setName("explore").setDescription("World Map: send your crew on timed expeditions"));
+idle.addSubcommand((c) => c.setName("companions").setDescription("Collect, level and equip an adventure companion"));
 idle.addSubcommand((c) => c.setName("equipment").setDescription("Upgrade permanent expedition equipment"));
 idle.addSubcommand((c) => c.setName("settings").setDescription("View and reset your saved filter preferences"));
 idle.addSubcommand((c) => c.setName("inventory").setDescription("Check collected items").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
@@ -31,7 +31,7 @@ idle.addSubcommand((c) => c.setName("open").setDescription("Open your Supply Cac
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity (1-20)").setMinValue(1).setMaxValue(20)));
 idle.addSubcommand((c) => c.setName("give").setDescription("Give another player an item")
   .addUserOption((o) => o.setName("user").setDescription("Recipient").setRequired(true))
-  .addStringOption((o) => o.setName("item").setDescription("Item").setRequired(true).addChoices(...itemChoices))
+  .addStringOption((o) => o.setName("item").setDescription("Item").setRequired(true).setAutocomplete(true))
   .addIntegerOption((o) => o.setName("amount").setDescription("Quantity").setMinValue(1).setMaxValue(1000)));
 idle.addSubcommand((c) => c.setName("leaderboard").setDescription("Top players by earned IC"));
 idle.addSubcommand((c) => c.setName("pickaxe").setDescription("Upgrade your pickaxe and view mining stats"));
@@ -45,7 +45,7 @@ idle.addSubcommand((c) => c.setName("prestige").setDescription("Restart your gen
 idle.addSubcommandGroup((g) => g.setName("market").setDescription("Trade items for IC")
   .addSubcommand((c) => c.setName("browse").setDescription("Browse active listings"))
   .addSubcommand((c) => c.setName("sell").setDescription("List items for sale")
-    .addStringOption((o) => o.setName("item").setDescription("Item").setRequired(true).addChoices(...itemChoices))
+    .addStringOption((o) => o.setName("item").setDescription("Item").setRequired(true).setAutocomplete(true))
     .addIntegerOption((o) => o.setName("amount").setDescription("Quantity").setRequired(true).setMinValue(1).setMaxValue(1000))
     .addStringOption((o) => o.setName("price").setDescription("Total IC price, as a whole number").setRequired(true)))
   .addSubcommand((c) => c.setName("buy").setDescription("Buy one listing")
@@ -115,6 +115,7 @@ async function respond(interaction) {
         "**Season:** /idle season to unlock 20 free reward tiers",
         "**Contracts:** /idle challenges for daily and weekly rewards",
         "**World Map:** /idle explore to send crew on timed expeditions",
+        "**Companions:** /idle companions to choose a pet and hatch eggs",
         "**Equipment:** /idle equipment to boost expedition rewards",
         "**Preferences:** /idle settings to view and reset your saved filters",
         "**Activities:** /idle mine, /idle daily, /idle craft, /idle open",
@@ -138,6 +139,8 @@ async function respond(interaction) {
       view = ui.preferences(id, await store.getPreferences(id));
     } else if (command === "explore") {
       view = ui.expeditionMap(id, await store.getExploration(id));
+    } else if (command === "companions") {
+      view = ui.companionCollection(id, await store.getCompanions(id));
     } else if (command === "equipment") {
       view = ui.expeditionGear(id, await store.getExploration(id));
     } else if (command === "shop") {
@@ -216,12 +219,17 @@ async function respond(interaction) {
 async function handleAutocomplete(interaction) {
   if (!interaction.isAutocomplete() || interaction.commandName !== "idle") return false;
   const focus = interaction.options.getFocused(true);
-  if (focus.name !== "generator") return false;
   const term = String(focus.value || "").toLowerCase().slice(0, 100);
-  const choices = generators
-    .filter((g) => (g.name + " " + g.id).toLowerCase().includes(term))
-    .slice(0, 25)
-    .map((g) => ({ name: g.name.slice(0, 100), value: g.id }));
+  let choices;
+  if (focus.name === "generator") {
+    choices = generators.filter((g) =>
+      (g.name + " " + g.id).toLowerCase().includes(term))
+      .slice(0, 25).map((g) => ({ name: g.name.slice(0, 100), value: g.id }));
+  } else if (focus.name === "item") {
+    choices = Object.entries(items).filter(([id, data]) =>
+      (data.name + " " + id).toLowerCase().includes(term))
+      .slice(0, 25).map(([id, data]) => ({ name: data.name.slice(0, 100), value: id }));
+  } else return false;
   await interaction.respond(choices);
   return true;
 }
@@ -254,6 +262,7 @@ async function handleComponent(interaction) {
       else if (selected === "challenges") view = ui.challengeBoard(owner, await store.getChallenges(owner));
       else if (selected === "settings") view = ui.preferences(owner, await store.getPreferences(owner));
       else if (selected === "explore") view = ui.expeditionMap(owner, await store.getExploration(owner));
+      else if (selected === "companions") view = ui.companionCollection(owner, await store.getCompanions(owner));
       else if (selected === "equipment") view = ui.expeditionGear(owner, await store.getExploration(owner));
       else if (selected === "market") view = ui.market(owner, await store.browseMarket());
       else if (selected === "pickaxe") view = ui.pickaxe(owner, await store.profile(owner));
@@ -289,6 +298,21 @@ async function handleComponent(interaction) {
       view = ui.preferences(owner, await store.getPreferences(owner));
     } else if (action === "preferences_reset") {
       view = ui.preferences(owner, await store.resetPreferences(owner), "Defaults restored. New filters save automatically.");
+    } else if (action === "companions") {
+      view = ui.companionCollection(owner, await store.getCompanions(owner));
+    } else if (action === "companion_adopt") {
+      result = await store.adoptCompanion(owner, selected);
+      view = ui.companionCollection(owner, await store.getCompanions(owner),
+        result.name + " joined your adventure.");
+    } else if (action === "companion_select") {
+      result = await store.equipCompanion(owner, selected);
+      view = ui.companionCollection(owner, await store.getCompanions(owner),
+        result.name + " is now active.");
+    } else if (action === "companion_hatch") {
+      result = await store.hatchCompanion(owner);
+      view = ui.companionCollection(owner, await store.getCompanions(owner),
+        result.discovered ? "Discovered " + result.name + "!" :
+          result.name + " bonded with you. +" + result.bonusXp + " companion XP.");
     } else if (action === "explore") {
       view = ui.expeditionMap(owner, await store.getExploration(owner));
     } else if (action === "region_view") {
@@ -302,7 +326,7 @@ async function handleComponent(interaction) {
       view = ui.expeditionMap(owner, await store.getExploration(owner),
         (result.outcome === "success" ? "Mission successful! " : "A setback, but the crew returned. ") +
         "+" + pretty(result.credits) + " IC, +" + result.experience + " exploration XP, " +
-        result.quantity + "× " + labelItem(result.itemId) + ".");
+        result.quantity + "× " + labelItem(result.itemId) + (result.egg ? " · Companion Egg found!" : "") + ".");
     } else if (action === "equipment") {
       view = ui.expeditionGear(owner, await store.getExploration(owner));
     } else if (action === "equipment_select" || action === "equipment_upgrade") {

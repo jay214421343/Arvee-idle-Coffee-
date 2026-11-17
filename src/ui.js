@@ -8,6 +8,7 @@ const { pretty, dec, purchaseCost, PRESTIGE_REQUIREMENT, Decimal } = require("./
 const brand = require("./brand");
 const challengeData = require("./challenges");
 const exploration = require("./exploration");
+const companions = require("./companions");
 const { SEASON, rewards, missions, label, tierNeeded } = require("./season");
 
 const ACCENT = brand.theme.primary;
@@ -54,6 +55,7 @@ function navigation(owner) {
     { label: "Season Journey", value: "season", description: "Earn Season XP and unlock 20 free rewards" },
     { label: "Adventurer Contracts", value: "challenges", description: "Daily and weekly challenges with claimable rewards" },
     { label: "World Map", value: "explore", description: "Send a crew on timed missions to discover loot" },
+    { label: "Companions", value: "companions", description: "Collect, level and equip your pets" },
     { label: "Expedition Gear", value: "equipment", description: "Upgrade your kit, compass and protective ward" },
     { label: "Saved Preferences", value: "settings", description: "View or reset your personal filters" },
     { label: "Pickaxe & Runes", value: "pickaxe", description: "Upgrade mining and permanent perks" },
@@ -363,6 +365,51 @@ function recipe(owner, id, p = null) {
   return c;
 }
 
+function companionCollection(owner, state, note = "") {
+  const owned = new Map(state.owned.map((pet) => [pet.id, pet]));
+  const selected = owned.get(state.activeId);
+  const c = container("ARVEE IDLE  /  COMPANIONS",
+    "**" + state.owned.length + " / 3 discovered**  ·  **" + state.eggs + " eggs**\n" +
+    "One active companion shares your adventures. No feeding or paid upgrades.");
+  if (selected) {
+    const next = selected.level === companions.MAX_LEVEL ? companions.MAX_XP : selected.nextXp;
+    const progress = next === selected.startXp ? 10 :
+      Math.floor(10 * (selected.xp - selected.startXp) / (next - selected.startXp));
+    c.addTextDisplayComponents(text("### ACTIVE COMPANION\n" +
+      "**" + companions.byId.get(selected.id).name + "**  ·  Level " + selected.level +
+      "  ·  " + selected.stage + "\n" + selected.bonus.description +
+      "\n" + "▰".repeat(Math.min(10, progress)) + "▱".repeat(10 - Math.min(10, progress)) +
+      "  " + (selected.level === companions.MAX_LEVEL ? "Max level" : selected.xp + " / " + next + " XP")));
+  } else {
+    c.addTextDisplayComponents(text("### YOUR FIRST COMPANION\nChoose a starter companion below. It is free, permanent and can be changed later."));
+  }
+  divider(c);
+  c.addTextDisplayComponents(text("**COLLECTION**\n" + companions.PETS.map((pet) => {
+    const p = owned.get(pet.id);
+    return (p ? (state.activeId === pet.id ? "● " : "○ ") : "– ") +
+      "**" + pet.name + "**  ·  " + (p ? "Lv " + p.level + " · " + p.stage : "Undiscovered") +
+      "\n   " + (p ? p.bonus.description : pet.description);
+  }).join("\n\n")));
+  c.addActionRowComponents(selector(owner,
+    state.starterClaimed ? "companion_select" : "companion_adopt",
+    "",
+    state.starterClaimed ? "Choose your active companion" : "Choose your free starter",
+    (state.starterClaimed ? state.owned.map((pet) => companions.byId.get(pet.id)) : companions.PETS)
+      .map((pet) => ({
+        label: pet.name, value: pet.id,
+        description: pet.description.slice(0,100),
+        ...(state.starterClaimed ? { default: state.activeId === pet.id } : {})
+      }))
+  ));
+  if (note) c.addTextDisplayComponents(text("**" + note.slice(0,280) + "**"));
+  c.addActionRowComponents(row([
+    ...(state.eggs > 0 ? [button(owner, "companion_hatch", "Hatch egg (" + state.eggs + ")", "", ButtonStyle.Primary)] : []),
+    button(owner, "explore", "World Map", "", state.eggs > 0 ? ButtonStyle.Secondary : ButtonStyle.Primary),
+    button(owner, "profile", "Command Center")
+  ]));
+  return c;
+}
+
 function expeditionMap(owner, status, note = "") {
   const c = container("ARVEE IDLE  /  WORLD MAP",
     "Explore new regions with your recruited adventurers. Missions continue while offline.");
@@ -380,7 +427,7 @@ function expeditionMap(owner, status, note = "") {
   divider(c);
   for (const region of exploration.REGIONS) {
     const unlocked = exploration.unlocked(region, status.crew, status.xp);
-    const duration = exploration.duration(region, status.gear);
+    const duration = exploration.duration(region, status.gear, status.companion);
     const description = (unlocked ? "Available" : "Requires " + region.crew +
       " crew and " + region.xp + " XP") + "  ·  " + Math.ceil(duration / 60) + " min" +
       "  ·  Base reward " + region.credits.toLocaleString("en-US") + " IC";
@@ -401,7 +448,7 @@ function expeditionRegion(owner, status, regionId) {
   if (!region) throw new Error("Unknown exploration region.");
   const unlocked = exploration.unlocked(region, status.crew, status.xp);
   const rate = Math.round(exploration.chance(region, status.gear) * 100);
-  const seconds = exploration.duration(region, status.gear);
+  const seconds = exploration.duration(region, status.gear, status.companion);
   const c = container(region.name.toUpperCase(),
     region.description);
   divider(c);
@@ -409,6 +456,7 @@ function expeditionRegion(owner, status, regionId) {
     "**Unlock:** " + region.crew + " recruited crew · " + region.xp + " exploration XP\n" +
     "**Your progress:** " + status.crew + " crew · " + status.xp + " XP\n" +
     "**Duration:** " + Math.ceil(seconds / 60) + " minutes  ·  **Success:** " + rate + "%\n" +
+    "**Companion:** " + (status.companion ? companions.byId.get(status.companion.id).name + " · " + companions.bonus(status.companion).description : "None active") + "\n" +
     "**Potential payout:** up to " + region.credits.toLocaleString("en-US") + " IC and materials\n" +
     "**Possible finds:** " + region.drops.map((drop) => items[drop.id]?.name || drop.id).join(" · ") +
     "\n\n" + (status.active ? "One expedition is already in progress." :
@@ -726,6 +774,6 @@ function payload(view) {
   return { components: [view], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 module.exports = {
-  custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, preferences, challengeBoard, message, home, shop, generator, inventory, item, crafting, recipe, season, market, listing,
+  custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, preferences, challengeBoard, message, home, shop, generator, inventory, item, crafting, recipe, season, market, listing,
   prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, SUCCESS, WARN, ERROR
 };
