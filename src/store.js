@@ -496,7 +496,9 @@ async function getStats(userId) {
     { name: "Crafting Artisan", achieved: (counts.craft || 0) >= 10, goal: "Craft 10 times" },
     { name: "Merchant", achieved: (counts.market_sell || 0) >= 1, goal: "List an item for sale" },
     { name: "Shopping Spree", achieved: (counts.generator_purchase || 0) >= 20, goal: "Buy generators 20 times" },
-    { name: "Rising Star", achieved: player.prestige >= 1, goal: "Prestige once" }
+    { name: "Rising Star", achieved: player.prestige >= 1, goal: "Prestige once" },
+    { name: "Boss Challenger", achieved: (counts.world_boss_attack || 0) >= 2, goal: "Strike a world boss twice" },
+    { name: "Worldbreaker", achieved: (counts.world_boss_reward || 0) >= 1, goal: "Claim a world boss reward" }
   ];
   return { ...player, counts, achievements };
 }

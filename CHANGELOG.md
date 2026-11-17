@@ -5,6 +5,7 @@
 - Added persistent per-player strike cooldown, contribution ledger and once-only reward claims. Old qualified rewards remain claimable after future weekly rotations.
 - World Boss rewards share a bounded IC budget by actual global HP damage; qualification requires two strikes and at least 1.5% HP damage (minimum 80). Timed-out encounters grant partial payouts for real damage rather than all-or-nothing rewards.
 - Ember Fox increases damage, Moss Wisp shortens strike cooldowns, Moon Owl boosts rare loot odds based on snapshotted on-strike contribution. Attacks earn limited Season/Companion XP and can progress a rotating weekly contract.
+- Added the Boss Challenger and Worldbreaker Milestones achievements, derived from committed boss attack and reward events.
 - Additive schema, no changes to old balances or player items; CI checks weekly boundaries, cross-user damage races, double-click prevention, payouts, old-week claims, and Components V2 mobile limits.
 
 ---

@@ -105,6 +105,9 @@ test("weekly boss HP, attacks, and payout claims are global and transactional",{
       "SELECT count(*)::integer AS n FROM economy_events WHERE user_id=$1 AND event_type='world_boss_reward'",[a]
     );
     assert.equal(events.rows[0].n,2);
+    const milestones=await store.getStats(a);
+    assert.ok(milestones.achievements.find(x=>x.name==="Boss Challenger").achieved);
+    assert.ok(milestones.achievements.find(x=>x.name==="Worldbreaker").achieved);
   } finally {
     await store.pool.query("DELETE FROM world_boss_instances WHERE period_key=ANY($1::text[])",
       [[currentKey,oldKey]]);
