@@ -255,6 +255,6 @@ function createGuildExpeditions({ transact, stateOf, addItem, event }) {
       return qualified;
     });
   }
-  return {grantProgress,getGuildExpeditions,claimGuildExpedition,claimGuildLeagueSeason,readBoard};
+  return {grantExpeditionProgress:grantProgress,getGuildExpeditions,claimGuildExpedition,claimGuildLeagueSeason,readBoard};
 }
 module.exports = createGuildExpeditions;

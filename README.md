@@ -35,7 +35,7 @@ Open **/idle guild expeditions** or select **Expeditions** from the Guild overvi
 
 A team objective is complete only when its goal is reached **and at least two distinct guild members have contributed**. Progress cannot be granted for blocked cooldowns, duplicate expedition collections, failed actions or unlimited command spam. Per-player daily progress is capped for every objective, but real gameplay continues normally after the cap. Each completion grants the guild its fixed shared Renown (and guild XP) once, and **100 weekly league points**.
 
-**Personal rewards:** Any guildmate who accumulated at least two accepted actions before the team objective completed may claim its snapshotted IC/items once using the Guild Expeditions screen or `/idle guild claim`. Payouts remain claimable after the weekly reset or leaving the guild, as long as the guild still exists. Disbanding a guild permanently deletes its guild-specific history and outstanding rewards, as explicitly confirmed by the leader.
+**Personal rewards:** Any guildmate who accumulated at least two accepted actions before the team objective completed may claim its snapshotted IC/items once using the Guild Expeditions screen or `/idle guild claim`. Payouts remain claimable after the weekly reset or leaving the guild, as long as the guild still exists. Disbanding a guild permanently deletes its guild-specific missions and outstanding mission rewards, as explicitly confirmed by the leader. **Per-player season locks and already-claimed season receipts survive disbanding**, preventing repeat seasonal prizes through guild recreation.
 
 ### Four-week Guild Leagues
 

@@ -3,7 +3,7 @@
 - Added four team-based weekly contracts (Mining Run, Frontier Survey, Siege Support, Supply Line), advancing only through committed gameplay events. Per-user daily caps and two distinct contributors are required.
 - Guild progress, completed-once shared Renown bonuses, accepted per-member contribution and one-time IC/material payouts are persisted transactionally in PostgreSQL; old-week rewards remain claimable after changing guilds.
 - Added four-week seasonal league rankings and Bronze/Silver/Gold/Diamond reward milestones, with per-season prize grants only for members with at least six legitimate accepted actions.
-- Season-locked guild attribution prevents guild-hopping or duplicate seasonal prize farming. Mission goals and rewards are snapshotted at creation; league standings score completed team missions rather than guild size or unrestricted activity.
+- Season-locked guild attribution prevents guild-hopping or duplicate seasonal prize farming, even after a guild is disbanded. Season payout receipts persist independently of deleted guilds. Mission goals and rewards are snapshotted at creation; league standings score completed team missions rather than guild size or unrestricted activity.
 - Added compact Coffee-inspired Components V2 Guild Expeditions and Guild Leagues screens, contextual claims, weekly progress bars and leaderboard views. Discord User IDs and guild membership remain global across servers.
 - Additive database schema, owner-locked interactions, and dedicated PostgreSQL integration tests for racing contributions, exact-once claims, cooperative completion, daily caps, cross-guild locks, expired-week payouts and prior-season prizes.
 

@@ -30,7 +30,7 @@ function inspect(view) {
   const actions=j.components.filter(c=>c.type===1).flatMap(c=>c.components);
   assert.ok(actions.filter(c=>c.type===2).length<=3);
   actions.filter(c=>c.type===2 || c.type===3).forEach(c=>
-    assert.match(c.custom_id,new RegExp("^ai:2:"+owner+":guild|^ai:2:"+owner+":profile:")));
+    assert.match(c.custom_id,new RegExp("^ai:2:"+owner+":(?:guild|gexp)|^ai:2:"+owner+":profile:")));
   return {j,raw,actions};
 }
 test("guild names and tags are validated without accepting Discord markup",()=>{

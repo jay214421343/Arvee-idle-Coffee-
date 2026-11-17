@@ -185,6 +185,31 @@ test("guild expeditions and seasonal leagues are transactional across players, w
     )).rows;
     assert.equal(audits.find(x=>x.event_type==="guild_expedition_reward").n,2);
     assert.equal(audits.find(x=>x.event_type==="guild_league_reward").n,1);
+
+    // Disbanding must NOT erase an account's season lock or an already claimed
+    // season receipt. Otherwise a new guild could replay the same season prize.
+    await store.disbandGuild(a);
+    const preserved=await store.pool.query(
+      "SELECT guild_id::text AS id FROM idle_guild_league_season_members WHERE season_key=$1 AND user_id=$2",
+      [defs.season().key,a]
+    );
+    assert.equal(preserved.rows[0].id,first.id);
+    const receipt=await store.pool.query(
+      "SELECT guild_id::text AS id,tier FROM idle_guild_league_season_claims WHERE season_key=$1 AND user_id=$2",
+      [oldSeason,b]
+    );
+    assert.equal(receipt.rowCount,1);
+    assert.equal(receipt.rows[0].id,first.id);
+    assert.equal(receipt.rows[0].tier,"Bronze");
+    await store.inviteGuild(c,a);
+    await store.acceptGuild(a,second.id);
+    assert.equal((await store.getGuildExpeditions(a)).seasonLockedElsewhere,true);
+    const daily=await store.daily(a);
+    assert.ok(daily.received,"the player's regular gameplay still works");
+    assert.equal((await store.getGuildExpeditions(c)).missions.find(m=>m.id==="supply_line").progress,0,
+      "disbanding and rejoining must not mint a new guild's expedition progress");
+    await assert.rejects(()=>store.claimGuildLeagueSeason(b,oldSeason),
+      /participation requirements|already claimed/);
   } finally {
     await store.pool.query("DELETE FROM idle_guilds WHERE id=ANY($1::bigint[])",[guildIds]);
     await store.pool.query("DELETE FROM economy_events WHERE user_id=ANY($1::text[])",[ids]);
