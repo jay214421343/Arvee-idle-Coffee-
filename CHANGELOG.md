@@ -1,3 +1,12 @@
+# 2.4.2 — Quality & readiness (unreleased)
+
+- Added unobtrusive Mine/Daily readiness to the Command Center, with Discord-relative cooldown timestamps and no extra buttons.
+- Centralized mine and daily cooldown calculations in a pure, testable helper shared by the authoritative PostgreSQL-backed gameplay code and the UI.
+- Made other-player `/idle profile user:` and `/idle inventory user:` screens explicitly read-only, avoiding accidental use of your own item action buttons while inspecting someone else's account.
+- Fixed an inaccurate lifetime-earnings UI label: `total_earned` resets with prestige and is now described as this-run earnings.
+- Added unit/UI and slash-command tests for cooldown math, protected spectator views, mobile-friendly component counts and owner-bound action IDs. No migrations or balance modifications.
+
+---
 # 2.4.1 — Coffee-inspired mining and activity UI (unreleased)
 
 - Restyled mining outcomes and cooldowns using Coffee's original dialogue-and-rewards presentation, adapted to native Discord Components V2 and ARVEE's restrained purple palette.

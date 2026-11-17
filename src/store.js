@@ -5,6 +5,7 @@ const { Decimal, dec, generatorRate, purchaseCost, settle, PRESTIGE_REQUIREMENT,
 const season = require("./season");
 const challenges = require("./challenges");
 const exploration = require("./exploration");
+const activity = require("./activity");
 const companions = require("./companions");
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 10, connectionTimeoutMillis: 10000, idleTimeoutMillis: 30000 });
@@ -235,9 +236,8 @@ async function mine(userId) {
   return transact([userId], async (db, states) => {
     const state = stateOf(states, userId);
     const now = Date.now();
-    const cooldown = Math.max(30000, (90 - 6 * perkLevel(state, "sprinter")) * 1000);
-    const remaining = state.lastMine ? cooldown - (now - new Date(state.lastMine).getTime()) : 0;
-    if (remaining > 0) return { cooldown: Math.ceil(remaining / 1000) };
+    const remaining = activity.readiness(state.lastMine, activity.miningCooldownMs(state.perks), now);
+    if (!remaining.ready) return { cooldown: remaining.seconds };
     const pet = await activeCompanion(db,userId);
     const petBonus = pet?.id === "ember_fox" ? dec(1).plus(dec(companions.boostPct(pet.level)).div(100)) : dec(1);
     const reward = Decimal.max(150, state.rate.times(30))
@@ -267,9 +267,8 @@ async function daily(userId) {
   return transact([userId], async (db, states) => {
     const state = stateOf(states, userId);
     const now = Date.now();
-    const cooldown = 22 * 60 * 60 * 1000;
-    const remaining = state.lastDaily ? cooldown - (now - new Date(state.lastDaily).getTime()) : 0;
-    if (remaining > 0) return { cooldown: Math.ceil(remaining / 1000) };
+    const remaining = activity.readiness(state.lastDaily, activity.DAILY_MS, now);
+    if (!remaining.ready) return { cooldown: remaining.seconds };
     state.lastDaily = new Date(now);
     const credits = dec(750);
     state.balance = state.balance.plus(credits);

@@ -126,11 +126,7 @@ async function respond(interaction) {
     } else if (command === "profile") {
       const target = opts.getUser("user") || interaction.user;
       const p = await store.profile(target.id);
-      view = ui.home(id, target, p);
-      const genTotal = p.generators.reduce((sum, g) => sum + g.quantity, 0);
-      content = "**✦ " + target.username + "'s ARVEE Idle Profile**\nIC: **" + pretty(p.balance) +
-        "**\nIC/s: **" + pretty(p.rate) + "**\nTotal earned: " + pretty(p.totalEarned) +
-        "\nGenerators owned: " + genTotal + "\nPrestige: " + p.prestige + " · Mining XP: " + p.mineXp;
+      view = ui.home(id, target, p, target.id !== id);
     } else if (command === "season") {
       view = ui.season(id, await store.seasonStatus(id));
     } else if (command === "challenges") {
@@ -159,10 +155,11 @@ async function respond(interaction) {
     } else if (command === "inventory") {
       const target = opts.getUser("user") || interaction.user;
       const p = await store.profile(target.id);
-      const prefs = await store.getPreferences(id);
-      view = ui.inventory(id, p, 1, prefs.inventoryFilter, prefs.inventorySort);
-      content = "**" + target.username + "'s inventory**\n" +
-        (p.inventory.length ? p.inventory.map((r) => labelItem(r.item_id) + " × " + r.quantity).join("\n") : "Empty. Try /idle mine or /idle daily.");
+      if (target.id !== id) view = ui.inventoryPreview(id, target, p);
+      else {
+        const prefs = await store.getPreferences(id);
+        view = ui.inventory(id, p, 1, prefs.inventoryFilter, prefs.inventorySort);
+      }
     } else if (command === "craft") {
       const item = opts.getString("item");
       if (!item) {

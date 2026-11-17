@@ -18,6 +18,14 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.4.2 — Quality & readiness
+
+- **Activity readiness:** The Command Center shows whether Mine and Daily Reward are ready. When they are cooling down, Discord relative timestamps display the next available time. Quick Hands and the 22-hour daily cooldown use a shared calculation with the game service, so UI and backend cannot drift.
+- **Safe player inspection:** `/idle profile user:<player>` shows that player's progress in an explicitly read-only view, with a single return button; it no longer offers action buttons that would act on the viewer's own account.
+- **Cross-server satchel preview:** `/idle inventory user:<player>` shows a read-only view of the other player's public inventory, without filters, item-use controls or misleading owner-specific item actions. Their collection can still be viewed from any server connected to the same bot/database.
+- **Accurate balance labels:** The Command Center labels `total_earned` as IC earned **this run**, since prestige resets that number. The underlying economy is unchanged.
+- **Safety:** No migrations, reward changes or new buttons. Node unit and Discord command-routing tests cover cooldowns, activity controls, and read-only player views. Existing Discord action IDs remain compatible.
+
 ## Coffee-inspired activity UI (2.4.1)
 
 Mining, cooldowns, daily supplies, crafting and supply-cache results use the compact **Coffee-style narrative receipt**: a short in-world character line, a clear reward ledger, one useful gameplay action and a return to the Command Center. Results stay in Discord Components V2 with the single ARVEE purple accent and minimal emoji.
