@@ -99,6 +99,26 @@ ALTER TABLE season_claims DROP CONSTRAINT IF EXISTS season_claims_tier_check;
 ALTER TABLE season_claims ADD CONSTRAINT season_claims_tier_check CHECK (tier BETWEEN 1 AND 100);
 CREATE INDEX IF NOT EXISTS season_claims_owner_idx ON season_claims(user_id,season_id);
 
+-- First-play tutorial is persistent and global to a Discord user.
+-- The table is created once; existing accounts are grandfathered as finished
+-- only on first deployment. Re-running migrations NEVER silently skips newer users.
+DO $arvee_idle_tutorial$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.tables
+    WHERE table_schema = current_schema() AND table_name = 'player_tutorial') THEN
+    CREATE TABLE player_tutorial (
+      user_id TEXT PRIMARY KEY REFERENCES players(user_id) ON DELETE CASCADE,
+      status TEXT NOT NULL DEFAULT 'active'
+        CHECK(status IN ('active','finished','skipped')),
+      step SMALLINT NOT NULL DEFAULT 0 CHECK(step BETWEEN 0 AND 6),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    INSERT INTO player_tutorial(user_id,status,step)
+      SELECT user_id,'finished',6 FROM players;
+  END IF;
+END
+$arvee_idle_tutorial$;
+
 -- Per-player UI preferences are shared across Discord clients and PM2 restarts.
 CREATE TABLE IF NOT EXISTS player_ui_preferences (
   user_id TEXT PRIMARY KEY REFERENCES players(user_id) ON DELETE CASCADE,

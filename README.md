@@ -18,6 +18,14 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.14 — First-Play Interactive Tutorial
+
+The first time a Discord user runs any `/idle` command, they receive a **seven-step interactive beginner guide** before their requested gameplay action. This is a safe educational view: it never spends IC, consumes items, claims daily supplies, or forces a pet choice. Steps introduce the wallet/game loop, daily and mining cooldowns, passive operations, Satchel/Forge, companions and World Map, the free 100-tier Season Journey and cooperative systems, then prestige.
+
+The guide has **Back**, **Next**, **Skip guide**, and final **Finish guide** buttons, with compact Components V2 pages. Players can skip at any point and start playing immediately; replay from **/idle account tutorial** or **/idle help → Replay guide** (never resets XP, balances, pets or inventory). Completion/skip and current step are saved in PostgreSQL and shared across all servers, shards and restarts. Old accounts are marked finished only when the new table is first created so experienced users are not interrupted; future migrations cannot dismiss newly started guides. No tutorial reward is granted, so replays cannot be exploited.
+
+**Deploy after review and merge:** `npm ci && npm run db:migrate && npm run register && npm run mac:restart`. The additive migration creates `player_tutorial`; command re-registration adds `/idle account tutorial` (without exceeding Discord's 25-option limit).
+
 ## ARVEE Idle 2.13 — Three All-Round Mythics & One Secret
 
 Four discoverable companions expand the collection from **18 to 22 species**. Three new **Mythic** companions boost **all nine** supported systems, with ascending strength:

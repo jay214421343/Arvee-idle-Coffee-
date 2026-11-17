@@ -1,3 +1,14 @@
+# 2.14.0 — First-Play Guided Introduction (pending review)
+
+- Auto-show a seven-page interactive beginners' guide only for first-time /idle users, before carrying out any game action. No automatic items, purchases, or rewards.
+- Introduce Back/Next/Skip/Finish navigation, persisted per Discord user and verified on every interaction, including stale button replays and cross-server use.
+- Add /idle account tutorial and a Replay guide option on /idle help; replay never touches gameplay progress.
+- Grandfather existing players only at the **first** migration; repeated schema migrations never incorrectly auto-finish later newcomers.
+- Add PostgreSQL, UI and routing tests for onboarding uniqueness, skip/completion, replay, permission checks, no payouts and cross-server persistence.
+- Requires an additive PostgreSQL migration and slash command registration.
+
+---
+
 # 2.13.0 — Omni-Mythic Companions & Secret Discovery (pending review)
 
 - Add Twilight Lynx, Aurora Gryphon and Eclipse Leviathan, three all-stat Mythics with progressively stronger level-scaled bonuses.
