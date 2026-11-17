@@ -185,7 +185,7 @@ async function event(db, userId, type, amount, metadata = {}) {
   await grantSeasonXp(db, userId, type, metadata);
   await grantCompanionXp(db, userId, type, metadata);
   await guildStore.grantProgress(db,userId,type,metadata);
-  await guildExpeditionStore.grantProgress(db,userId,type,metadata);
+  await guildExpeditionStore.grantExpeditionProgress(db,userId,type,metadata);
 }
 async function addItem(db, userId, itemId, quantity) {
   assertItem(itemId);
