@@ -6,6 +6,7 @@ const {
 const { generators, byId, items, recipes } = require("./catalog");
 const { pretty, dec, purchaseCost, PRESTIGE_REQUIREMENT, Decimal } = require("./economy");
 const brand = require("./brand");
+const challengeData = require("./challenges");
 const { SEASON, rewards, missions, label, tierNeeded } = require("./season");
 
 const ACCENT = brand.theme.primary;
@@ -50,6 +51,8 @@ function navigation(owner) {
     { label: "Satchel", value: "inventory", emoji: "🎒", description: "Manage your loot and materials" },
     { label: "The Forge", value: "craft", emoji: "⚒️", description: "Forge artifacts from gathered materials" },
     { label: "Season Journey", value: "season", emoji: "📜", description: "Earn Season XP and unlock 20 free rewards" },
+    { label: "Adventurer Contracts", value: "challenges", emoji: "📋", description: "Daily and weekly challenges with claimable rewards" },
+    { label: "Saved Preferences", value: "settings", emoji: "⚙️", description: "View or reset your personal filters" },
     { label: "Pickaxe & Runes", value: "pickaxe", emoji: "⛏️", description: "Upgrade mining and permanent perks" },
     { label: "Player Exchange", value: "market", emoji: "💱", description: "Trade with other adventurers" },
     { label: "Hall of Fame", value: "leaderboard", emoji: "🏆", description: "See top adventurers" },
@@ -207,7 +210,7 @@ function shop(owner, page = 1, p = null, filter = "all", sort = "price") {
     button(owner, "profile", "Command Center", "", ButtonStyle.Primary),
     button(owner, "shop", "▶", listState(page + 1, filter, sort), ButtonStyle.Secondary, page === total)
   ]));
-  foot(c, "**SECTOR " + page + " / " + total + "**  ·  " + entries.length + " expeditions  ·  Use Inspect to purchase");
+  foot(c, "**SECTOR " + page + " / " + total + "**  ·  " + entries.length + " expeditions  ·  Filters are saved automatically");
   return c;
 }
 
@@ -280,7 +283,7 @@ function inventory(owner, p, page = 1, filter = "all", sort = "rarity") {
     button(owner, "inventory", "Next ▶", listState(page + 1, filter, sort), ButtonStyle.Secondary, page === total)
   ]));
   foot(c, "**BAG " + page + " / " + total + "**  ·  " + entries.length + " matches   ·   " +
-    "◇ Common  ·  ◆ Uncommon  ·  ✦ Rare  ·  ✧ Epic  ·  ★ Legendary");
+    "◇ Common  ·  ◆ Uncommon  ·  ✦ Rare  ·  ✧ Epic  ·  ★ Legendary  ·  Filters auto-save");
   return c;
 }
 
@@ -354,6 +357,66 @@ function recipe(owner, id, p = null) {
   c.addActionRowComponents(row([
     button(owner, "craft", "◀ All blueprints", "1_all"),
     button(owner, "inventory", "Satchel")
+  ]));
+  return c;
+}
+
+function preferences(owner, p, note = "") {
+  const c = container("ARVEE IDLE  /  SAVED PREFERENCES",
+    "Your personal filters are remembered on every Discord device and after bot restarts.");
+  c.addTextDisplayComponents(text("**EXPEDITIONS**\n" +
+    "Collection: " + ({ all: "All expeditions", affordable: "Affordable", owned: "Owned" }[p.shopFilter] || "All") +
+    "  ·  Sort: " + (p.shopSort === "income" ? "Highest production" : "Lowest cost") +
+    "\n\n**SATCHEL**\n" +
+    "Collection: " + ({ all: "Everything", materials: "Materials", usable: "Consumables", caches: "Supply caches" }[p.inventoryFilter] || "Everything") +
+    "  ·  Sort: " + ({ rarity: "Rarity", quantity: "Quantity", name: "Name" }[p.inventorySort] || "Rarity") +
+    "\n\n**FORGE**\n" +
+    "Show: " + (p.forgeFilter === "ready" ? "Craftable only" : "All recipes")));
+  if (note) c.addTextDisplayComponents(text("**" + note + "**"));
+  c.addActionRowComponents(row([
+    button(owner, "shop", "Expeditions", "", ButtonStyle.Primary),
+    button(owner, "inventory", "Satchel"),
+    button(owner, "craft", "Forge")
+  ]));
+  c.addActionRowComponents(row([
+    button(owner, "preferences_reset", "Restore default filters"),
+    button(owner, "profile", "Command Center")
+  ]));
+  return c;
+}
+function challengeBoard(owner, boards, scope = "daily", note = "") {
+  const chosen = scope === "weekly" ? "weekly" : "daily";
+  const board = boards[chosen];
+  if (!board || !Array.isArray(board.tasks)) throw new Error("Challenges are unavailable.");
+  const c = container("ARVEE IDLE  /  ADVENTURER CONTRACTS",
+    "**" + (chosen === "daily" ? "DAILY" : "WEEKLY") + " CONTRACTS**\n" +
+    "Complete your regular adventures and claim extra IC and crafting supplies.");
+  c.addActionRowComponents(selector(owner, "challenge_scope", "", "Choose a challenge board", [
+    { label: "Daily contracts", value: "daily", emoji: "📆", default: chosen === "daily",
+      description: "Three daily objectives and rewards" },
+    { label: "Weekly contracts", value: "weekly", emoji: "🗓️", default: chosen === "weekly",
+      description: "Bigger goals and rarer rewards" }
+  ]));
+  c.addTextDisplayComponents(text("**Reset:** <t:" + Math.floor(Date.parse(board.endsAt) / 1000) +
+    ":R>   ·   Rewards are claimed individually"));
+  for (const task of board.tasks) {
+    const complete = task.progress >= task.goal;
+    const canClaim = complete && !task.claimed;
+    const textBody = "**" + task.label + "**\n" +
+      Math.min(task.goal, task.progress) + "/" + task.goal + " completed  ·  " +
+      (task.claimed ? "Claimed" : canClaim ? "Ready to claim" : "In progress") +
+      "\nReward: " + challengeData.rewardLabel(task.reward);
+    c.addSectionComponents(new SectionBuilder()
+      .addTextDisplayComponents(text(textBody))
+      .setButtonAccessory(button(owner, "challenge_claim",
+        task.claimed ? "Claimed" : canClaim ? "Claim" : "Locked",
+        chosen + "_" + board.key + "_" + task.id, ButtonStyle.Secondary, !canClaim)));
+  }
+  if (note) c.addTextDisplayComponents(text("**" + note.slice(0, 300) + "**"));
+  c.addActionRowComponents(row([
+    button(owner, "challenges", "Refresh", chosen, ButtonStyle.Primary),
+    button(owner, "season", "Season Journey", "1"),
+    button(owner, "profile", "Command Center")
   ]));
   return c;
 }
@@ -562,6 +625,6 @@ function payload(view) {
   return { components: [view], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 module.exports = {
-  custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, message, home, shop, generator, inventory, item, crafting, recipe, season, market, listing,
+  custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, preferences, challengeBoard, message, home, shop, generator, inventory, item, crafting, recipe, season, market, listing,
   prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, SUCCESS, WARN, ERROR
 };

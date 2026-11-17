@@ -81,3 +81,13 @@ CREATE TABLE IF NOT EXISTS season_claims (
   PRIMARY KEY(user_id, season_id, tier)
 );
 CREATE INDEX IF NOT EXISTS season_claims_owner_idx ON season_claims(user_id,season_id);
+
+-- Each challenge reward can be collected only once per UTC daily/weekly cycle.
+CREATE TABLE IF NOT EXISTS challenge_claims (
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  scope TEXT NOT NULL CHECK (scope IN ('daily','weekly')),
+  period_key TEXT NOT NULL CHECK (period_key ~ '^[0-9]{8}$'),
+  challenge_id TEXT NOT NULL,
+  claimed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, scope, period_key, challenge_id)
+);

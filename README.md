@@ -18,6 +18,16 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.2 — persistent preferences and Adventurer Contracts
+
+- **Saved filters:** Expeditions category/sort, Satchel category/sort, and Forge craftability filter now persist per Discord account in PostgreSQL across PM2 restarts and devices. Opening an existing screen automatically restores your last choices. Use /idle settings to view or reset them.
+- **Daily contracts:** three tasks per UTC day. Mining and recruitment are available daily; the third rotates among supplies, caches, crafting and deeper mining.
+- **Weekly contracts:** three tasks per week, resetting Monday 00:00 UTC. Larger objectives award more IC or rarer supplies.
+- **Progress is real:** contract progress is calculated from authoritative economy events, with buy/open/craft quantities counted correctly. Trades, gifts and reward claims cannot inflate progress.
+- **Claim controls:** /idle challenges or the Command Center navigation lets you view daily and weekly progress and claim rewards. Claims are one-time per period and atomic under concurrency.
+- **Separate from the season:** both Adventurer Contracts and the Founders' Journey can progress during regular gameplay, but claiming a contract doesn't mint extra season XP. No Discord SKU or paid purchase is involved.
+- **Compatibility:** migrations are additive, existing players and their inventories are not reset. Run npm run setup before starting the new code.
+
 ## Season Journey — Founders' Journey
 
 Season 01 runs **17 November 2026–15 January 2027 (UTC)**. Players may claim earned rewards until **23 January 2027 00:00 UTC**.
