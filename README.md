@@ -18,6 +18,15 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## Coffee-inspired activity UI (2.4.1)
+
+Mining, cooldowns, daily supplies, crafting and supply-cache results use the compact **Coffee-style narrative receipt**: a short in-world character line, a clear reward ledger, one useful gameplay action and a return to the Command Center. Results stay in Discord Components V2 with the single ARVEE purple accent and minimal emoji.
+
+- Mining shows actual IC earned, material drop quantity/name, optional bonus cache, current mining XP and pickaxe tier; cooldown messages show the real remaining time and Discord's self-updating relative timestamp.
+- Daily supplies show the exact granted rewards and wallet balance; unavailable deliveries show the 22-hour cooldown rather than pretending to claim again.
+- Crafting and supply caches share a clear, consistent two-button layout; ordinary action confirmations default to only a Command Center button instead of a four-button toolbar.
+- No changes to game math, item rates, rewards, database schema or player progress. Both slash-command and component-button paths render the same activity cards.
+
 ## ARVEE Idle 2.4 — Companions
 
 Collect, level and equip a permanent adventure companion via **/idle companions** or the Command Center's navigation dropdown. All three companions can be earned through normal gameplay; none require payments, feeding or repetitive maintenance.
