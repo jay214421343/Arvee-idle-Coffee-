@@ -304,12 +304,20 @@ function home(owner, user, p, readOnly = false) {
     .setURL(user.displayAvatarURL({ extension: "png", size: 128 }))
     .setDescription("ARVEE Idle player avatar"));
   c.addSectionComponents(s);
+  if (!readOnly) c.addActionRowComponents(navigation(owner));
   divider(c);
   const progress = progression.prestigeProgress(p);
-  c.addTextDisplayComponents(text("**PRESTIGE PROGRESS**  " + "▰".repeat(progress.filled) +
+  const progressText = "**PRESTIGE PROGRESS**  " + "▰".repeat(progress.filled) +
     "▱".repeat(10 - progress.filled) + "  " + progress.percent + "%\n" +
-    (progress.ready ? "**Prestige available** · A permanent production boost awaits." :
-      "**To next prestige**  " + pretty(progress.remaining) + " IC")));
+    (progress.ready ? "**Ready for prestige** · Review the reset before confirming." :
+      "**To next prestige**  " + pretty(progress.remaining) + " IC");
+  if (progress.ready && !readOnly) {
+    c.addSectionComponents(new SectionBuilder()
+      .addTextDisplayComponents(text(progressText))
+      .setButtonAccessory(button(owner, "prestige", "Prestige", "", ButtonStyle.Primary)));
+  } else {
+    c.addTextDisplayComponents(text(progressText));
+  }
   if (readOnly) {
     foot(c, "Viewing another player's public progress. Only your own character can perform actions.");
     c.addActionRowComponents(row([button(owner, "profile", "My Command Center", "", ButtonStyle.Primary)]));
@@ -328,8 +336,8 @@ function home(owner, user, p, readOnly = false) {
     button(owner, "shop", "Operations"),
     button(owner, "inventory", "Satchel")
   ]));
-  c.addActionRowComponents(navigation(owner));
-  foot(c, "**NEXT STEP**  " + progression.nextStep(p, ready) + "\n[ARVEE World](" + brand.website + ")");
+  foot(c, (progress.ready ? "" : "**NEXT STEP**  " + progression.nextStep(p, ready) + "\n") +
+    "[ARVEE World](" + brand.website + ")");
   return c;
 }
 

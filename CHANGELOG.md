@@ -1,3 +1,13 @@
+# 2.9.1 — Command Center Navigation & Prestige Shortcut (pending review)
+
+- Moved the six-option navigation dropdown directly underneath the Command Center player summary for easier access without additional UI rows.
+- At 100% prestige progress, show a contextual owner-bound Prestige button beside the progress section. Opening the prestige preview never triggers a reset; the user must still explicitly confirm.
+- Hide this shortcut below 100% and in read-only profiles, with no redundant next-step message at maximum progress.
+- Added regression tests for conditional visibility, safe navigation order, mobile-sized Components V2 and existing quick actions.
+- No schema changes, economy adjustments, new permissions or reward changes.
+
+---
+
 # 2.9.0 — Simple Navigation & Smart Idle QoL (pending review)
 
 - Reduced the Command Center navigation dropdown from 18 choices to six, grouping secondary destinations behind short one-step menus without deleting commands.
