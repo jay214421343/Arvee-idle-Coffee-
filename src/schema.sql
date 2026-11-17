@@ -58,3 +58,26 @@ CREATE TABLE IF NOT EXISTS economy_events (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS economy_events_user_idx ON economy_events(user_id, created_at DESC);
+
+-- Season Journey: permanent claims and per-UTC-day XP caps; migrations are additive.
+CREATE TABLE IF NOT EXISTS season_progress (
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  season_id TEXT NOT NULL,
+  xp BIGINT NOT NULL DEFAULT 0 CHECK (xp >= 0),
+  PRIMARY KEY(user_id, season_id)
+);
+CREATE TABLE IF NOT EXISTS season_xp_daily (
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  season_id TEXT NOT NULL,
+  day DATE NOT NULL,
+  xp INTEGER NOT NULL DEFAULT 0 CHECK (xp >= 0),
+  PRIMARY KEY(user_id, season_id, day)
+);
+CREATE TABLE IF NOT EXISTS season_claims (
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  season_id TEXT NOT NULL,
+  tier INTEGER NOT NULL CHECK(tier BETWEEN 1 AND 20),
+  claimed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(user_id, season_id, tier)
+);
+CREATE INDEX IF NOT EXISTS season_claims_owner_idx ON season_claims(user_id,season_id);

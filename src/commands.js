@@ -16,6 +16,7 @@ idle.addSubcommand((c) => c.setName("buy").setDescription("Buy generators with I
   .addIntegerOption((o) => o.setName("amount").setDescription("How many (1-1000)").setMinValue(1).setMaxValue(1000)));
 idle.addSubcommand((c) => c.setName("mine").setDescription("Mine Idle Credits and crafting materials (90-second cooldown)"));
 idle.addSubcommand((c) => c.setName("daily").setDescription("Claim your daily Idle Credits and supply caches"));
+idle.addSubcommand((c) => c.setName("season").setDescription("Season Journey: tiers, challenges and free rewards"));
 idle.addSubcommand((c) => c.setName("inventory").setDescription("Check collected items").addUserOption((o) => o.setName("user").setDescription("Player to inspect")));
 idle.addSubcommand((c) => c.setName("craft").setDescription("Craft an item")
   .addStringOption((o) => o.setName("item").setDescription("Item to craft (omit to browse recipes)").addChoices(...recipeChoices))
@@ -50,14 +51,14 @@ idle.addSubcommandGroup((g) => g.setName("market").setDescription("Trade items f
 
 function labelItem(id) { return items[id]?.name || id; }
 function shop(page) {
-  const pages = Math.max(1, Math.ceil(generators.length / 8));
+  const pages = Math.max(1, Math.ceil(generators.length / 4));
   const selected = Math.max(1, Math.min(page, pages));
-  const lines = generators.slice((selected - 1) * 8, selected * 8).map((entry) => {
+  const lines = generators.slice((selected - 1) * 4, selected * 4).map((entry) => {
     const cost = purchaseCost(entry.cost, 0, 1);
     return "**" + entry.id + "** · " + entry.name + " — " + pretty(cost) + " IC · +" + pretty(dec(entry.income)) + " IC/s";
   });
-  return "☕ **ARVEE Idle Generator Shop** · Page " + selected + "/" + pages + "\n" + lines.join("\n") +
-    "\nUse /idle buy with a generator code. Generator prices increase as you own more.";
+  return "**ARVEE Idle Expeditions** · Page " + selected + "/" + pages + "\n" + lines.join("\n") +
+    "\nUse /idle buy with autocomplete to select an expedition. Costs increase as you recruit more.";
 }
 async function respond(interaction) {
   if (!interaction.isChatInputCommand() || interaction.commandName !== "idle") return;
@@ -95,6 +96,7 @@ async function respond(interaction) {
         "**✦ ARVEE Idle — Adventure & Progression**",
         "Start with /idle daily, /idle mine, then recruit an operation in /idle shop.",
         "**Economy:** /idle shop, /idle buy, /idle leaderboard, /idle prestige",
+        "**Season:** /idle season to unlock 20 free reward tiers",
         "**Activities:** /idle mine, /idle daily, /idle craft, /idle open",
         "**Items:** /idle inventory, /idle give, /idle market",
         "Prestige requires 1B IC and increases production by 25% per level.",
@@ -108,6 +110,8 @@ async function respond(interaction) {
       content = "**✦ " + target.username + "'s ARVEE Idle Profile**\nIC: **" + pretty(p.balance) +
         "**\nIC/s: **" + pretty(p.rate) + "**\nTotal earned: " + pretty(p.totalEarned) +
         "\nGenerators owned: " + genTotal + "\nPrestige: " + p.prestige + " · Mining XP: " + p.mineXp;
+    } else if (command === "season") {
+      view = ui.season(id, await store.seasonStatus(id));
     } else if (command === "shop") {
       view = ui.shop(id, opts.getInteger("page") || 1, await store.profile(id));
       content = shop(opts.getInteger("page") || 1);
@@ -217,6 +221,7 @@ async function handleComponent(interaction) {
       else if (selected === "shop") view = ui.shop(owner, 1, await store.profile(owner));
       else if (selected === "inventory") view = ui.inventory(owner, await store.profile(owner));
       else if (selected === "craft") view = ui.crafting(owner, await store.profile(owner));
+      else if (selected === "season") view = ui.season(owner, await store.seasonStatus(owner));
       else if (selected === "market") view = ui.market(owner, await store.browseMarket());
       else if (selected === "pickaxe") view = ui.pickaxe(owner, await store.profile(owner));
       else if (selected === "perks") view = ui.perks(owner, await store.profile(owner), require("./catalog").perks);
@@ -225,6 +230,18 @@ async function handleComponent(interaction) {
       else if (selected === "prestige") view = ui.prestige(owner, await store.profile(owner));
       else if (selected === "help") view = ui.help(owner);
       else throw new Error("Unknown navigation destination.");
+    } else if (action === "season") {
+      view = ui.season(owner, await store.seasonStatus(owner), Number(argument) || 1);
+    } else if (action === "season_claim") {
+      const tier = Number(argument);
+      if (!Number.isInteger(tier) || tier < 1 || tier > 20) throw new Error("Invalid season tier.");
+      result = await store.claimSeasonRewards(owner, tier);
+      view = ui.season(owner, await store.seasonStatus(owner), Math.ceil(tier / 4),
+        result.grants.length ? "Tier " + tier + " reward claimed!" : "Already collected.");
+    } else if (action === "season_claim_all") {
+      result = await store.claimSeasonRewards(owner, "all");
+      view = ui.season(owner, await store.seasonStatus(owner), Number(argument) || 1,
+        result.grants.length ? "Claimed " + result.grants.length + " rewards!" : "Nothing new to claim.");
     } else if (action === "profile") {
       view = ui.home(owner, interaction.user, await store.profile(owner));
     } else if (action === "shop") {

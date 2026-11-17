@@ -54,7 +54,7 @@ const recipes = Object.freeze({
 const perks = Object.freeze({
   miner: { name: "Power Strike", description: "+10% mining IC per level", max: 10 },
   fortune: { name: "Treasure Hunter", description: "Better mineral loot at each level", max: 10 },
-  sprinter: { name: "Quick Hands", description: "-15 seconds mining cooldown per level", max: 10 },
+  sprinter: { name: "Quick Hands", description: "-6 seconds mining cooldown per level", max: 10 },
   investor: { name: "Idle Savant", description: "+3% passive IC income per level", max: 10 },
   scavenger: { name: "Scavenger", description: "+3% Supply Cache chance per level", max: 10 }
 });

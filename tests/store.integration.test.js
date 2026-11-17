@@ -6,6 +6,7 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
   if (!/arvee_idle_test/.test(process.env.ARVEE_IDLE_TEST_DATABASE_URL)) throw new Error("Refusing to run outside a arvee_idle_test database.");
   process.env.DATABASE_URL = process.env.ARVEE_IDLE_TEST_DATABASE_URL;
   const store = require("../src/store");
+  const season = require("../src/season");
   const suffix = crypto.randomInt(100000, 999999).toString();
   const a = "999999000000" + suffix;
   const b = "999998000000" + suffix;
@@ -13,6 +14,11 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
   try {
     const original = await store.profile(a);
     assert.equal(original.balance.toString(), "500");
+    if (season.phase() === "active") {
+      const starting = await store.seasonStatus(a);
+      assert.equal(starting.xp, 0);
+      assert.deepEqual(starting.claimed, []);
+    }
     assert.equal((await store.buyGenerator(a, "MSPS", 1)).cost.toString(), "100");
     await store.pool.query("UPDATE players SET balance=1000000,total_earned=1000000 WHERE user_id=$1", [a]);
     const both = await Promise.all([store.buyGenerator(a, "MSPS", 1), store.buyGenerator(a, "MSPS", 1)]);
@@ -52,6 +58,30 @@ test("PostgreSQL economy transactions are atomic", { skip: !process.env.ARVEE_ID
     assert.equal((await store.profile(a)).orbs, 1);
     assert.ok(Object.keys(await store.openLootbox(a, 1, "rare_lootbox")).length > 0);
     assert.equal((await store.craft(a, "coffee", 1)).quantity, 1);
+    if (season.phase() === "active") {
+      const progress = await store.seasonStatus(a);
+      assert.ok(progress.xp >= 250, "normal gameplay should unlock the first tier");
+      assert.ok(progress.dailyXp <= season.SEASON.dailyXpCap);
+      assert.ok(progress.activities.mine >= 2);
+      const beforeReward = (await store.profile(a)).balance;
+      const parallel = await Promise.all([
+        store.claimSeasonRewards(a, 1), store.claimSeasonRewards(a, 1)
+      ]);
+      assert.equal(parallel.reduce((sum, r) => sum + r.grants.length, 0), 1);
+      assert.ok((await store.profile(a)).balance.gte(beforeReward.plus(200)));
+      assert.equal((await store.claimSeasonRewards(a, 1)).grants.length, 0);
+      await assert.rejects(() => store.claimSeasonRewards(a, 21), /Invalid season tier/);
+      await assert.rejects(() => store.claimSeasonRewards(a, 20), /Earn .*Season XP/);
+      await store.pool.query("UPDATE players SET balance=100000000000,total_earned=100000000000 WHERE user_id=$1", [a]);
+      for (let i = 0; i < 8; i++) await store.buyGenerator(a, "MSPS", 5);
+      const capped = await store.seasonStatus(a);
+      assert.equal(capped.dailyXp, season.SEASON.dailyXpCap);
+      const both = await Promise.all([
+        store.claimSeasonRewards(a, "all"), store.claimSeasonRewards(a, "all")
+      ]);
+      assert.equal(both.reduce((sum, r) => sum + r.grants.length, 0), 1);
+      assert.deepEqual((await store.seasonStatus(a)).claimed, [1, 2]);
+    }
     await assert.rejects(() => store.useItem(a, "ore"), /cannot be consumed/);
     // Double-purchase race: at most one buyer gets the same listing.
     await store.profile(c);

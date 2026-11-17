@@ -18,6 +18,16 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## Season Journey — Founders' Journey
+
+Season 01 runs **17 November 2026–15 January 2027 (UTC)**. Players may claim earned rewards until **23 January 2027 00:00 UTC**.
+
+- `/idle season` opens a free 20-tier journey with **Claim All**, personal XP, daily contracts, and reward previews.
+- Earn XP through mining, daily claims, recruiting expeditions, crafting, opening caches, pickaxe/perk upgrades, and prestige. The cap is **500 XP per UTC day**; a tier unlocks every **250 XP**.
+- Claims are written atomically in PostgreSQL; reconnects or repeated clicks cannot duplicate rewards.
+- Your season journey is separate from prestige, and installing this migration does not wipe existing characters or items.
+- **No paid pass or Prime purchase is activated.** Paid rewards would require an explicit Discord SKU/entitlement integration with the *ARVEE Idle* Discord application.
+
 ## Easier gameplay
 
 - New players get **500 IC** at account creation (no reset of existing accounts).

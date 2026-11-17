@@ -1,4 +1,9 @@
-# 2.1.0 — polished collection and easier progression (unreleased)
+# 2.1.0 — season journey, quieter interface, and easier progression (unreleased)
+
+- Added the **Founders' Journey** season with 20 free tiers, activity XP, daily cap, contracts, 7-day claim grace, and atomic rewards in PostgreSQL.
+- Made the UI calmer: one ARVEE-purple accent, neutral rarity markers, and no decorative green buttons; red remains for destructive confirmations.
+- Preserved season rewards during prestige resets, corrected the pickaxe Quick Hands cooldown description, and fixed prestige's starter balance to 500 IC.
+- Added season progress and claim tests, including concurrent duplicate-claim prevention and daily XP limits.
 
 - Inspired by the supplied Discord UI references: rebuilt the Satchel with compact rarity-coded rows, a right-aligned Filters button, sorting and an Inspect dropdown; streamlined the Expeditions board with context filters and inline Inspect actions.
 - Added a ten-destination emoji navigation dropdown to the Command Center while keeping daily actions in one prominent horizontal button row.

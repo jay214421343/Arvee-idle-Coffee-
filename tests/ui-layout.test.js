@@ -109,7 +109,7 @@ test("command center groups primary actions and an emoji navigation menu", () =>
   assert.equal(actions.length,1);
   assert.equal(actions[0].components.length,4);
   assert.equal(selects.length,1);
-  assert.equal(selects[0].options.length,10);
+  assert.equal(selects[0].options.length,11);
   assert.equal(selects[0].custom_id,ui.custom(owner,"navigate"));
   assert.ok(selects[0].options.some((o)=>o.value==="market"));
 });

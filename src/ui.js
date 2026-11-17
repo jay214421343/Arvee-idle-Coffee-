@@ -6,6 +6,7 @@ const {
 const { generators, byId, items, recipes } = require("./catalog");
 const { pretty, dec, purchaseCost, PRESTIGE_REQUIREMENT, Decimal } = require("./economy");
 const brand = require("./brand");
+const { SEASON, rewards, missions, label, tierNeeded } = require("./season");
 
 const ACCENT = brand.theme.primary;
 const SUCCESS = brand.theme.success;
@@ -39,7 +40,7 @@ function entrySection(owner, action, id, heading, detail, label = "View") {
     .setButtonAccessory(button(owner, action, label, id, ButtonStyle.Secondary));
 }
 function rarityMark(rarity) {
-  return ({ Common: "⚪", Uncommon: "🟢", Rare: "🔵", Epic: "🟣", Legendary: "🟠" })[rarity] || "⚪";
+  return ({ Common: "◇", Uncommon: "◆", Rare: "✦", Epic: "✧", Legendary: "★" })[rarity] || "◇";
 }
 
 function navigation(owner) {
@@ -48,6 +49,7 @@ function navigation(owner) {
     { label: "Expeditions", value: "shop", emoji: "⚔️", description: "Recruit passive Idle Credit generators" },
     { label: "Satchel", value: "inventory", emoji: "🎒", description: "Manage your loot and materials" },
     { label: "The Forge", value: "craft", emoji: "⚒️", description: "Forge artifacts from gathered materials" },
+    { label: "Season Journey", value: "season", emoji: "📜", description: "Earn Season XP and unlock 20 free rewards" },
     { label: "Pickaxe & Runes", value: "pickaxe", emoji: "⛏️", description: "Upgrade mining and permanent perks" },
     { label: "Player Exchange", value: "market", emoji: "💱", description: "Trade with other adventurers" },
     { label: "Hall of Fame", value: "leaderboard", emoji: "🏆", description: "See top adventurers" },
@@ -160,12 +162,12 @@ function home(owner, user, p) {
       "🧭 **Adventure status:** Your expeditions are producing IC, even offline.")));
   c.addActionRowComponents(row([
     button(owner, "mine", "Mine", "", ButtonStyle.Primary),
-    button(owner, "daily", "Daily Reward", "", ButtonStyle.Success),
+    button(owner, "daily", "Daily Reward"),
     button(owner, "shop", "Expeditions"),
     button(owner, "inventory", "Satchel")
   ]));
   c.addActionRowComponents(navigation(owner));
-  foot(c, "✨ **QUICK TIP:** Use the navigation menu for the Forge, Exchange, Pickaxe, Ascension and more.\n🌐 [ARVEE World](" + brand.website + ")");
+  foot(c, "**Next:** Complete expeditions or open your Season Journey to unlock rewards.\n[ARVEE World](" + brand.website + ")");
   return c;
 }
 
@@ -226,7 +228,7 @@ function generator(owner, id, page, p, note = "") {
   if (note) foot(c, "✅ " + note);
   c.addActionRowComponents(row([
     button(owner, "buy_one", "Buy 1", id, ButtonStyle.Primary, owned + 1 > 10000 || p.balance.lt(oneCost)),
-    button(owner, "buy_ten", "Buy 10", id, ButtonStyle.Success, owned + 10 > 10000 || p.balance.lt(tenCost)),
+    button(owner, "buy_ten", "Buy 10", id, ButtonStyle.Secondary, owned + 10 > 10000 || p.balance.lt(tenCost)),
     button(owner, "buy_hundred", "Buy 100", id, ButtonStyle.Secondary, owned + 100 > 10000 || p.balance.lt(hundredCost)),
     button(owner, "shop", "Operations", String(page)),
     button(owner, "profile", "Command Center")
@@ -278,23 +280,22 @@ function inventory(owner, p, page = 1, filter = "all", sort = "rarity") {
     button(owner, "inventory", "Next ▶", listState(page + 1, filter, sort), ButtonStyle.Secondary, page === total)
   ]));
   foot(c, "**BAG " + page + " / " + total + "**  ·  " + entries.length + " matches   ·   " +
-    "⚪ Common  🟢 Uncommon  🔵 Rare  🟣 Epic  🟠 Mythic");
+    "◇ Common  ·  ◆ Uncommon  ·  ✦ Rare  ·  ✧ Epic  ·  ★ Legendary");
   return c;
 }
 
 function item(owner, id, quantity, back = "1_all_rarity") {
   const entry = items[id]; if (!entry) throw new Error("Unknown item.");
   const canOpen = BOX_IDS.has(id);
-  const accent = entry.rarity === "Legendary" ? 0xE6AA51 : entry.rarity === "Rare" ? 0x487AD8 : ACCENT;
   const c = container(entry.emoji + "  " + entry.name.toUpperCase(),
-    rarityMark(entry.rarity) + " **" + entry.rarity + "**   ·   **×" + quantity + " owned**", accent);
+    rarityMark(entry.rarity) + " **" + entry.rarity + "**   ·   **×" + quantity + " owned**");
   divider(c);
   c.addTextDisplayComponents(text("### FIELD NOTES\n" + entry.description +
     (entry.use ? "\n\n**Effect**  " + entry.use : "") +
     (recipes[id] ? "\n\n**Forge recipe**  " + Object.entries(recipes[id]).map(([part, q]) => q + "× " + items[part].name).join(" · ") : "")));
   c.addActionRowComponents(row([
     button(owner, canOpen ? "open_one" : "use_item", canOpen ? "🎁 Open cache" : "✨ Use item",
-      id, ButtonStyle.Success, (!entry.effect && !canOpen) || quantity < 1),
+      id, ButtonStyle.Secondary, (!entry.effect && !canOpen) || quantity < 1),
     button(owner, "inventory", "◀ Back to Satchel", String(back).includes("_") ? String(back) : "1_all_rarity"),
     ...(recipes[id] ? [button(owner, "recipe_view", "Forge recipe", id)] : [])
   ]));
@@ -348,12 +349,62 @@ function recipe(owner, id, p = null) {
     "\n\n**Ready to forge:** " + (craftable ?? "Check your satchel") + " units"));
   c.addActionRowComponents(row([
     button(owner, "craft_one", "⚒️ Forge 1", id, ButtonStyle.Primary, craftable !== null && craftable < 1),
-    button(owner, "craft_five", "✨ Forge 5", id, ButtonStyle.Success, craftable !== null && craftable < 5)
+    button(owner, "craft_five", "✨ Forge 5", id, ButtonStyle.Secondary, craftable !== null && craftable < 5)
   ]));
   c.addActionRowComponents(row([
     button(owner, "craft", "◀ All blueprints", "1_all"),
     button(owner, "inventory", "Satchel")
   ]));
+  return c;
+}
+
+function season(owner, progress, page = 1, note = "") {
+  const total = Math.ceil(rewards.length / 4);
+  page = Math.min(total, Math.max(1, Number(page) || 1));
+  const xp = Math.max(0, Number(progress.xp || 0));
+  const currentTier = Math.min(rewards.length, Math.floor(xp / SEASON.xpPerTier));
+  const claimed = new Set(progress.claimed || []);
+  const claimable = currentTier - [...claimed].filter((tier) => tier <= currentTier).length;
+  const ended = progress.phase === "finished" || progress.phase === "upcoming";
+  const c = container("ARVEE IDLE  /  SEASON JOURNEY",
+    "**Founders' Journey · Season 01**\n" + SEASON.subtitle +
+    "\nFree reward track · 20 tiers · " +
+    (progress.phase === "active" ? "Ends 16 Jan 2027" :
+      progress.phase === "claim_only" ? "Claim grace until 23 Jan 2027" :
+      progress.phase === "upcoming" ? "Coming soon" : "Season finished"));
+  c.addTextDisplayComponents(text("### YOUR SEASON PROGRESS\n" +
+    "**" + xp.toLocaleString("en-US") + " / " + (rewards.length * SEASON.xpPerTier).toLocaleString("en-US") + " XP**" +
+    "   ·   **Tier " + currentTier + " / " + rewards.length + "**\n" +
+    "▰".repeat(currentTier === rewards.length ? 10 : Math.min(10, Math.floor((xp % SEASON.xpPerTier) / SEASON.xpPerTier * 10))) +
+    "▱".repeat(currentTier === rewards.length ? 0 : 10 - Math.min(10, Math.floor((xp % SEASON.xpPerTier) / SEASON.xpPerTier * 10))) +
+    (currentTier === rewards.length ? "  MAX TIER" : "  " + (xp % SEASON.xpPerTier) + " / " + SEASON.xpPerTier + " to next") +
+    "\n**Today's XP:** " + (progress.dailyXp || 0) + " / " + SEASON.dailyXpCap));
+  c.addTextDisplayComponents(text("**DAILY CONTRACTS**  ·  Earn XP by playing\n" +
+    missions.map((m) => {
+      const done = Math.min(m.goal, Number(progress.activities?.[m.event] || 0));
+      return (done === m.goal ? "✓ " : "○ ") + m.label + "  " + done + "/" + m.goal;
+    }).join("   ·   ")));
+  const visible = rewards.slice((page - 1) * 4, page * 4);
+  for (const [i, reward] of visible.entries()) {
+    const tier = (page - 1) * 4 + i + 1;
+    const collected = claimed.has(tier);
+    const ready = currentTier >= tier && !collected && !ended;
+    const section = new SectionBuilder()
+      .addTextDisplayComponents(text("**TIER " + String(tier).padStart(2, "0") + "  ·  " + label(reward) +
+        "**\n" + (collected ? "✓ COLLECTED" : ready ? "UNLOCKED · READY TO CLAIM" :
+          currentTier >= tier ? "REWARD NO LONGER CLAIMABLE" : "LOCKED · " + tierNeeded(tier) + " XP required")))
+      .setButtonAccessory(button(owner, "season_claim", collected ? "Claimed" : ready ? "Claim" : "Locked",
+        String(tier), ButtonStyle.Secondary, !ready));
+    c.addSectionComponents(section);
+  }
+  c.addActionRowComponents(row([
+    button(owner, "season", "◀", String(page - 1), ButtonStyle.Secondary, page === 1),
+    button(owner, "season_claim_all", claimable > 0 && !ended ? "Claim all (" + claimable + ")" : "Nothing to claim",
+      String(page), ButtonStyle.Primary, claimable < 1 || ended),
+    button(owner, "season", "▶", String(page + 1), ButtonStyle.Secondary, page === total),
+    button(owner, "profile", "Home")
+  ]));
+  if (note) c.addTextDisplayComponents(text("**" + note.slice(0, 300) + "**"));
   return c;
 }
 
@@ -388,7 +439,7 @@ function listing(owner, l) {
   divider(c);
   foot(c, "**Price**  " + pretty(l.price) + " IC\n**Seller**  <@" + l.seller_id + ">");
   c.addActionRowComponents(row([
-    button(owner, "listing_buy", "Purchase", String(l.id), ButtonStyle.Success, owner === l.seller_id),
+    button(owner, "listing_buy", "Purchase", String(l.id), ButtonStyle.Secondary, owner === l.seller_id),
     button(owner, "listing_cancel", "Cancel listing", String(l.id), ButtonStyle.Danger, owner !== l.seller_id),
     button(owner, "market", "Back")
   ]));
@@ -501,6 +552,6 @@ function payload(view) {
   return { components: [view], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 module.exports = {
-  custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, message, home, shop, generator, inventory, item, crafting, recipe, market, listing,
+  custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, message, home, shop, generator, inventory, item, crafting, recipe, season, market, listing,
   prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, SUCCESS, WARN, ERROR
 };

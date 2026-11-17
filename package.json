@@ -1,6 +1,6 @@
 {
   "name": "arvee-idle",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "ARVEE Idle: independent Discord idle RPG with Components V2 and PostgreSQL",
   "type": "commonjs",
@@ -12,7 +12,7 @@
     "register": "node src/register.js",
     "db:migrate": "node src/migrate.js",
     "test": "node --test tests/*.test.js",
-    "check": "node --check src/index.js && node --check src/commands.js && node --check src/store.js && node --check src/economy.js && node --check src/ui.js && node --check src/catalog.js && node --check src/register.js && node --check src/migrate.js && node --check src/config.js && node --check src/doctor.js && node --check ecosystem.config.cjs",
+    "check": "node --check src/index.js && node --check src/commands.js && node --check src/store.js && node --check src/season.js && node --check src/economy.js && node --check src/ui.js && node --check src/catalog.js && node --check src/register.js && node --check src/migrate.js && node --check src/config.js && node --check src/doctor.js && node --check ecosystem.config.cjs",
     "doctor": "node src/doctor.js",
     "pm2:start": "pm2 start ecosystem.config.cjs --only arvee-idle",
     "pm2:logs": "pm2 logs arvee-idle --lines 60",
