@@ -136,19 +136,111 @@ function divider(c) { c.addSeparatorComponents(new SeparatorBuilder().setDivider
 function foot(c, content) { c.addTextDisplayComponents(text(content)); return c; }
 function message(heading, body, owner, opts = {}) {
   const c = container(heading, body, opts.color || ACCENT);
-  if (opts.buttons?.length) {
+  const actions = opts.buttons || (owner ? [
+    button(owner, "profile", "Command Center", "", ButtonStyle.Primary)
+  ] : []);
+  if (actions.length) {
     divider(c);
-    c.addActionRowComponents(row(opts.buttons));
-  } else if (owner) {
-    divider(c);
-    c.addActionRowComponents(row([
-      button(owner, "profile", "Profile", "", ButtonStyle.Primary),
-      button(owner, "shop", "Shop"),
-      button(owner, "inventory", "Inventory"),
-      button(owner, "mine", "Mine")
-    ]));
+    c.addActionRowComponents(row(actions.slice(0, 3)));
   }
   return c;
+}
+// Coffee-inspired narrative receipts, adapted for ARVEE Idle Components V2.
+// No fake cooldown-skipping effect: Campfire Brew currently grants IC only.
+function activityCard(owner, heading, speaker, quote, body, actions, footer = "") {
+  const c = container(heading, "**" + speaker + "**\n*" + quote + "*");
+  divider(c);
+  c.addTextDisplayComponents(text(body));
+  if (footer) foot(c, footer);
+  c.addActionRowComponents(row(actions.slice(0, 2)));
+  return c;
+}
+function countdown(seconds) {
+  const remaining = Math.max(1, Math.ceil(Number(seconds) || 1));
+  const h = Math.floor(remaining / 3600);
+  const m = Math.floor((remaining % 3600) / 60);
+  const s = remaining % 60;
+  return [h ? h + "h" : "", m ? m + "m" : "", !h && (!m || s) ? s + "s" : ""].filter(Boolean).join(" ");
+}
+function retryTime(seconds) {
+  const remaining = Math.max(1, Math.ceil(Number(seconds) || 1));
+  return "<t:" + (Math.floor(Date.now() / 1000) + remaining) + ":R>";
+}
+function miningResult(owner, result, profile = null) {
+  const waiting = Number(result.cooldown) > 0;
+  if (waiting) {
+    return activityCard(owner, "MINING  /  RESTING", "THE PROSPECTOR",
+      "Even the strongest pickaxe needs a moment.",
+      "**Next mining session**  " + retryTime(result.cooldown) +
+        "\n**Remaining**  " + countdown(result.cooldown) +
+        (profile ? "\n**Pickaxe**  Tier " + (profile.pickaxeTier || 0) : ""),
+      [button(owner, "pickaxe", "View pickaxe", "", ButtonStyle.Primary),
+       button(owner, "profile", "Command Center")],
+      "Tip: Quick Hands reduces your mining cooldown. Check Runic Talents from your pickaxe."
+    );
+  }
+  const drop = items[result.drop];
+  const loot = drop ? drop.name : "Materials";
+  const qty = result.dropQuantity || 1;
+  const details = "**EARNED**\n+" + pretty(result.reward) + " IC" +
+    "\n\n**FOUND**\n" + qty + "× " + loot +
+    (result.box ? "\n1× Supply Cache (bonus)" : "") +
+    "\n\n**PICKAXE**\nMining XP " + (result.mineXp ?? profile?.mineXp ?? 0) +
+    (profile ? "  ·  Tier " + (profile.pickaxeTier || 0) : "");
+  return activityCard(owner, "MINING  /  SUCCESS", "THE PROSPECTOR",
+    "A good haul. The mountain has more secrets yet.", details,
+    [button(owner, "pickaxe", "View pickaxe", "", ButtonStyle.Primary),
+     button(owner, "profile", "Command Center")],
+    "More income and stronger pickaxes improve your next dig."
+  );
+}
+function dailyResult(owner, result, profile = null) {
+  const waiting = Number(result.cooldown) > 0;
+  if (waiting) {
+    return activityCard(owner, "DAILY SUPPLIES  /  RESTOCKING", "THE QUARTERMASTER",
+      "Your next supply shipment isn't ready just yet.",
+      "**Next delivery**  " + retryTime(result.cooldown) +
+        "\n**Remaining**  " + countdown(result.cooldown),
+      [button(owner, "mine", "Go mining", "", ButtonStyle.Primary),
+       button(owner, "profile", "Command Center")],
+      "In the meantime, mine or send your crew on an expedition."
+    );
+  }
+  const received = Array.isArray(result.received) ? result.received : [];
+  const details = "**DELIVERY RECEIVED**\n" +
+    received.map((entry) => "• " + entry).join("\n") +
+    (profile ? "\n\n**CURRENT BALANCE**\n" + pretty(profile.balance) + " IC" : "");
+  return activityCard(owner, "DAILY SUPPLIES  /  DELIVERED", "THE QUARTERMASTER",
+    "Your provisions are ready. Make them count.", details,
+    [button(owner, "mine", "Go mining", "", ButtonStyle.Primary),
+     button(owner, "profile", "Command Center")],
+    "The daily supply delivery refreshes after 22 hours."
+  );
+}
+function craftingResult(owner, itemId, quantity) {
+  const entry = items[itemId];
+  if (!entry) throw new Error("Unknown item.");
+  return activityCard(owner, "THE FORGE  /  FINISHED", "THE ARTIFICER",
+    "A fine piece of work. Take care of it.",
+    "**CRAFTED**\n" + quantity + "× " + entry.name +
+      "\n\n**QUALITY**\n" + entry.rarity,
+    [button(owner, "craft", "Back to forge", "", ButtonStyle.Primary),
+     button(owner, "inventory", "Satchel")],
+    "Your materials and crafted item are saved to your collection."
+  );
+}
+function cacheResult(owner, drops) {
+  const entries = Object.entries(drops || {})
+    .filter(([, amount]) => Number(amount) > 0 && Number.isFinite(Number(amount)));
+  return activityCard(owner, "SUPPLY CACHE  /  OPENED", "THE QUARTERMASTER",
+    "Let's see what was tucked away inside.",
+    "**CONTENTS**\n" + (entries.length
+      ? entries.map(([id, amount]) => "• " + amount + "× " + (items[id]?.name || id)).join("\n")
+      : "Nothing found."),
+    [button(owner, "inventory", "View satchel", "", ButtonStyle.Primary),
+     button(owner, "profile", "Command Center")],
+    "Your finds have been added to your inventory."
+  );
 }
 function home(owner, user, p) {
   const operations = p.generators.reduce((n, g) => n + g.quantity, 0);
@@ -775,5 +867,5 @@ function payload(view) {
 }
 module.exports = {
   custom, button, category, listState, parseListState, craftState, parseCraftState, shopFilters, inventoryFilters, expeditionMap, expeditionRegion, expeditionGear, companionCollection, preferences, challengeBoard, message, home, shop, generator, inventory, item, crafting, recipe, season, market, listing,
-  prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, SUCCESS, WARN, ERROR
+  prestige, pickaxe, perks, perkRespec, stats, leaderboard, help, payload, miningResult, dailyResult, craftingResult, cacheResult, SUCCESS, WARN, ERROR
 };

@@ -152,12 +152,10 @@ async function respond(interaction) {
         pretty(result.cost) + " IC**.\nNew balance: " + pretty(result.balance) + " IC · Income: " + pretty(result.rate) + " IC/s.";
     } else if (command === "mine") {
       const result = await store.mine(id);
-      content = result.cooldown ? "Your pickaxe is resting. Try again in " + result.cooldown + " seconds." :
-        "Mined **" + pretty(result.reward) + " IC** and found **" + (result.dropQuantity || 1) + "× " + labelItem(result.drop) + "**! Mining XP: " + result.mineXp;
+      view = ui.miningResult(id, result, await store.profile(id));
     } else if (command === "daily") {
       const result = await store.daily(id);
-      content = result.cooldown ? "Daily reward available in " + Math.ceil(result.cooldown / 60) + " minutes." :
-        "Daily reward claimed: " + result.received.join(", ") + "!";
+      view = ui.dailyResult(id, result, await store.profile(id));
     } else if (command === "inventory") {
       const target = opts.getUser("user") || interaction.user;
       const p = await store.profile(target.id);
@@ -172,11 +170,11 @@ async function respond(interaction) {
       } else {
         const qty = opts.getInteger("amount") || 1;
         await store.craft(id, item, qty);
-        content = "Crafted " + qty + " × **" + labelItem(item) + "**!";
+        view = ui.craftingResult(id, item, qty);
       }
     } else if (command === "open") {
       const drops = await store.openLootbox(id, opts.getInteger("amount") || 1, opts.getString("type") || "lootbox");
-      content = "Opened supply caches: " + Object.entries(drops).map(([item, n]) => n + " " + labelItem(item)).join(", ") + ".";
+      view = ui.cacheResult(id, drops);
     } else if (command === "give") {
       const recipient = opts.getUser("user", true);
       if (recipient.bot) throw new Error("You cannot send items to bots.");
@@ -367,15 +365,10 @@ async function handleComponent(interaction) {
       view = ui.generator(owner, argument, page, await store.profile(owner), "Purchased " + amount + " for " + pretty(result.cost) + " IC.");
     } else if (action === "mine") {
       result = await store.mine(owner);
-      view = ui.message(result.cooldown ? "Pickaxe cooling down" : "Mining complete",
-        result.cooldown ? "You can mine again in " + result.cooldown + " seconds." :
-          "**+" + pretty(result.reward) + " IC** and **" + (result.dropQuantity || 1) + "× " + labelItem(result.drop) + "**" + (result.box ? " · Bonus Supply Cache!" : ""),
-        owner, { color: result.cooldown ? ui.WARN : ui.SUCCESS });
+      view = ui.miningResult(owner, result, await store.profile(owner));
     } else if (action === "daily") {
       result = await store.daily(owner);
-      view = ui.message(result.cooldown ? "Daily claimed" : "Daily reward",
-        result.cooldown ? "Available again in " + Math.ceil(result.cooldown / 60) + " minutes." : result.received.join(" · "),
-        owner, { color: result.cooldown ? ui.WARN : ui.SUCCESS });
+      view = ui.dailyResult(owner, result, await store.profile(owner));
     } else if (action === "inventory") {
       const { page, filter, sort } = ui.parseListState(argument, "inventory");
       const prefs = await store.getPreferences(owner);
@@ -407,7 +400,7 @@ async function handleComponent(interaction) {
       view = ui.message("Item used", "**" + labelItem(result.itemId) + "** · " + result.message, owner, { color: ui.SUCCESS });
     } else if (action === "open_one") {
       const drops = await store.openLootbox(owner, 1, argument);
-      view = ui.message("Supply Cache opened", Object.entries(drops).map(([id, n]) => n + "× " + labelItem(id)).join(" · "), owner, { color: ui.SUCCESS });
+      view = ui.cacheResult(owner, drops);
     } else if (action === "craft") {
       const { page, filter } = ui.parseCraftState(argument);
       const prefs = await store.getPreferences(owner);
@@ -423,7 +416,7 @@ async function handleComponent(interaction) {
     } else if (action === "craft_one" || action === "craft_five") {
       const quantity = action === "craft_five" ? 5 : 1;
       await store.craft(owner, argument, quantity);
-      view = ui.message("Crafted successfully", quantity + "× " + labelItem(argument), owner, { color: ui.SUCCESS });
+      view = ui.craftingResult(owner, argument, quantity);
     } else if (action === "market") {
       view = ui.market(owner, await store.browseMarket());
     } else if (action === "listing_select") {

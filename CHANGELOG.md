@@ -1,3 +1,13 @@
+# 2.4.1 — Coffee-inspired mining and activity UI (unreleased)
+
+- Restyled mining outcomes and cooldowns using Coffee's original dialogue-and-rewards presentation, adapted to native Discord Components V2 and ARVEE's restrained purple palette.
+- Made daily supplies, crafting and opened supply caches use matching compact reward receipts with a maximum of two actionable buttons.
+- Used self-updating Discord relative timestamps and readable countdowns for real mining/daily cooldowns; only display actual persisted game rewards.
+- Removed the bulky default four-button row from generic result messages; no database or gameplay balancing changes.
+- Added dedicated component and owner-binding tests for success, cooldown, bonus rewards and item receipts.
+
+---
+
 # 2.4.0 — Companions (unreleased)
 
 - Added Ember Fox, Moss Wisp and Moon Owl, with one-time free starter choice, permanent collection, one active companion and XP-based evolution stages.
