@@ -18,6 +18,18 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.9.3 — Coffee-style Mining, Rebirth Cocktail & Item Artwork
+
+Mining receipts now have a compact Coffee-style prospector narrative and **base IC**, **real bonus IC**, boost source, remaining charges, found materials, XP and cosmetic pickaxe details.
+
+**Coffee mining mechanics:** Campfire Brew, Spark Tonic and Harvest Brew reset the mining cooldown; Starshard Fruit and Forest Tonic reduce it; Herbal Ration, Traveler Bread, Hunter's Feast, Golden Starfruit and Miner's Reward now grant nonstacking charged boosts for several successful digs. Existing ARVEE base income, cooldowns and the 20× combined boost ceiling are preserved. All boosts are persistent cross-server.
+
+**Rebirth Cocktail:** every successful prestige grants one cocktail in the same locked PostgreSQL transaction as the reset, preventing double awards on duplicate clicks. The cocktail resets cooldown and gives a 2× three-dig boost, and is shown in the prestige preview and receipt.
+
+**Discord application emoji artwork:** use the uploaded `silver` artwork for Moonsteel, `lootbox` for Supply Cache and the uploaded `i_skin`, `i_skin2` and `demon_skin` art for the new I Skin, I Skin II and Demon Skin cosmetic finishes. Existing Copper, Obsidian and Astral cosmetics remain valid. `unknown` is the **fallback artwork for any item or cosmetic without a dedicated uploaded asset yet**. All IDs are in `src/item-art.js`, separate from economy data, so replacing the fallback later won't change player records. The application must have access to the specified emoji IDs.
+
+After review and merge, run `npm ci && npm run db:migrate && npm run register && npm run mac:restart` from the ARVEE Idle directory. Migration adds four mining boost fields and extends the cosmetic enum without deleting or resetting player data. Re-registering keeps slash commands in sync.
+
 ## ARVEE Idle 2.9.2 — Operation Lore & Coffee Item Restoration
 
 All 56 operations now have their own compact lore tied to their specific crews, kingdoms and cosmic domains, with a handful of in-world jokes. Every operation ID, name, price, income, icon, ordering and progression mechanic is unchanged.

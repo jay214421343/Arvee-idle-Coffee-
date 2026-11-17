@@ -548,7 +548,7 @@ async function useItem(userId, itemId, chosenName = "") {
       message = "Profile title set to " + name + ".";
     }
     if (e.skin) {
-      const styles = ["Copper", "Obsidian", "Astral"];
+      const styles = ["Copper", "I Skin", "I Skin II", "Demon Skin", "Obsidian", "Astral"];
       state.pickaxeStyle = styles[(styles.indexOf(state.pickaxeStyle) + 1) % styles.length];
       message = "Pickaxe finish changed to " + state.pickaxeStyle + ".";
     }

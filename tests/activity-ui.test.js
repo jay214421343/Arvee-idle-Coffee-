@@ -23,6 +23,9 @@ test("mining result uses a Coffee-like narrative and clean reward summary", () =
   const result = { reward: dec("3.29e222"), drop: "silver", dropQuantity: 2, mineXp: 17, box: true };
   const { serialized, buttons } = verify(ui.miningResult(owner, result, profile));
   assert.match(serialized, /THE PROSPECTOR/);
+  assert.match(serialized, /MR\\. M\\. INER/);
+  assert.match(serialized, /BASE MINING REWARD/);
+  assert.match(serialized, /TOTAL EARNED/);
   assert.match(serialized, /MINING  \/  SUCCESS/);
   assert.match(serialized, /3\.29cl IC/);
   assert.match(serialized, /2× Moonsteel/);
@@ -31,6 +34,25 @@ test("mining result uses a Coffee-like narrative and clean reward summary", () =
   assert.match(serialized, /Tier 2/);
   assert.equal(buttons[0].label, "View pickaxe");
   assert.equal(buttons[1].label, "Command Center");
+});
+test("Coffee-style bonus breakdown shows exact bonus, source, charges and skin artwork", () => {
+  const result = { reward: dec(300), baseReward: dec(150), bonusReward: dec(150),
+    multiplier: "2", boostSources: ["Rebirth Cocktail"], boostChargesLeft: 2,
+    drop: "silver", dropQuantity: 2, mineXp: 19, box: false };
+  const { serialized, buttons } = verify(ui.miningResult(owner, result, {
+    ...profile, pickaxeName: "Moonshard", pickaxeStyle: "Demon Skin"
+  }));
+  assert.match(serialized, /MR\\. M\\. INER/);
+  assert.match(serialized, /BASE MINING REWARD/);
+  assert.match(serialized, /BOOST BONUS/);
+  assert.match(serialized, /150 IC/);
+  assert.match(serialized, /300 IC/);
+  assert.match(serialized, /Rebirth Cocktail/);
+  assert.match(serialized, /REMAINING CHARGES/);
+  assert.match(serialized, /Moonshard/);
+  assert.match(serialized, /<:demon_skin:1572286340928774184>/);
+  assert.match(serialized, /<:silver:1572284313511141477>/);
+  assert.equal(buttons.length, 2);
 });
 test("mining cooldown stays descriptive and never shows invented loot", () => {
   const { serialized } = verify(ui.miningResult(owner, { cooldown: 75 }, profile));

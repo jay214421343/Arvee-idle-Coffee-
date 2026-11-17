@@ -1,6 +1,6 @@
 {
   "name": "arvee-idle",
-  "version": "2.9.2",
+  "version": "2.9.3",
   "private": true,
   "description": "ARVEE Idle: independent Discord idle RPG with Components V2 and PostgreSQL",
   "type": "commonjs",

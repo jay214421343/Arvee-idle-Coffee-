@@ -37,12 +37,15 @@ test("restored Coffee items function transactionally and cosmetics survive prest
     await store.useItem(user,"kingstones_stone");
     assert.equal((await store.profile(user)).mineXp,before.mineXp+37);
     await store.useItem(user,"reward");
-    assert.equal((await store.profile(user)).mineBonus.toString(),"1.6");
+    assert.equal((await store.profile(user)).mineBoostMultiplier.toString(),"1.6");
+    assert.equal((await store.profile(user)).mineBoostCharges,3);
     await store.pool.query("UPDATE players SET last_mine_at=now() WHERE user_id=$1",[user]);
     await store.useItem(user,"gnome");
     const boosted=await store.profile(user);
     assert.equal(boosted.lastMine,null);
-    assert.equal(boosted.mineBonus.toString(),"6.4");
+    assert.equal(boosted.mineBonus.toString(),"4");
+    assert.equal(boosted.mineBoostMultiplier.toString(),"1.6");
+    assert.equal(boosted.mineBoostCharges,3);
     await store.useItem(user,"crafting_materials");
     let gathered=await store.profile(user);
     assert.equal(gathered.inventory.find(x=>x.item_id==="ore").quantity,4);
@@ -64,6 +67,7 @@ test("restored Coffee items function transactionally and cosmetics survive prest
     assert.equal(retained.pickaxeStyle,"Obsidian");
     assert.equal(retained.profileTag,"Coffee Veteran");
     assert.equal(retained.generators.length,0);
+    assert.equal(retained.inventory.find(x=>x.item_id==="rebirth_cocktail").quantity,1);
     assert.equal(retained.inventory.find(x=>x.item_id==="mine_alert").quantity,1);
     const atLeastOne=await store.pool.query("SELECT count(*)::integer AS n FROM economy_events WHERE user_id=$1 AND event_type='use_item'",[user]);
     assert.ok(atLeastOne.rows[0].n>=8);

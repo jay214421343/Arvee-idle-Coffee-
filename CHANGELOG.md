@@ -1,3 +1,14 @@
+# 2.9.3 — Coffee Mining, Rebirth Cocktail & Art Registry (pending review)
+
+- Coffee-style mining receipts with Mr. M. Iner, precise base vs bonus IC, item sources, charge counts and pickaxe artwork.
+- Campfire Brew and selected tonics can reset or reduce mining cooldown; food buffs grant multiple successful digs without stacking and keep ARVEE's 20× ceiling.
+- Prestige awards one Rebirth Cocktail atomically; grants a cooldown reset and 2× mining income for three successful digs.
+- Register custom application emoji IDs for Moonsteel, Supply Cache and new I Skin, I Skin II and Demon Skin cosmetic finishes; `unknown` is the fallback when an item has no artwork.
+- Four additive PostgreSQL boost columns and a backward-compatible pickaxe style constraint extension. Database migration required before restart.
+- Regression tests cover mining rewards, icons, item effects, persistence and prestige grant safety.
+
+---
+
 # 2.9.2 — Operation Lore & Coffee Items Restoration (pending review)
 
 - Replaced all repeated operation boilerplate with 56 distinct ARVEE-themed descriptions, including a handful of subtle jokes.
