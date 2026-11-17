@@ -20,7 +20,16 @@ ALTER TABLE players ADD COLUMN IF NOT EXISTS orb_count INTEGER NOT NULL DEFAULT 
 -- Cosmetics stay with the player across servers and prestige. Additive to existing accounts.
 ALTER TABLE players ADD COLUMN IF NOT EXISTS pickaxe_name TEXT NOT NULL DEFAULT 'Pickaxe' CHECK (length(pickaxe_name) BETWEEN 1 AND 24);
 ALTER TABLE players ADD COLUMN IF NOT EXISTS pickaxe_style TEXT NOT NULL DEFAULT 'Copper' CHECK (pickaxe_style IN ('Copper','Obsidian','Astral'));
+-- Extend the original cosmetic enum without changing saved skins.
+ALTER TABLE players DROP CONSTRAINT IF EXISTS players_pickaxe_style_check;
+ALTER TABLE players ADD CONSTRAINT players_pickaxe_style_check
+  CHECK (pickaxe_style IN ('Copper','Obsidian','Astral','I Skin','I Skin II','Demon Skin'));
 ALTER TABLE players ADD COLUMN IF NOT EXISTS profile_tag TEXT NOT NULL DEFAULT '' CHECK (length(profile_tag) <= 24);
+-- Coffee-style charged mining buffs: persistent per user across Discord servers.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS mine_boost_multiplier NUMERIC NOT NULL DEFAULT 1 CHECK (mine_boost_multiplier BETWEEN 1 AND 4);
+ALTER TABLE players ADD COLUMN IF NOT EXISTS mine_boost_charges INTEGER NOT NULL DEFAULT 0 CHECK (mine_boost_charges BETWEEN 0 AND 6);
+ALTER TABLE players ADD COLUMN IF NOT EXISTS mine_boost_source TEXT NOT NULL DEFAULT '' CHECK (length(mine_boost_source) <= 64);
+ALTER TABLE players ADD COLUMN IF NOT EXISTS next_mine_source TEXT NOT NULL DEFAULT '' CHECK (length(next_mine_source) <= 64);
 
 
 CREATE TABLE IF NOT EXISTS player_generators (

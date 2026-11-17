@@ -45,16 +45,19 @@ async function transact(ids, action) {
         mineXp: player.mine_xp, lastMine: player.last_mine_at,
         lastDaily: player.last_daily_at, lastSettledAt: passive.settledAt,
         pickaxeTier: player.pickaxe_tier, mineBonus: dec(player.next_mine_multiplier), orbs: player.orb_count, perks: playerPerks,
-        pickaxeName: player.pickaxe_name, pickaxeStyle: player.pickaxe_style, profileTag: player.profile_tag
+        pickaxeName: player.pickaxe_name, pickaxeStyle: player.pickaxe_style, profileTag: player.profile_tag,
+        mineBoostMultiplier: dec(player.mine_boost_multiplier), mineBoostCharges: player.mine_boost_charges,
+        mineBoostSource: player.mine_boost_source, nextMineSource: player.next_mine_source
       });
     }
     const result = await action(client, states);
     for (const state of states.values()) {
       await client.query(
-        "UPDATE players SET balance=$2, total_earned=$3, prestige=$4, mine_xp=$5, last_mine_at=$6, last_daily_at=$7, last_settled_at=$8, pickaxe_tier=$9, next_mine_multiplier=$10, orb_count=$11, pickaxe_name=$12, pickaxe_style=$13, profile_tag=$14, updated_at=now() WHERE user_id=$1",
+        "UPDATE players SET balance=$2, total_earned=$3, prestige=$4, mine_xp=$5, last_mine_at=$6, last_daily_at=$7, last_settled_at=$8, pickaxe_tier=$9, next_mine_multiplier=$10, orb_count=$11, pickaxe_name=$12, pickaxe_style=$13, profile_tag=$14, mine_boost_multiplier=$15, mine_boost_charges=$16, mine_boost_source=$17, next_mine_source=$18, updated_at=now() WHERE user_id=$1",
         [state.id, state.balance.toFixed(0), state.totalEarned.toFixed(0), state.prestige,
           state.mineXp, state.lastMine, state.lastDaily, state.lastSettledAt,
-          state.pickaxeTier, state.mineBonus.toString(), state.orbs, state.pickaxeName, state.pickaxeStyle, state.profileTag]
+          state.pickaxeTier, state.mineBonus.toString(), state.orbs, state.pickaxeName, state.pickaxeStyle, state.profileTag,
+          state.mineBoostMultiplier.toString(), state.mineBoostCharges, state.mineBoostSource, state.nextMineSource]
       );
     }
     await client.query("COMMIT");
@@ -251,11 +254,30 @@ async function mine(userId) {
     const pet = await activeCompanion(db,userId);
     const petBonus = pet?.id === "ember_fox" ? dec(1).plus(dec(companions.boostPct(pet.level)).div(100)) : dec(1);
     const guildTier = await guildStore.perkTier(db,userId);
-    const reward = Decimal.max(150, state.rate.times(30))
+    // The existing base mining economy is unchanged; charged boosts spend one charge only on a committed dig.
+    const gross = Decimal.max(150, state.rate.times(30))
       .times(dec(1).plus(dec(state.pickaxeTier).times("0.25")))
       .times(dec(1).plus(dec(perkLevel(state, "miner")).times("0.10")))
-      .times(state.mineBonus).times(petBonus).times(dec(guilds.mineMultiplier(guildTier))).floor();
+      .times(petBonus).times(dec(guilds.mineMultiplier(guildTier)));
+    const oneShot = state.mineBonus;
+    const food = state.mineBoostCharges > 0 ? state.mineBoostMultiplier : dec(1);
+    const multiplier = Decimal.min(20, oneShot.times(food));
+    const baseReward = gross.floor();
+    const reward = gross.times(multiplier).floor();
+    const bonusReward = reward.minus(baseReward);
+    const boostSources = [
+      ...(oneShot.gt(1) ? [state.nextMineSource || "Stored boost"] : []),
+      ...(state.mineBoostCharges > 0 ? [state.mineBoostSource || "Food boost"] : [])
+    ];
+    if (state.mineBoostCharges > 0) {
+      state.mineBoostCharges -= 1;
+      if (state.mineBoostCharges === 0) {
+        state.mineBoostMultiplier = dec(1);
+        state.mineBoostSource = "";
+      }
+    }
     state.mineBonus = dec(1);
+    state.nextMineSource = "";
     state.balance = state.balance.plus(reward);
     state.totalEarned = state.totalEarned.plus(reward);
     state.lastMine = new Date(now);
@@ -271,7 +293,8 @@ async function mine(userId) {
     const box = Math.random() < 0.04 + 0.03 * perkLevel(state, "scavenger");
     if (box) await addItem(db, userId, "lootbox", 1);
     await event(db, userId, "mine", reward, { drop });
-    return { reward, drop, dropQuantity, mineXp: state.mineXp, box };
+    return { reward, baseReward, bonusReward, multiplier: multiplier.toString(),
+      boostSources, boostChargesLeft: state.mineBoostCharges, drop, dropQuantity, mineXp: state.mineXp, box };
   });
 }
 async function daily(userId) {
@@ -354,8 +377,11 @@ async function prestige(userId) {
     state.rate = dec(0);
     state.generators = [];
     await db.query("DELETE FROM player_generators WHERE user_id=$1", [userId]);
-    await event(db, userId, "prestige", 0, { newLevel: state.prestige });
-    return { prestige: state.prestige, multiplier: prestigeMultiplier(state.prestige) };
+    // The cocktail is awarded in the same locked transaction as the prestige reset.
+    await addItem(db, userId, "rebirth_cocktail", 1);
+    await event(db, userId, "prestige", 0, { newLevel: state.prestige, reward: "rebirth_cocktail" });
+    return { prestige: state.prestige, multiplier: prestigeMultiplier(state.prestige),
+      itemId: "rebirth_cocktail", itemQuantity: 1 };
   });
 }
 async function leaderboard(limit = 10) {
@@ -432,7 +458,17 @@ async function useItem(userId, itemId, chosenName = "") {
     const state = stateOf(states, userId);
     const e = item.effect;
     if (e.orb && state.orbs >= 20) throw new Error("Orb limit reached (20).");
-    if (e.nextMine && state.mineBonus.times(e.nextMine).gt(20)) throw new Error("You already have the maximum next-mine boost.");
+    const charged = state.mineBoostCharges > 0 ? state.mineBoostMultiplier : dec(1);
+    if (e.mineBoost) {
+      if (state.mineBoostCharges > 0) throw new Error("You already have a food boost. Finish its remaining digs before replacing it.");
+      const amount = e.mineBoost.charges, factor = dec(e.mineBoost.multiplier);
+      if (!Number.isSafeInteger(amount) || amount < 1 || amount > 6 || factor.lt(1) || factor.gt(4))
+        throw new Error("Invalid mining boost configuration.");
+      if (state.mineBonus.times(factor).gt(20))
+        throw new Error("Use the existing boost first. Combined mining boosts cannot exceed 20×.");
+    }
+    if (e.nextMine && state.mineBonus.times(charged).times(e.nextMine).gt(20))
+      throw new Error("Use the existing boost first. Combined mining boosts cannot exceed 20×.");
     if (e.xp && state.mineXp + e.xp > 100000000) throw new Error("Mining XP cap reached.");
     const name = e.renamePickaxe || e.tag ? cosmeticName(chosenName) : "";
     if (e.crew) {
@@ -444,9 +480,11 @@ async function useItem(userId, itemId, chosenName = "") {
       if (!owned.rows[0] || owned.rows[0].quantity < 1) throw new Error("Item not owned.");
       if (e.stats) return { itemId, message: "Your lifetime records are ready.", showStats: true };
       const ready = activity.playerReadiness(state).mine;
-      return { itemId, message: ready.ready ?
+      const buff = state.mineBoostCharges > 0 ?
+        " Active: " + state.mineBoostSource + " (" + state.mineBoostCharges + " digs left)." : "";
+      return { itemId, message: (ready.ready ?
         "Mining is ready. Use /idle mine." :
-        "Mining recharges <t:" + ready.readyAt + ":R>. No ping is scheduled; this is a reusable timer." };
+        "Mining recharges <t:" + ready.readyAt + ":R>. No ping is scheduled; this is a reusable timer.") + buff };
     }
     await removeItem(db, userId, itemId, 1);
     let message = "";
@@ -457,7 +495,16 @@ async function useItem(userId, itemId, chosenName = "") {
     }
     if (e.nextMine) {
       state.mineBonus = state.mineBonus.times(e.nextMine);
+      state.nextMineSource = item.name;
       message = "Next mining multiplier: " + state.mineBonus.toString() + "×.";
+    }
+    if (e.mineBoost) {
+      state.mineBoostMultiplier = dec(e.mineBoost.multiplier);
+      state.mineBoostCharges = e.mineBoost.charges;
+      state.mineBoostSource = item.name;
+      message += (message ? " " : "") + item.name + ": " +
+        state.mineBoostMultiplier.toString() + "× for " + state.mineBoostCharges +
+        " successful digs. Food boosts do not stack.";
     }
     if (e.xp) {
       state.mineXp += e.xp;
@@ -478,7 +525,19 @@ async function useItem(userId, itemId, chosenName = "") {
     }
     if (e.cooldownReset) {
       state.lastMine = null;
-      message += " Mining cooldown reset. Ready now.";
+      message += (message ? " " : "") + "Mining cooldown reset. Ready now.";
+    }
+    if (e.cooldownReduceSeconds || e.cooldownReduceFraction) {
+      const cooldownMs = activity.miningCooldownMs(state.perks);
+      const reductionMs = e.cooldownReduceSeconds ?
+        Math.min(cooldownMs, e.cooldownReduceSeconds * 1000) :
+        Math.floor(cooldownMs * Number(e.cooldownReduceFraction));
+      if (state.lastMine && !activity.readiness(state.lastMine, cooldownMs).ready) {
+        state.lastMine = new Date(new Date(state.lastMine).getTime() - reductionMs);
+        if (activity.readiness(state.lastMine, cooldownMs).ready) state.lastMine = null;
+      }
+      message += (message ? " " : "") + "Mining cooldown shortened by up to " +
+        Math.ceil(reductionMs / 1000) + "s.";
     }
     if (e.renamePickaxe) {
       state.pickaxeName = name;
@@ -489,7 +548,7 @@ async function useItem(userId, itemId, chosenName = "") {
       message = "Profile title set to " + name + ".";
     }
     if (e.skin) {
-      const styles = ["Copper", "Obsidian", "Astral"];
+      const styles = ["Copper", "I Skin", "I Skin II", "Demon Skin", "Obsidian", "Astral"];
       state.pickaxeStyle = styles[(styles.indexOf(state.pickaxeStyle) + 1) % styles.length];
       message = "Pickaxe finish changed to " + state.pickaxeStyle + ".";
     }

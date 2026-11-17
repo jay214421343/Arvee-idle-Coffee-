@@ -25,7 +25,7 @@ test("all 12 restored Coffee item aliases have a real effect and Forge recipe",(
     assert.ok(recipes[id],"missing recipe for "+id);
     assert.ok(Object.keys(recipes[id]).every(key=>items[key]),"missing ingredient for "+id);
   }
-  assert.equal(Object.keys(items).length,39,"26 originals + Creditus Deletus + 12 restored");
+  assert.equal(Object.keys(items).length,40,"26 originals + Creditus Deletus + 12 restored + Rebirth Cocktail");
   assert.equal(Object.keys(recipes).length,24,"keep slash choice count under 25");
   assert.equal(items.pickaxe,undefined,"pickaxe is already a system, not a disposable inventory item");
 });

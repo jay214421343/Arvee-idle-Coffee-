@@ -4,6 +4,7 @@ const {
   ActionRowBuilder, ButtonBuilder, StringSelectMenuBuilder, ButtonStyle, MessageFlags, escapeMarkdown
 } = require("discord.js");
 const { generators, byId, items, recipes } = require("./catalog");
+const { itemArt, pickaxeArt } = require("./item-art");
 const { pretty, dec, purchaseCost, maxAffordable, PRESTIGE_REQUIREMENT, Decimal } = require("./economy");
 const brand = require("./brand");
 const challengeData = require("./challenges");
@@ -172,7 +173,7 @@ function message(heading, body, owner, opts = {}) {
   return c;
 }
 // Coffee-inspired narrative receipts, adapted for ARVEE Idle Components V2.
-// No fake cooldown-skipping effect: Campfire Brew currently grants IC only.
+// Coffee-style narrative receipts display exact committed mining rewards and real cooldowns.
 function activityCard(owner, heading, speaker, quote, body, actions, footer = "") {
   const c = container(heading, "**" + speaker + "**\n*" + quote + "*");
   divider(c);
@@ -194,30 +195,48 @@ function retryTime(seconds) {
 }
 function miningResult(owner, result, profile = null) {
   const waiting = Number(result.cooldown) > 0;
+  const pickaxe = profile ?
+    "**PICKAXE**  " + escapeMarkdown(profile.pickaxeName || "Pickaxe").slice(0, 24) +
+      " · Tier " + (profile.pickaxeTier || 0) + " · " +
+      pickaxeArt(profile.pickaxeStyle) + " " + (profile.pickaxeStyle || "Copper") : "";
+  const charged = Number(profile?.mineBoostCharges || 0) > 0 ?
+    "**ACTIVE BOOST**  " + escapeMarkdown(profile.mineBoostSource || "Food boost") +
+      " · " + profile.mineBoostCharges + " digs left" : "";
   if (waiting) {
-    return activityCard(owner, "MINING  /  RESTING", "THE PROSPECTOR",
-      "Even the strongest pickaxe needs a moment.",
-      "**Next mining session**  " + retryTime(result.cooldown) +
-        "\n**Remaining**  " + countdown(result.cooldown) +
-        (profile ? "\n**Pickaxe**  Tier " + (profile.pickaxeTier || 0) : ""),
+    return activityCard(owner, "MINING  /  RESTING", "MR. M. INER  /  THE PROSPECTOR",
+      "The mountain can wait. Even a legendary pickaxe needs a break.",
+      "**NEXT DIG**  " + retryTime(result.cooldown) +
+      "\n**COOLDOWN**  " + countdown(result.cooldown) +
+      (charged ? "\n" + charged : "") +
+      (pickaxe ? "\n" + pickaxe : ""),
       [button(owner, "pickaxe", "View pickaxe", "", ButtonStyle.Primary),
        button(owner, "profile", "Command Center")],
-      "Tip: Quick Hands reduces your mining cooldown. Check Runic Talents from your pickaxe."
+      "Campfire Brew and selected tonics can reset or shorten mining cooldowns."
     );
   }
-  const drop = items[result.drop];
-  const loot = drop ? drop.name : "Materials";
-  const qty = result.dropQuantity || 1;
-  const details = "**EARNED**\n+" + pretty(result.reward) + " IC" +
-    "\n\n**FOUND**\n" + qty + "× " + loot +
-    (result.box ? "\n1× Supply Cache (bonus)" : "") +
-    "\n\n**PICKAXE**\nMining XP " + (result.mineXp ?? profile?.mineXp ?? 0) +
-    (profile ? "  ·  Tier " + (profile.pickaxeTier || 0) : "");
-  return activityCard(owner, "MINING  /  SUCCESS", "THE PROSPECTOR",
-    "A good haul. The mountain has more secrets yet.", details,
+  const drop = items[result.drop], qty = result.dropQuantity || 1;
+  const loot = drop ? itemArt(result.drop) + " " + drop.name : "Materials";
+  const base = result.baseReward === undefined ? result.reward : result.baseReward;
+  const bonus = result.bonusReward === undefined ? dec(0) : dec(result.bonusReward);
+  const sources = Array.isArray(result.boostSources) ? result.boostSources : [];
+  const spent = sources.length > 0 || bonus.gt(0);
+  const chargeLeft = Number.isInteger(result.boostChargesLeft) ? result.boostChargesLeft : 0;
+  const details = "*You swing your pickaxe with all your might. The stone finally gives way.*" +
+    "\n\n**BASE MINING REWARD**  +" + pretty(base) + " IC" +
+    (spent ? "\n**BOOST BONUS**  +" + pretty(bonus) + " IC" +
+      (result.multiplier ? " · " + result.multiplier + "×" : "") +
+      (sources.length ? "\n**FROM**  " + sources.map(s => escapeMarkdown(s)).join(" + ") : "") +
+      "\n**REMAINING CHARGES**  " + chargeLeft : "") +
+    "\n**TOTAL EARNED**  +" + pretty(result.reward) + " IC" +
+    "\n\n**FOUND**  " + qty + "× " + loot +
+    (result.box ? "\n1× " + itemArt("lootbox") + " Supply Cache (bonus)" : "") +
+    "\n\n**MINING XP**  " + (result.mineXp ?? profile?.mineXp ?? 0) +
+    (pickaxe ? "\n" + pickaxe : "");
+  return activityCard(owner, "MINING  /  SUCCESS", "MR. M. INER  /  THE PROSPECTOR",
+    "Dig deep. Bring something shiny back.", details,
     [button(owner, "pickaxe", "View pickaxe", "", ButtonStyle.Primary),
      button(owner, "profile", "Command Center")],
-    "More income and stronger pickaxes improve your next dig."
+    "Mining bonuses consume charges only on successful digs."
   );
 }
 function dailyResult(owner, result, profile = null) {
@@ -285,6 +304,7 @@ function prestigeResult(owner, result) {
     "A new chapter begins with lasting strength.",
     "**PRESTIGE LEVEL**  " + result.prestige +
     "\n**PRODUCTION MULTIPLIER**  " + dec(result.multiplier).toString() + "×" +
+    (result.itemId === "rebirth_cocktail" ? "\n**REWARD**  1× Rebirth Cocktail added to your Satchel" : "") +
     "\nYour operation roster and wallet have reset; your permanent progress remains.",
     [button(owner, "shop", "Recruit operations", "", ButtonStyle.Primary),
      button(owner, "profile", "Command Center")],
@@ -327,7 +347,9 @@ function home(owner, user, p, readOnly = false) {
   const ready = activity.playerReadiness(p);
   const displayReady = (state) => state.ready ? "Ready" : "<t:" + state.readyAt + ":R>";
   c.addTextDisplayComponents(text("**ACTIVITIES**  Mine " + displayReady(ready.mine) +
-    "  ·  Daily " + displayReady(ready.daily)));
+    "  ·  Daily " + displayReady(ready.daily) +
+    (Number(p.mineBoostCharges || 0) > 0 ? "\n**MINING BOOST**  " +
+      escapeMarkdown(p.mineBoostSource || "Food") + " · " + p.mineBoostCharges + " digs left" : "")));
   if (Number(p.passiveSeconds) >= 300 && dec(p.passiveEarned || 0).gt(0))
     c.addTextDisplayComponents(text("**PASSIVE INCOME SETTLED**  +" + pretty(p.passiveEarned) +
       " IC since your last saved activity (" + progression.elapsedLabel(p.passiveSeconds) + ")."));
@@ -490,7 +512,7 @@ function customization(owner, id) {
 function item(owner, id, quantity, back = "1_all_rarity") {
   const entry = items[id]; if (!entry) throw new Error("Unknown item.");
   const canOpen = BOX_IDS.has(id);
-  const c = container(entry.emoji + "  " + entry.name.toUpperCase(),
+  const c = container(itemArt(id) + "  " + entry.name.toUpperCase(),
     rarityMark(entry.rarity) + " **" + entry.rarity + "**   ·   **×" + quantity + " owned**");
   divider(c);
   c.addTextDisplayComponents(text("### FIELD NOTES\n" + entry.description +
@@ -1056,7 +1078,8 @@ function prestige(owner, p) {
   divider(c);
   foot(c, "**Your IC**  " + pretty(p.balance) + " / " + pretty(PRESTIGE_REQUIREMENT) +
     "\n**Current level**  " + p.prestige + "\n**Next level**  " + (p.prestige + 1) +
-    "\n**Permanent production**  +" + ((p.prestige + 1) * 25) + "%");
+    "\n**Permanent production**  +" + ((p.prestige + 1) * 25) + "%" +
+    "\n**Prestige reward**  1× Rebirth Cocktail (cooldown reset, 2× for 3 digs)");
   c.addActionRowComponents(row([
     button(owner, "prestige_confirm", "Confirm prestige", "", ButtonStyle.Danger, !eligible),
     button(owner, "profile", "Cancel")
@@ -1076,7 +1099,7 @@ function pickaxe(owner, p) {
   const c = container("ARVEE IDLE  /  PICKAXE", "Craft stronger mining equipment with your collected materials.");
   divider(c);
   c.addTextDisplayComponents(text("**Pickaxe name**  " + escapeMarkdown(p.pickaxeName || "Pickaxe").slice(0,24) +
-    "  ·  **Finish**  " + (p.pickaxeStyle || "Copper") +
+    "  ·  **Finish**  " + pickaxeArt(p.pickaxeStyle) + " " + (p.pickaxeStyle || "Copper") +
     "\n**Pickaxe tier**  " + tier + " / 10  ·  **Mining XP**  " + p.mineXp +
     "\n**Mining multiplier**  " + (1 + tier * 0.25).toFixed(2) + "×" +
     "\n**Next tier**  " + (max ? "Maximum reached" : tier + 1)));
