@@ -25,6 +25,11 @@ ALTER TABLE players DROP CONSTRAINT IF EXISTS players_pickaxe_style_check;
 ALTER TABLE players ADD CONSTRAINT players_pickaxe_style_check
   CHECK (pickaxe_style IN ('Copper','Obsidian','Astral','I Skin','I Skin II','Demon Skin'));
 ALTER TABLE players ADD COLUMN IF NOT EXISTS profile_tag TEXT NOT NULL DEFAULT '' CHECK (length(profile_tag) <= 24);
+-- Rebirth specialization applies on the next confirmed prestige.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS rebirth_path TEXT NOT NULL DEFAULT 'none'
+  CHECK (rebirth_path IN ('none','miner','tycoon','hunter'));
+ALTER TABLE players ADD COLUMN IF NOT EXISTS rebirth_next_path TEXT NOT NULL DEFAULT 'none'
+  CHECK (rebirth_next_path IN ('none','miner','tycoon','hunter'));
 -- Coffee-style charged mining buffs: persistent per user across Discord servers.
 ALTER TABLE players ADD COLUMN IF NOT EXISTS mine_boost_multiplier NUMERIC NOT NULL DEFAULT 1 CHECK (mine_boost_multiplier BETWEEN 1 AND 4);
 ALTER TABLE players ADD COLUMN IF NOT EXISTS mine_boost_charges INTEGER NOT NULL DEFAULT 0 CHECK (mine_boost_charges BETWEEN 0 AND 6);

@@ -4,6 +4,7 @@ const { items, recipes, byId, perks } = require("./catalog");
 const { Decimal, dec, generatorRate, purchaseCost, maxAffordable, settle, PRESTIGE_REQUIREMENT, prestigeMultiplier, pretty } = require("./economy");
 const season = require("./season");
 const { rollRebirthBonus } = require("./rebirth-loot");
+const rebirth=require("./rebirth");
 const lootTables=require("./loot-tables");
 const challenges = require("./challenges");
 const exploration = require("./exploration");
@@ -38,13 +39,14 @@ async function transact(ids, action, options = {}) {
       const generators = (await client.query("SELECT generator_id, quantity FROM player_generators WHERE user_id = $1", [id])).rows;
       const playerPerks = (await client.query("SELECT perk_id, level FROM player_perks WHERE user_id=$1", [id])).rows;
       const investor = playerPerks.find((p) => p.perk_id === "investor")?.level || 0;
-      const rate = await effectiveGeneratorRate(client,id,generators,player.prestige,player.orb_count,investor);
+      const rate = await effectiveGeneratorRate(client,id,generators,player.prestige,player.orb_count,investor,player.rebirth_path);
       const passive = settle(player.balance, player.total_earned, rate, player.last_settled_at, time);
       states.set(id, {
         id, balance: passive.balance, totalEarned: passive.totalEarned,
         passiveEarned: passive.earned,
         passiveSeconds: Math.max(0, Math.floor((time.getTime() - new Date(player.last_settled_at).getTime()) / 1000)) || 0,
         prestige: player.prestige, rate, generators,
+        rebirthPath:player.rebirth_path, nextRebirthPath:player.rebirth_next_path,
         mineXp: player.mine_xp, lastMine: player.last_mine_at,
         lastDaily: player.last_daily_at, lastSettledAt: passive.settledAt,
         pickaxeTier: player.pickaxe_tier, mineBonus: dec(player.next_mine_multiplier), orbs: player.orb_count, perks: playerPerks,
@@ -63,11 +65,12 @@ async function transact(ids, action, options = {}) {
     const result = await action(client, states);
     for (const state of states.values()) {
       await client.query(
-        "UPDATE players SET balance=$2, total_earned=$3, prestige=$4, mine_xp=$5, last_mine_at=$6, last_daily_at=$7, last_settled_at=$8, pickaxe_tier=$9, next_mine_multiplier=$10, orb_count=$11, pickaxe_name=$12, pickaxe_style=$13, profile_tag=$14, mine_boost_multiplier=$15, mine_boost_charges=$16, mine_boost_source=$17, next_mine_source=$18, updated_at=now() WHERE user_id=$1",
+        "UPDATE players SET balance=$2, total_earned=$3, prestige=$4, mine_xp=$5, last_mine_at=$6, last_daily_at=$7, last_settled_at=$8, pickaxe_tier=$9, next_mine_multiplier=$10, orb_count=$11, pickaxe_name=$12, pickaxe_style=$13, profile_tag=$14, mine_boost_multiplier=$15, mine_boost_charges=$16, mine_boost_source=$17, next_mine_source=$18,rebirth_path=$19,rebirth_next_path=$20, updated_at=now() WHERE user_id=$1",
         [state.id, state.balance.toFixed(0), state.totalEarned.toFixed(0), state.prestige,
           state.mineXp, state.lastMine, state.lastDaily, state.lastSettledAt,
           state.pickaxeTier, state.mineBonus.toString(), state.orbs, state.pickaxeName, state.pickaxeStyle, state.profileTag,
-          state.mineBoostMultiplier.toString(), state.mineBoostCharges, state.mineBoostSource, state.nextMineSource]
+          state.mineBoostMultiplier.toString(), state.mineBoostCharges, state.mineBoostSource, state.nextMineSource,
+          state.rebirthPath,state.nextRebirthPath]
       );
     }
     await client.query("COMMIT");
@@ -91,10 +94,13 @@ async function activeCompanion(db, userId) {
   return row ? { id: row.pet_id, xp: Number(row.xp), level: companions.level(Number(row.xp)),
     talentId: row.talent_id, charmId: Number(row.charm_owned || 0) > 0 ? row.equipped_charm_id : null } : null;
 }
-async function effectiveGeneratorRate(db,userId,generators,prestige,orbs,investor=0) {
+async function effectiveGeneratorRate(db,userId,generators,prestige,orbs,investor=0,path=null) {
   const base=generatorRate(generators,prestige,orbs,investor);
   const active=await activeCompanion(db,userId);
-  return base.times(dec(1).plus(dec(companions.effectPct(active,"idle_income")).div(100)));
+  if(path===null)
+    path=(await db.query("SELECT rebirth_path FROM players WHERE user_id=$1",[userId])).rows[0]?.rebirth_path||"none";
+  return base.times(dec(1).plus(dec(companions.effectPct(active,"idle_income")).div(100)))
+    .times(rebirth.idleMultiplier(path));
 }
 async function grantCompanionXp(db, userId, type, metadata = {}) {
   const amount = companions.eventXp(type, metadata);
@@ -271,6 +277,8 @@ async function buyGenerator(userId, generatorId, quantity) {
   if (!entry) throw new Error("Operation not found. Try /idle shop.");
   return transact([userId], async (db, states) => {
     const state = stateOf(states, userId);
+    if(!rebirth.unlocked(state.prestige,entry.prestigeRequired))
+      throw new Error("Unlock "+entry.name+" at Rebirth "+entry.prestigeRequired+".");
     const current = (await db.query("SELECT quantity FROM player_generators WHERE user_id=$1 AND generator_id=$2", [userId, entry.id])).rows[0];
     const owned = current ? Number(current.quantity) : 0;
     const amount = quantity === "max" ? maxAffordable(entry.cost, owned, state.balance) : quantity;
@@ -305,7 +313,8 @@ async function mine(userId) {
     const gross = Decimal.max(150, state.rate.times(30))
       .times(dec(1).plus(dec(state.pickaxeTier).times("0.25")))
       .times(dec(1).plus(dec(perkLevel(state, "miner")).times("0.10")))
-      .times(petBonus).times(dec(guilds.mineMultiplier(guildTier)));
+      .times(petBonus).times(dec(guilds.mineMultiplier(guildTier)))
+      .times(rebirth.minerMultiplier(state.rebirthPath));
     const oneShot = state.mineBonus;
     const food = state.mineBoostCharges > 0 ? state.mineBoostMultiplier : dec(1);
     const multiplier = Decimal.min(20, oneShot.times(food));
@@ -339,12 +348,16 @@ async function mine(userId) {
     await addItem(db, userId, drop, dropQuantity);
     // Supply Caches remain random: 7% base instead of 4%, with existing perk scaling.
     const cacheChance = Math.min(0.5, 0.07 + 0.03 * perkLevel(state, "scavenger") +
-      companions.effectPct(pet, "cache_luck") / 300);
+      companions.effectPct(pet, "cache_luck") / 300+
+      rebirth.extraCacheChance(state.rebirthPath));
     const box = Math.random() < cacheChance;
     if (box) await addItem(db, userId, "lootbox", 1);
-    await event(db, userId, "mine", reward, { drop });
+    const milestones=rebirth.miningRewards(state.prestige,state.rebirthPath);
+    for(const found of milestones)await addItem(db,userId,found.id,found.quantity);
+    await event(db, userId, "mine", reward, { drop,milestones });
     return { reward, baseReward, bonusReward, multiplier: multiplier.toString(),
-      boostSources, boostChargesLeft: state.mineBoostCharges, drop, dropQuantity, mineXp: state.mineXp, box };
+      boostSources, boostChargesLeft: state.mineBoostCharges, drop, dropQuantity, mineXp: state.mineXp, box,
+      milestones };
   });
 }
 async function daily(userId) {
@@ -425,6 +438,8 @@ async function prestige(userId) {
     const state = stateOf(states, userId);
     if (state.balance.lt(PRESTIGE_REQUIREMENT)) throw new Error("You need 1B IC to prestige.");
     state.prestige += 1;
+    // Choosing a specialization never resets items, companions or existing XP.
+    state.rebirthPath=state.nextRebirthPath;
     state.balance = dec(500);
     state.totalEarned = dec(500);
     state.rate = dec(0);
@@ -435,9 +450,18 @@ async function prestige(userId) {
     const bonusItemId = rollRebirthBonus(Math.random());
     if (bonusItemId) await addItem(db, userId, bonusItemId, 1);
     await event(db, userId, "prestige", 0, {
-      newLevel: state.prestige, bonusItemId
+      newLevel: state.prestige, bonusItemId, path:state.rebirthPath
     });
-    return { prestige: state.prestige, multiplier: prestigeMultiplier(state.prestige), bonusItemId };
+    return { prestige: state.prestige, multiplier: prestigeMultiplier(state.prestige),
+      bonusItemId,path:state.rebirthPath,unlocked:rebirth.MILESTONES.find(x=>x.tier===state.prestige)||null };
+  });
+}
+async function setRebirthPath(userId,path){
+  if(!Object.hasOwn(rebirth.PATHS,path))throw new Error("Invalid rebirth specialization.");
+  return transact([userId],async(db,states)=>{
+    const state=stateOf(states,userId);
+    state.nextRebirthPath=path;
+    return {path,current:state.rebirthPath};
   });
 }
 async function leaderboard(limit = 10) {
@@ -1116,5 +1140,5 @@ async function claimSeasonRewards(userId, requested = "all") {
 const guildStore = require("./guild-store")({ transact, pool, stateOf, dec, assertId });
 const guildExpeditionStore = require("./guild-expedition-store")({ transact, stateOf, addItem, event });
 module.exports = { ...guildStore, ...guildExpeditionStore, pool, transact, profile, getWorldBoss, attackWorldBoss, claimWorldBossReward, getCompanions, adoptCompanion, equipCompanion, hatchCompanion, chooseCompanionTalent, equipCompanionCharm, getExploration, startExpedition, collectExpedition, upgradeExpeditionGear, getPreferences, setPreferences, resetPreferences, getChallenges, claimChallenge, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
-  prestige, leaderboard, browseMarket, sellItem, buyListing, cancelListing, getListing, useItem, upgradePickaxe, upgradePerk,
+  prestige, setRebirthPath, leaderboard, browseMarket, sellItem, buyListing, cancelListing, getListing, useItem, upgradePickaxe, upgradePerk,
   respecPerks, getStats };

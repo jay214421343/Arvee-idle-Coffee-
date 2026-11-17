@@ -1,5 +1,6 @@
 "use strict";
 const { SlashCommandBuilder, MessageFlags, ButtonStyle } = require("discord.js");
+const rebirth=require("./rebirth");
 const { generators, byId, items, recipes } = require("./catalog");
 const { dec, pretty, purchaseCost, PRESTIGE_REQUIREMENT } = require("./economy");
 const store = require("./store");
@@ -393,6 +394,10 @@ async function handleComponent(interaction) {
       else if (["adventure_menu", "progress_menu", "more_menu"].includes(selected))
         view = ui.sectionMenu(owner, selected.replace("_menu", ""));
       else throw new Error("Unknown navigation destination.");
+    } else if (action === "rebirth_path") {
+      const chosen=await store.setRebirthPath(owner,selected);
+      view=ui.prestige(owner,await store.profile(owner),
+        rebirth.PATHS[chosen.path].name+" will activate at your next rebirth.");
     } else if (action === "season") {
       view = ui.season(owner, await store.seasonStatus(owner), Number(argument) || 1);
     } else if (action === "season_jump") {
