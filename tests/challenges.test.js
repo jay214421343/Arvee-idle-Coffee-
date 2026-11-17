@@ -67,7 +67,11 @@ test("saved preferences are visible and can be reset with an owner-bound button"
 test("new commands and navigation appear in slash registration and command center", () => {
   const names=idle.toJSON().options.map(o=>o.name);
   assert.ok(names.includes("challenges"));
-  assert.ok(names.includes("settings"));
+  const account=idle.toJSON().options.find(o=>o.name==="account");
+  assert.ok(account,"Settings and Stats remain available in /idle account");
+  assert.ok(account.options.some(o=>o.name==="settings"));
+  assert.ok(account.options.some(o=>o.name==="stats"));
+  assert.ok(names.includes("info"));
   const home=ui.home(owner,{username:"Player",displayAvatarURL:()=>"https://cdn.discordapp.com/embed/avatars/0.png"},
     {balance:require("../src/economy").dec(500),rate:require("../src/economy").dec(0),
      totalEarned:require("../src/economy").dec(500),prestige:0,mineXp:0,generators:[]});
