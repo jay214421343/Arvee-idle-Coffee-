@@ -5,6 +5,12 @@ const ui=require("../src/ui");
 const owner="123456789012345678";
 const mythics=["twilight_lynx","aurora_gryphon","eclipse_leviathan"];
 const secret="eternal_sovereign";
+test("non-starter Mythics and Secret cannot be claimed through free starter adoption",async()=>{
+  const store=require("../src/store");
+  for(const id of [...mythics,secret])
+    await assert.rejects(()=>store.adoptCompanion(owner,id),/three free starter companions/);
+});
+
 test("three escalating omni Mythics plus a super-rare Secret have nine real abilities",()=>{
   assert.equal(pets.PETS.length,22);
   assert.deepEqual(pets.PETS.filter(p=>p.effect==="all_stats").map(p=>p.id),[...mythics,secret]);

@@ -136,6 +136,8 @@ async function getCompanions(userId) {
 async function adoptCompanion(userId, petId) {
   const pet = companions.byId.get(String(petId));
   if (!pet) throw new Error("Unknown companion.");
+  // Player-supplied component IDs must not unlock non-starter species for free.
+  if (!pet.starter) throw new Error("Choose one of the three free starter companions.");
   return transact([userId], async (db) => {
     await db.query("INSERT INTO companion_settings(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING", [userId]);
     const settings = (await db.query(
