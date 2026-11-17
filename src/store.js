@@ -403,73 +403,63 @@ async function getStats(userId) {
   return { ...player, counts, achievements };
 }
 
-async function challengeActivities(db, userId, cycle) {
-  return (await db.query(
-    "SELECT event_type, COUNT(*)::integer AS occurrences, " +
-    "COALESCE(SUM(CASE WHEN metadata->>'quantity' ~ '^[0-9]{1,5}
+const DEFAULT_PREFERENCES = Object.freeze({
+  shopFilter: "all", shopSort: "price",
+  inventoryFilter: "all", inventorySort: "rarity", forgeFilter: "all"
+});
+const PREFERENCE_COLUMNS = Object.freeze({
+  shopFilter: { column: "shop_filter", allowed: ["all", "affordable", "owned"] },
+  shopSort: { column: "shop_sort", allowed: ["price", "income"] },
+  inventoryFilter: { column: "inventory_filter", allowed: ["all", "materials", "usable", "caches"] },
+  inventorySort: { column: "inventory_sort", allowed: ["rarity", "name", "quantity"] },
+  forgeFilter: { column: "forge_filter", allowed: ["all", "ready"] }
+});
+function mapPreferences(row) {
+  return {
+    shopFilter: row?.shop_filter || "all",
+    shopSort: row?.shop_sort || "price",
+    inventoryFilter: row?.inventory_filter || "all",
+    inventorySort: row?.inventory_sort || "rarity",
+    forgeFilter: row?.forge_filter || "all"
+  };
+}
+async function getPreferences(userId) {
   return transact([userId], async (db) => {
-    const progress = (await db.query("SELECT xp FROM season_progress WHERE user_id=$1 AND season_id=$2",
-      [userId, season.SEASON.id])).rows[0];
-    const claimed = (await db.query("SELECT tier FROM season_claims WHERE user_id=$1 AND season_id=$2 ORDER BY tier",
-      [userId, season.SEASON.id])).rows.map((r) => Number(r.tier));
-    const daily = (await db.query(
-      "SELECT xp FROM season_xp_daily WHERE user_id=$1 AND season_id=$2 AND day=(now() AT TIME ZONE 'UTC')::date",
-      [userId, season.SEASON.id])).rows[0]?.xp || 0;
-    const counts = (await db.query(
-      "SELECT event_type,count(*)::integer AS n FROM economy_events WHERE user_id=$1 " +
-      "AND created_at >= date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' " +
-      "AND event_type=ANY($2::text[]) GROUP BY event_type",
-      [userId, season.missions.map((m) => m.event)]
-    )).rows;
-    const activities = Object.fromEntries(counts.map((r) => [r.event_type, Number(r.n)]));
-    return {
-      xp: Number(progress?.xp || 0), claimed, dailyXp: Number(daily),
-      unlocked: season.unlocked(Number(progress?.xp || 0)),
-      activities, phase: season.phase()
-    };
+    const row = (await db.query("SELECT * FROM player_ui_preferences WHERE user_id=$1", [userId])).rows[0];
+    return mapPreferences(row);
   });
 }
-async function claimSeasonRewards(userId, requested = "all") {
-  if (requested !== "all" && (!Number.isInteger(requested) || requested < 1 || requested > season.rewards.length))
-    throw new Error("Invalid season tier.");
-  if (!["active", "claim_only"].includes(season.phase()))
-    throw new Error("Season rewards are not available to claim now.");
-  return transact([userId], async (db, states) => {
-    const state = stateOf(states, userId);
-    const earned = (await db.query("SELECT xp FROM season_progress WHERE user_id=$1 AND season_id=$2",
-      [userId, season.SEASON.id])).rows[0]?.xp || 0;
-    const unlocked = season.unlocked(Number(earned));
-    if (requested !== "all" && requested > unlocked)
-      throw new Error("Earn " + season.tierNeeded(requested) + " Season XP to unlock this tier.");
-    const tiers = requested === "all" ?
-      Array.from({ length: unlocked }, (_, n) => n + 1) : [requested];
-    const grants = [];
-    for (const tier of tiers) {
-      const inserted = (await db.query(
-        "INSERT INTO season_claims(user_id,season_id,tier) VALUES($1,$2,$3) " +
-          "ON CONFLICT(user_id,season_id,tier) DO NOTHING RETURNING tier",
-        [userId, season.SEASON.id, tier]
-      )).rows;
-      if (!inserted.length) continue;
-      const reward = season.rewards[tier - 1];
-      if (reward.kind === "ic") {
-        state.balance = state.balance.plus(reward.amount);
-        state.totalEarned = state.totalEarned.plus(reward.amount);
-      } else if (reward.kind === "item") {
-        await addItem(db, userId, reward.item, reward.quantity);
-      }
-      await event(db, userId, "season_reward_claim", 0, { season: season.SEASON.id, tier, reward });
-      grants.push({ tier, reward: season.label(reward) });
+async function setPreferences(userId, changes) {
+  if (!changes || typeof changes !== "object" || Array.isArray(changes) || !Object.keys(changes).length) {
+    throw new Error("No filter preferences selected.");
+  }
+  for (const [field, value] of Object.entries(changes)) {
+    const rule = PREFERENCE_COLUMNS[field];
+    if (!rule || !rule.allowed.includes(value)) throw new Error("Invalid filter preference.");
+  }
+  return transact([userId], async (db) => {
+    // Player rows are locked by transact, serializing changes across all PM2 instances.
+    await db.query("INSERT INTO player_ui_preferences(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING", [userId]);
+    for (const [field, value] of Object.entries(changes)) {
+      const column = PREFERENCE_COLUMNS[field].column;
+      await db.query("UPDATE player_ui_preferences SET " + column + "=$2,updated_at=now() WHERE user_id=$1", [userId, value]);
     }
-    return { grants, unlocked };
+    const row = (await db.query("SELECT * FROM player_ui_preferences WHERE user_id=$1", [userId])).rows[0];
+    return mapPreferences(row);
+  });
+}
+async function resetPreferences(userId) {
+  return transact([userId], async (db) => {
+    await db.query("DELETE FROM player_ui_preferences WHERE user_id=$1", [userId]);
+    return { ...DEFAULT_PREFERENCES };
   });
 }
 
-module.exports = { pool, transact, profile, getChallenges, claimChallenge, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
-  prestige, leaderboard, browseMarket, sellItem, buyListing, cancelListing, getListing, useItem, upgradePickaxe, upgradePerk,
-  respecPerks, getStats };
- " +
-    "THEN LEAST((metadata->>'quantity')::integer,1000) ELSE 1 END),0)::integer AS quantity " +
+async function challengeActivities(db, userId, cycle) {
+  return (await db.query(
+    "SELECT event_type, COUNT(*)::integer AS occurrences, " +
+    "COALESCE(SUM(CASE WHEN jsonb_typeof(metadata->'quantity') = 'number' " +
+    "THEN LEAST(GREATEST((metadata->>'quantity')::numeric, 1), 1000) ELSE 1 END),0)::integer AS quantity " +
     "FROM economy_events WHERE user_id=$1 AND created_at >= $2 AND created_at < $3 " +
     "AND event_type=ANY($4::text[]) GROUP BY event_type",
     [userId, cycle.start, cycle.end, [...new Set(cycle.tasks.map((t) => t.event))]]
@@ -522,6 +512,7 @@ async function claimChallenge(userId, scope, periodKey, challengeId) {
     return { claimed: true, task: task.label, reward: challenges.rewardLabel(task.reward) };
   });
 }
+
 
 async function seasonStatus(userId) {
   return transact([userId], async (db) => {
@@ -582,6 +573,6 @@ async function claimSeasonRewards(userId, requested = "all") {
   });
 }
 
-module.exports = { pool, transact, profile, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
+module.exports = { pool, transact, profile, getPreferences, setPreferences, resetPreferences, getChallenges, claimChallenge, seasonStatus, claimSeasonRewards, buyGenerator, mine, daily, craft, openLootbox, giveItem,
   prestige, leaderboard, browseMarket, sellItem, buyListing, cancelListing, getListing, useItem, upgradePickaxe, upgradePerk,
   respecPerks, getStats };
