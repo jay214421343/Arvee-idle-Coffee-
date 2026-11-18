@@ -25,7 +25,7 @@ const WARN = brand.theme.warning;
 const ERROR = brand.theme.error;
 const LIMIT = 8;
 const PAGE_SIZE = 4;
-const INVENTORY_PAGE_SIZE = 8;
+const INVENTORY_PAGE_SIZE = 5;
 const SORT_RARITY = Object.freeze({ Common: 0, Uncommon: 1, Rare: 2, Epic: 3, Legendary: 4, Mythic: 5, Secret: 6 });
 const BOX_IDS = new Set(["lootbox", "rare_lootbox", "legendary_lootbox", "lunchbox"]);
 function category(id) {
