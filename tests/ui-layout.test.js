@@ -33,11 +33,13 @@ test("satchel uses a filter button, sorting dropdown and per-item Inspect button
   const view = ui.inventory(owner, sample, 1, "all", "rarity");
   verifyCompact(view);
   assert.equal(findSections(view).length, 6);
+  assert.equal(view.toJSON().components.length, 10);
   assert.equal(findSelects(view).length, 1);
   assert.equal(findSections(view)[0].accessory.label, "Filters");
   assert.ok(findSections(view).slice(1).every((section) => section.accessory.label === "Inspect"));
   const json = JSON.stringify(view.toJSON());
   assert.match(json, /SATCHEL/);
+  assert.match(json, /Bag 1\\/4/);
   assert.doesNotMatch(json, /Inspect an item/);
   assert.match(json, /Rarest first/);
 });
