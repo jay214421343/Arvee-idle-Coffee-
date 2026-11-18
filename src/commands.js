@@ -569,6 +569,14 @@ async function handleComponent(interaction) {
     } else if (action === "inventory_sort") {
       const prefs = await store.setPreferences(owner, { inventorySort: selected });
       view = ui.inventory(owner, await store.profile(owner), 1, prefs.inventoryFilter, prefs.inventorySort);
+    } else if (action === "inventory_inspect") {
+      const match = argument.match(/^(.+)_(\\d+)_(all|materials|usable|caches)_(rarity|name|quantity)$/);
+      if (!match) throw new Error("Invalid Satchel item selection.");
+      const [, itemId, page, filter, sort] = match;
+      const p = await store.profile(owner);
+      const quantity = p.inventory.find((e) => e.item_id === itemId)?.quantity || 0;
+      if (!quantity) throw new Error("Item not owned.");
+      view = ui.item(owner, itemId, quantity, ui.listState(page, filter, sort));
     } else if (action === "item_view") {
       const p = await store.profile(owner);
       view = ui.item(owner, argument, p.inventory.find((e) => e.item_id === argument)?.quantity || 0);
