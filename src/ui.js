@@ -16,6 +16,8 @@ const { eligibleMiningReset } = require("./mining-reset");
 const progression = require("./progression");
 const guilds = require("./guilds");
 const { SEASON, rewards, missions, label, tierNeeded } = require("./season");
+const itemGuide=require("./item-guide");
+const rebirth=require("./rebirth");
 
 const ACCENT = brand.theme.primary;
 const SUCCESS = brand.theme.success;
@@ -236,6 +238,8 @@ function miningResult(owner, result, profile = null) {
     "\n**TOTAL EARNED**  +" + pretty(result.reward) + " IC" +
     "\n\n**FOUND**  " + qty + "× " + loot +
     (result.box ? "\n1× " + itemArt("lootbox") + " Supply Cache (bonus)" : "") +
+    (result.milestones?.length ? "\n**DEEP FINDS**  "+
+      result.milestones.map(x=>x.quantity+"× "+items[x.id].name).join(" · ") : "") +
     "\n\n**MINING XP**  " + (result.mineXp ?? profile?.mineXp ?? 0) +
     (pickaxe ? "\n" + pickaxe : "");
   return activityCard(owner, "MINING  /  SUCCESS", "MR. M. INER  /  THE PROSPECTOR",
@@ -310,6 +314,8 @@ function prestigeResult(owner, result) {
     "A new chapter begins with lasting strength.",
     "**PRESTIGE LEVEL**  " + result.prestige +
     "\n**PRODUCTION MULTIPLIER**  " + dec(result.multiplier).toString() + "×" +
+    "\n**SPECIALIZATION**  "+rebirth.PATHS[result.path||"none"].name +
+    (result.unlocked ? "\n**MILESTONE UNLOCKED**  "+result.unlocked.name+" — "+result.unlocked.detail : "") +
     (result.bonusItemId ? "\n**LUCKY BONUS**  1× " + items[result.bonusItemId].name +
       " added to your Satchel" : "\n**LUCKY BONUS**  None this time") +
     "\nYour operation roster and wallet have reset; your permanent progress remains.",
@@ -376,7 +382,8 @@ function shop(owner, page = 1, p = null, filter = "all", sort = "price") {
   if (!["price", "income"].includes(sort)) sort = "price";
   const owned = (g) => p?.generators.find((x) => x.generator_id === g.id)?.quantity || 0;
   const cost = (g) => purchaseCost(g.cost, owned(g), 1);
-  let entries = generators.filter((g) => filter === "all" ||
+  let entries = generators.filter((g)=>rebirth.unlocked(p?.prestige||0,g.prestigeRequired))
+    .filter((g) => filter === "all" ||
     (filter === "owned" ? owned(g) > 0 : p && p.balance.gte(cost(g))));
   entries = entries.sort((a, b) => sort === "income" ? dec(b.income).cmp(dec(a.income)) : cost(a).cmp(cost(b)));
   const total = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
@@ -552,6 +559,9 @@ function itemInfo(owner,id,quantity=0) {
   c.addTextDisplayComponents(text("**FIELD NOTES**\n"+entry.description+
     "\n\n**EFFECT / PURPOSE**\n"+effect+
     (ingredients ? "\n\n**FORGE RECIPE**\n"+ingredients : "")+
+    "\n\n**HOW TO OBTAIN**\n"+itemGuide.sources(id).join("\n")+
+    (itemGuide.cacheContents(id) ? "\n\n**POSSIBLE CONTENTS · PER OPEN**\n"+
+      itemGuide.cacheContents(id) : "")+
     "\n\n**ITEM ID**  "+id));
   c.addActionRowComponents(row([
     button(owner,"inventory","My Satchel","1_all_rarity",ButtonStyle.Primary),
@@ -621,7 +631,7 @@ function companionCollection(owner, state, note = "") {
   const c = container("ARVEE IDLE  /  COMPANIONS",
     "**" + state.owned.length + " / " + companions.PETS.length +
     " discovered**  ·  **" + state.eggs + " eggs**\n" +
-    "One active companion supports your chosen build. No feeding or paid upgrades.");
+    "One active companion: specialists offer 2–3 focused perks, Mythics offer all-round power.");
   if (selected) {
     const next = selected.level === companions.MAX_LEVEL ? companions.MAX_XP : selected.nextXp;
     const progress = next === selected.startXp ? 10 :
@@ -656,7 +666,8 @@ function companionCollection(owner, state, note = "") {
     (state.starterClaimed ? state.owned.map((pet) => companions.byId.get(pet.id)) : companions.STARTERS)
       .map((pet) => ({
         label: pet.name, value: pet.id,
-        description: (pet.rarity + " · " + pet.description).slice(0,100),
+        description: (pet.rarity + " · " +
+          (companions.bonus({id:pet.id,level:1})?.description || pet.description)).slice(0,100),
         ...(state.starterClaimed ? { default: state.activeId === pet.id } : {})
       }))
   ));
@@ -1163,15 +1174,26 @@ function listing(owner, l) {
   ]));
   return c;
 }
-function prestige(owner, p) {
+function prestige(owner, p, note="") {
   const eligible = p.balance.gte(PRESTIGE_REQUIREMENT);
+  const milestone=rebirth.next(p.prestige||0);
   const c = container("Prestige", "Reset your IC and generators to gain permanent production power.", WARN);
   divider(c);
   foot(c, "**Your IC**  " + pretty(p.balance) + " / " + pretty(PRESTIGE_REQUIREMENT) +
     "\n**Current level**  " + p.prestige + "\n**Next level**  " + (p.prestige + 1) +
     "\n**Permanent production**  +" + ((p.prestige + 1) * 25) + "%" +
     "\n**Lucky reward**  5% Rebirth Cocktail · 5% Lunchbox · 10% Rare Cache · 30% Supply Cache" +
-    "\n50% chance of no bonus item.");
+    "\n50% chance of no bonus item."+
+    "\n\n**SPECIALIZATION**  "+rebirth.PATHS[p.rebirthPath||"none"].name+
+    "  ·  Next: "+rebirth.PATHS[p.nextRebirthPath||"none"].name+
+    (milestone?"\n**NEXT UNLOCK**  Rebirth "+milestone.tier+": "+milestone.name+
+      " — "+milestone.detail:"\n**ALL MILESTONES UNLOCKED**"));
+  if(note)c.addTextDisplayComponents(text("**"+note.slice(0,150)+"**"));
+  c.addActionRowComponents(selector(owner,"rebirth_path","","Specialization for next rebirth",
+    Object.entries(rebirth.PATHS).map(([id,path])=>({
+      label:path.name,value:id,description:path.description,
+      default:id===(p.nextRebirthPath||"none")
+    }))));
   c.addActionRowComponents(row([
     button(owner, "prestige_confirm", "Confirm prestige", "", ButtonStyle.Danger, !eligible),
     button(owner, "profile", "Cancel")

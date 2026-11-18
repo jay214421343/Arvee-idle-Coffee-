@@ -13,7 +13,7 @@ test("ARVEE Idle branding and slash command are separate from main ARVEE", () =>
   assert.equal(brand.command, "idle");
   assert.equal(brand.currency, "IC");
   assert.equal(idle.toJSON().name, "idle");
-  assert.equal(generators.length, 56);
+  assert.equal(generators.length, 59);
   assert.ok(generators.every((g) => g.description.length >= 45 && g.description.length <= 180));
   assert.equal(new Set(generators.map((g) => g.description)).size, generators.length);
 });

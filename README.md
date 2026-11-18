@@ -18,6 +18,36 @@ With your dedicated PostgreSQL database and .env configured, run from the ARVEE 
 
 The mac:* scripts use the PM2 6.0.14 CLI and the existing ~/.pm2 daemon. They only start, stop or restart arvee-idle; other ARVEE processes are left alone.
 
+## ARVEE Idle 2.15 — Beyond Rebirth & Companion Builds
+
+ARVEE Idle retains its familiar **Mine → Earn IC → Recruit operations → Rebirth** loop, while each existing prestige milestone unlocks something new **retroactively**. There is no new currency, separate gameplay mode, extra daily task or paid reward. Existing inventories, companion XP, season progress and prestige count remain intact.
+
+### Rebirth milestones (automatic and retroactive)
+
+| Rebirth | Unlock |
+|---:|---|
+| 5 | Ore Seeker — 3% independent chance of two bonus Rune Ore per successful dig |
+| 10 | Cache Scout — 1% independent extra Supply Cache chance |
+| 20 | Deep Miner — 2% Void Essence and 0.25% Rare Supply Cache finds |
+| 35 | Runeforge Operator — premium late-game **Runeforge Crew** in the same Operations Shop |
+| 50 | Relic Seeker — **Void Excavators** operation and 0.15% Pickaxe Skin Token discovery |
+| 75 | Astral Architect — **Astral Prospectors** operation and 0.1% Mythic Supply Cache discovery |
+| 100 | Eternal Prospector — 0.05% Astral Egg discovery while mining |
+
+These are additional independent RNG rolls, **not guaranteed drops**. They do not replace the existing ore or cache results. Higher prestige automatically unlocks all earlier milestones. The new three operations have explicit rebirth gates enforced server-side as well as in the shop. As before, normal rebirths provide the permanent production boost and **one optional** lucky bonus; the Rebirth Cocktail is never guaranteed.
+
+Choose one simple **rebirth specialization** on the existing Prestige screen. **Miner** gives +10% mined IC, **Tycoon** gives +10% passive IC, and **Treasure Hunter** gives +2 percentage points of Supply Cache chance (still subject to the current overall cap). Selecting a path only stages it; it becomes active at the next successful prestige and can be changed at the following prestige. No extra UI navigation or currency.
+
+### More useful companion choices
+
+The 18 existing specialist companions now have unique **two- or three-stat builds**. Their signature stat keeps full strength while smaller secondary effects make each pet useful for a particular playstyle. Miners, exploration pets, treasure finders and World Boss companions remain distinct; the three all-stat Mythics and super-rare Secret pet remain the versatile generalists. One active companion, existing talents/charms, eggs, levels and collected pets all persist. No new pet species or forced pet rerolls.
+
+### Comprehensive item information
+
+`/idle info item:<item>` now shows **how to obtain each item**: its recipes, relevant Season Journey tiers, rotating Contract rewards, expedition regions, normal mining, Rebirth bonuses, cache pools and player trading where applicable. For **Supply Caches**, the same authoritative tables used for opening caches display the full main-drop list with per-item percentages, plus independent bonus/charm chances. The Adventurer's Lunchbox lists both its ration and tonic pools (one of each per open). Inspecting never consumes items or changes progress.
+
+**Deploy:** `npm ci && npm run db:migrate && npm run mac:restart`. The additive schema change stores current and next rebirth paths. No slash-command registration needed. Review and merge the PR before deploying.
+
 ## ARVEE Idle 2.14 — First-Play Interactive Tutorial
 
 The first time a Discord user runs any `/idle` command, they receive a **seven-step interactive beginner guide** before their requested gameplay action. This is a safe educational view: it never spends IC, consumes items, claims daily supplies, or forces a pet choice. Steps introduce the wallet/game loop, daily and mining cooldowns, passive operations, Satchel/Forge, companions and World Map, the free 100-tier Season Journey and cooperative systems, then prestige.

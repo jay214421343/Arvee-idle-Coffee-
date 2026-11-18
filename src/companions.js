@@ -30,6 +30,34 @@ const RARITY_WEIGHTS = Object.freeze({ Common: 60, Uncommon: 40, Rare: 25, Epic:
 const SECRET_POOL = 1000000;
 const ALL_EFFECTS = Object.freeze(["mine_income","idle_income","expedition_speed","expedition_loot",
   "expedition_success","boss_power","boss_haste","egg_luck","cache_luck"]);
+// Non-omni companions have differentiated specializations: one full-strength
+// signature and 1–2 supporting bonuses. Mythics/Secret keep their all-stat role.
+const SPECIALIST_TRAITS = Object.freeze({
+  ember_fox: Object.freeze({"mine_income":1,"boss_power":0.42}),
+  moss_wisp: Object.freeze({"expedition_speed":1,"expedition_success":0.55}),
+  moon_owl: Object.freeze({"expedition_loot":1,"egg_luck":0.5}),
+  cave_ferret: Object.freeze({"expedition_loot":1,"cache_luck":0.7}),
+  iron_cub: Object.freeze({"boss_power":1,"mine_income":0.52}),
+  clockwork_sparrow: Object.freeze({"boss_haste":1,"idle_income":0.6}),
+  trail_sprite: Object.freeze({"expedition_success":1,"expedition_speed":0.62}),
+  zephyr_finch: Object.freeze({"expedition_speed":1,"boss_haste":0.55}),
+  ash_wolf: Object.freeze({"boss_power":1,"cache_luck":0.5}),
+  nest_fox: Object.freeze({"egg_luck":1,"cache_luck":0.7}),
+  tempest_roc: Object.freeze({"expedition_speed":1,"boss_power":0.6}),
+  gem_serpent: Object.freeze({"expedition_loot":1,"mine_income":0.52}),
+  void_moth: Object.freeze({"boss_haste":1,"expedition_success":0.55}),
+  rune_gecko: Object.freeze({"cache_luck":1,"egg_luck":0.55}),
+  phoenix_drake: Object.freeze({"mine_income":1,"boss_power":0.6,"idle_income":0.35}),
+  runebound_golem: Object.freeze({"boss_power":1,"idle_income":0.58}),
+  star_stag: Object.freeze({"expedition_success":1,"expedition_loot":0.6}),
+  hatchling_drake: Object.freeze({"egg_luck":1,"cache_luck":0.65,"mine_income":0.3}),
+});
+const STAT_LABELS = Object.freeze({
+  mine_income:"Mining IC",idle_income:"Passive IC",expedition_speed:"Expedition speed",
+  expedition_loot:"Expedition loot",expedition_success:"Expedition success",
+  boss_power:"Boss power",boss_haste:"Boss haste",egg_luck:"Egg discovery",
+  cache_luck:"Supply Cache chance"
+});
 const TALENTS = Object.freeze({
   focus: Object.freeze({name:"Focus",description:"Stronger natural companion ability"}),
   tracker: Object.freeze({name:"Tracker",description:"Better Supply Cache and companion egg discovery"}),
@@ -66,11 +94,11 @@ function boostPct(lvl) {
 function effectPct(pet, effect) {
   const type = pet && byId.get(pet.id);
   if (!type) return 0;
-  let pct = type.effect === effect || (type.effect === "all_stats" && ALL_EFFECTS.includes(effect)) ?
-    boostPct(pet.level) * type.power : 0;
+  const multiplier=type.effect==="all_stats" ? (ALL_EFFECTS.includes(effect)?1:0) :
+    Number(SPECIALIST_TRAITS[type.id]?.[effect] || 0);
+  let pct=boostPct(pet.level)*type.power*multiplier;
   const mastery = pet.level >= 20 ? 2 : pet.level >= 10 ? 1 : 0;
-  if (mastery && pet.talentId === "focus" &&
-      (type.effect === effect || (type.effect === "all_stats" && ALL_EFFECTS.includes(effect))))
+  if (mastery && pet.talentId === "focus" && multiplier>0)
     pct *= mastery === 2 ? 1.35 : 1.2;
   if (mastery && pet.talentId === "tracker" && (effect === "cache_luck" || effect === "egg_luck"))
     pct += mastery === 2 ? 12 : 6;
@@ -101,7 +129,9 @@ function bonus(pet) {
   const allRound = type.effect === "all_stats" ?
     "All 9 buffs · +" + pct + "% mining, idle income, loot and boss power · -" +
     effectPct(pet,"boss_haste") + "% boss cooldown · faster expeditions and more luck" :
-    desc[type.effect];
+    Object.keys(SPECIALIST_TRAITS[type.id] || {}).map(effect=>
+      (["boss_haste","expedition_speed"].includes(effect) ? "−" : "+") +
+      (effectPct(pet,effect)) + "% " + STAT_LABELS[effect]).join(" · ");
   return { role: type.role, percent: pct,
     description: allRound + (suffix ? " · " + suffix : "") };
 }
@@ -143,5 +173,5 @@ function hatch(owned = [], rng = (limit) => crypto.randomInt(limit), eggType = "
   }
   throw new Error("Could not hatch companion.");
 }
-module.exports = { PETS, STARTERS, byId, RARITY_WEIGHTS, SECRET_POOL, ALL_EFFECTS, TALENTS, CHARMS, EGG_TIERS, MAX_LEVEL, MAX_XP,
+module.exports = { PETS, STARTERS, byId, RARITY_WEIGHTS, SECRET_POOL, ALL_EFFECTS, SPECIALIST_TRAITS, STAT_LABELS, TALENTS, CHARMS, EGG_TIERS, MAX_LEVEL, MAX_XP,
   xpFor, level, stage, bonus, boostPct, effectPct, eventXp, eggDrop, hatch };

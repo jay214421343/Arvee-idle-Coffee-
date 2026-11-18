@@ -1,4 +1,5 @@
 "use strict";
+const rebirth=require("./rebirth");
 const generators = require("./data/generators.json").catalogue
   .filter((entry) => entry.available !== false && entry.alias && entry.baseCost && entry.baseIncome)
   .map((entry) => Object.freeze({
@@ -7,7 +8,7 @@ const generators = require("./data/generators.json").catalogue
     description: entry.desc || "",
     cost: entry.baseCost,
     income: entry.baseIncome
-  }));
+  })).concat(rebirth.ADVANCED.map(g=>Object.freeze({...g})));
 const byId = new Map(generators.map((entry) => [entry.id, entry]));
 if (byId.size !== generators.length) throw new Error("Duplicate generator ID in catalogue");
 
