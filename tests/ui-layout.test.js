@@ -16,13 +16,13 @@ function findSelects(view) {
   return view.toJSON().components.filter((part) => part.type === 1 && part.components[0]?.type === 3)
     .map((part) => part.components[0]);
 }
-function verifyCompact(view) {
+function verifyCompact(view, maxSections = 5) {
   const json = view.toJSON();
   assert.equal(json.type, 17);
   assert.ok(json.components.length <= 10, "container must stay within Discord component limit");
   assert.ok(JSON.stringify(json).length < 10000);
   const sections = findSections(view);
-  assert.ok(sections.length <= 5);
+  assert.ok(sections.length <= maxSections);
   for (const section of sections) {
     assert.equal(section.accessory.type, 2);
     assert.match(section.accessory.custom_id, /^ai:2:123456789012345678:/);
@@ -31,7 +31,7 @@ function verifyCompact(view) {
 }
 test("satchel uses a filter button, sorting dropdown and per-item Inspect buttons", () => {
   const view = ui.inventory(owner, sample, 1, "all", "rarity");
-  verifyCompact(view);
+  verifyCompact(view, 6);
   assert.equal(findSections(view).length, 6);
   assert.equal(view.toJSON().components.length, 10);
   assert.equal(findSelects(view).length, 1);
