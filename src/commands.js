@@ -570,7 +570,7 @@ async function handleComponent(interaction) {
       const prefs = await store.setPreferences(owner, { inventorySort: selected });
       view = ui.inventory(owner, await store.profile(owner), 1, prefs.inventoryFilter, prefs.inventorySort);
     } else if (action === "inventory_inspect") {
-      const match = argument.match(/^(.+)_(\\d+)_(all|materials|usable|caches)_(rarity|name|quantity)$/);
+      const match = argument.match(/^(.+)_(\d+)_(all|materials|usable|caches)_(rarity|name|quantity)$/);
       if (!match) throw new Error("Invalid Satchel item selection.");
       const [, itemId, page, filter, sort] = match;
       const p = await store.profile(owner);
