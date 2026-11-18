@@ -137,6 +137,10 @@ test("Satchel Inspect controls keep Discord component counts within limits", () 
   const obj = ui.inventory(owner, { ...sample, inventory: all }).toJSON();
   assert.ok(obj.components.length <= 40);
   assert.equal(obj.components.filter((component) => component.type === 9).length, 6);
-  assert.ok(obj.components.length <= 10);
+  assert.equal(obj.components.length, 10);
   assert.doesNotThrow(() => ui.payload(ui.inventory(owner, { ...sample, inventory: all })));
+  const page2 = ui.inventory(owner, { ...sample, inventory: all }, 2).toJSON();
+  assert.equal(page2.components.filter((component) => component.type === 9).length, 4);
+  assert.ok(page2.components.length <= 10);
+  assert.match(JSON.stringify(page2), /Bag 2\\/2/);
 });
