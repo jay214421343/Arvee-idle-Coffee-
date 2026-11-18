@@ -462,14 +462,15 @@ function inventory(owner, p, page = 1, filter = "all", sort = "rarity") {
     " unique items**  ·  Explore your loot, supplies and forging materials.");
   c.addSectionComponents(filterHeader(owner, "inventory_filters", "COLLECTION",
     (filter === "all" ? "All items" : ({ materials: "Crafting materials", usable: "Consumables", caches: "Supply caches" }[filter])) +
-    "  ·  " + ({ rarity: "Rare first", name: "Alphabetical", quantity: "Most owned" }[sort]),
+    "  ·  " + ({ rarity: "Rare first", name: "Alphabetical", quantity: "Most owned" }[sort]) +
+    "  ·  Bag " + page + "/" + total + "  ·  " + entries.length + " matches",
     listState(page, filter, sort)));
   c.addActionRowComponents(selector(owner, "inventory_sort", filter, "↕ Sort your collection", [
     { label: "Rarest first", value: "rarity", default: sort === "rarity" },
     { label: "Alphabetical", value: "name", default: sort === "name" },
     { label: "Most owned", value: "quantity", default: sort === "quantity" }
   ]));
-  // The five item sections fill the remaining component slots; omit the separator.
+  // Five item sections plus header, filter, sort, and pagination fill ten container slots.
   if (!visible.length) c.addTextDisplayComponents(text("**Nothing in this category yet.**\nTry Filters, /idle mine, or your daily reward."));
   else for (const e of visible) {
     const item = items[e.item_id];
@@ -485,8 +486,6 @@ function inventory(owner, p, page = 1, filter = "all", sort = "rarity") {
     button(owner, "profile", "Command Center", "", ButtonStyle.Primary),
     button(owner, "inventory", "Next ▶", listState(page + 1, filter, sort), ButtonStyle.Secondary, page === total)
   ]));
-  foot(c, "**BAG " + page + " / " + total + "**  ·  " + entries.length + " matches   ·   " +
-    "◇ Common  ·  ◆ Uncommon  ·  ✦ Rare  ·  ✧ Epic  ·  ★ Legendary  ·  Filters auto-save");
   return c;
 }
 
