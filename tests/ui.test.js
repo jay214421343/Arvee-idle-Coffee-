@@ -113,3 +113,29 @@ test("filter accessory opens a category picker without database calls", async ()
   assert.equal(await handleComponent(interaction),true);
   assert.match(JSON.stringify(edited.components[0].toJSON()),/inventory_filter_set/);
 });
+
+test("Satchel renders per-item Inspect buttons and preserves browsing state", () => {
+  const player = { ...sample, inventory: [
+    { item_id: "coffee", quantity: 2 },
+    { item_id: "rare_lootbox", quantity: 1 },
+    { item_id: "lootbox", quantity: 3 }
+  ] };
+  const rendered = ui.inventory(owner, player, 1, "all", "name").toJSON();
+  const json = JSON.stringify(rendered);
+  assert.doesNotMatch(json, /Inspect an item/);
+  assert.doesNotMatch(json, /item_select/);
+  const sections = rendered.components.filter((component) => component.type === 9);
+  assert.equal(sections.length, 4); // collection filter plus three item rows
+  for (const id of ["coffee", "rare_lootbox", "lootbox"]) {
+    assert.ok(json.includes(ui.custom(owner, "inventory_inspect", id + "_1_all_name")));
+  }
+  assert.equal((json.match(/"label":"Inspect"/g) || []).length, 3);
+});
+test("Satchel Inspect controls keep Discord component counts within limits", () => {
+  const { items } = require("../src/catalog");
+  const all = Object.keys(items).slice(0, 8).map((item_id) => ({ item_id, quantity: 1 }));
+  const obj = ui.inventory(owner, { ...sample, inventory: all }).toJSON();
+  assert.ok(obj.components.length <= 40);
+  assert.equal(obj.components.filter((component) => component.type === 9).length, 9);
+  assert.doesNotThrow(() => ui.payload(ui.inventory(owner, { ...sample, inventory: all })));
+});
