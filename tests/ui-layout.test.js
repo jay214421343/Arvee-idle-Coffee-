@@ -16,35 +16,40 @@ function findSelects(view) {
   return view.toJSON().components.filter((part) => part.type === 1 && part.components[0]?.type === 3)
     .map((part) => part.components[0]);
 }
-function verifyCompact(view) {
+function verifyCompact(view, maxSections = 5) {
   const json = view.toJSON();
   assert.equal(json.type, 17);
   assert.ok(json.components.length <= 10, "container must stay within Discord component limit");
   assert.ok(JSON.stringify(json).length < 10000);
   const sections = findSections(view);
-  assert.ok(sections.length <= 5);
+  assert.ok(sections.length <= maxSections);
   for (const section of sections) {
     assert.equal(section.accessory.type, 2);
     assert.match(section.accessory.custom_id, /^ai:2:123456789012345678:/);
     assert.ok(section.components.some((part) => part.type === 10));
   }
 }
-test("satchel uses a filter button, sorting dropdown and compact 8-item list", () => {
+test("satchel uses a filter button, sorting dropdown and per-item Inspect buttons", () => {
   const view = ui.inventory(owner, sample, 1, "all", "rarity");
-  verifyCompact(view);
-  assert.equal(findSections(view).length, 1);
-  assert.equal(findSelects(view).length, 2);
+  verifyCompact(view, 6);
+  assert.equal(findSections(view).length, 6);
+  assert.equal(view.toJSON().components.length, 10);
+  assert.equal(findSelects(view).length, 1);
   assert.equal(findSections(view)[0].accessory.label, "Filters");
+  assert.ok(findSections(view).slice(1).every((section) => section.accessory.label === "Inspect"));
   const json = JSON.stringify(view.toJSON());
   assert.match(json, /SATCHEL/);
-  assert.match(json, /Inspect an item/);
+  assert.ok(json.includes("Bag 1/4"));
+  assert.doesNotMatch(json, /Inspect an item/);
   assert.match(json, /Rarest first/);
 });
 test("satchel filters use contextual filter panel, sorting and paging", () => {
   const view = ui.inventory(owner, sample, 1, "materials", "quantity");
   verifyCompact(view);
   const menus = findSelects(view);
+  assert.equal(menus.length, 1);
   assert.ok(menus[0].options.find((v) => v.value === "quantity" && v.default === true));
+  assert.ok(findSections(view).slice(1).every((section) => section.accessory.label === "Inspect"));
   assert.match(JSON.stringify(view.toJSON()), /1_materials_quantity/);
   const filterPanel = ui.inventoryFilters(owner, 1, "materials", "quantity");
   assert.match(JSON.stringify(filterPanel.toJSON()), /Crafting materials/);

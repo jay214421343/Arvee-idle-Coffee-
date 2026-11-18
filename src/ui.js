@@ -25,7 +25,7 @@ const WARN = brand.theme.warning;
 const ERROR = brand.theme.error;
 const LIMIT = 8;
 const PAGE_SIZE = 4;
-const INVENTORY_PAGE_SIZE = 8;
+const INVENTORY_PAGE_SIZE = 5;
 const SORT_RARITY = Object.freeze({ Common: 0, Uncommon: 1, Rare: 2, Epic: 3, Legendary: 4, Mythic: 5, Secret: 6 });
 const BOX_IDS = new Set(["lootbox", "rare_lootbox", "legendary_lootbox", "lunchbox"]);
 function category(id) {
@@ -462,33 +462,30 @@ function inventory(owner, p, page = 1, filter = "all", sort = "rarity") {
     " unique items**  ·  Explore your loot, supplies and forging materials.");
   c.addSectionComponents(filterHeader(owner, "inventory_filters", "COLLECTION",
     (filter === "all" ? "All items" : ({ materials: "Crafting materials", usable: "Consumables", caches: "Supply caches" }[filter])) +
-    "  ·  " + ({ rarity: "Rare first", name: "Alphabetical", quantity: "Most owned" }[sort]),
+    "  ·  " + ({ rarity: "Rare first", name: "Alphabetical", quantity: "Most owned" }[sort]) +
+    "  ·  Bag " + page + "/" + total + "  ·  " + entries.length + " matches",
     listState(page, filter, sort)));
   c.addActionRowComponents(selector(owner, "inventory_sort", filter, "↕ Sort your collection", [
     { label: "Rarest first", value: "rarity", default: sort === "rarity" },
     { label: "Alphabetical", value: "name", default: sort === "name" },
     { label: "Most owned", value: "quantity", default: sort === "quantity" }
   ]));
-  divider(c);
+  // Five item sections plus header, filter, sort, and pagination fill ten container slots.
   if (!visible.length) c.addTextDisplayComponents(text("**Nothing in this category yet.**\nTry Filters, /idle mine, or your daily reward."));
-  else c.addTextDisplayComponents(text(visible.map((e) => {
+  else for (const e of visible) {
     const item = items[e.item_id];
-    return rarityMark(item.rarity) + "  **" + escapeMarkdown(item.name) + "**" +
-      "  ×" + e.quantity + "\n" + "   " + item.rarity + "  ·  " + (category(e.item_id) === "caches" ? "Supply cache" :
+    const detail = item.rarity + "  ·  " + (category(e.item_id) === "caches" ? "Supply cache" :
       category(e.item_id) === "usable" ? "Consumable" : "Forge material");
-  }).join("\n\n")));
-  if (visible.length) c.addActionRowComponents(selector(owner, "item_select", listState(page, filter, sort),
-    "Inspect an item...", visible.map((e) => ({
-      label: items[e.item_id].name.slice(0, 100), value: e.item_id,
-      description: items[e.item_id].rarity + " · Owned ×" + e.quantity
-    }))));
+    c.addSectionComponents(entrySection(owner, "inventory_inspect",
+      e.item_id + "_" + listState(page, filter, sort),
+      rarityMark(item.rarity) + "  " + escapeMarkdown(item.name) + "  ×" + e.quantity,
+      detail, "Inspect"));
+  }
   c.addActionRowComponents(row([
     button(owner, "inventory", "◀ Previous", listState(page - 1, filter, sort), ButtonStyle.Secondary, page === 1),
     button(owner, "profile", "Command Center", "", ButtonStyle.Primary),
     button(owner, "inventory", "Next ▶", listState(page + 1, filter, sort), ButtonStyle.Secondary, page === total)
   ]));
-  foot(c, "**BAG " + page + " / " + total + "**  ·  " + entries.length + " matches   ·   " +
-    "◇ Common  ·  ◆ Uncommon  ·  ✦ Rare  ·  ✧ Epic  ·  ★ Legendary  ·  Filters auto-save");
   return c;
 }
 
