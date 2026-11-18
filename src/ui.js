@@ -471,17 +471,15 @@ function inventory(owner, p, page = 1, filter = "all", sort = "rarity") {
   ]));
   divider(c);
   if (!visible.length) c.addTextDisplayComponents(text("**Nothing in this category yet.**\nTry Filters, /idle mine, or your daily reward."));
-  else c.addTextDisplayComponents(text(visible.map((e) => {
+  else for (const e of visible) {
     const item = items[e.item_id];
-    return rarityMark(item.rarity) + "  **" + escapeMarkdown(item.name) + "**" +
-      "  ×" + e.quantity + "\n" + "   " + item.rarity + "  ·  " + (category(e.item_id) === "caches" ? "Supply cache" :
+    const detail = item.rarity + "  ·  " + (category(e.item_id) === "caches" ? "Supply cache" :
       category(e.item_id) === "usable" ? "Consumable" : "Forge material");
-  }).join("\n\n")));
-  if (visible.length) c.addActionRowComponents(selector(owner, "item_select", listState(page, filter, sort),
-    "Inspect an item...", visible.map((e) => ({
-      label: items[e.item_id].name.slice(0, 100), value: e.item_id,
-      description: items[e.item_id].rarity + " · Owned ×" + e.quantity
-    }))));
+    c.addSectionComponents(entrySection(owner, "inventory_inspect",
+      e.item_id + "_" + listState(page, filter, sort),
+      rarityMark(item.rarity) + "  " + escapeMarkdown(item.name) + "  ×" + e.quantity,
+      detail, "Inspect"));
+  }
   c.addActionRowComponents(row([
     button(owner, "inventory", "◀ Previous", listState(page - 1, filter, sort), ButtonStyle.Secondary, page === 1),
     button(owner, "profile", "Command Center", "", ButtonStyle.Primary),
