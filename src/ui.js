@@ -469,7 +469,7 @@ function inventory(owner, p, page = 1, filter = "all", sort = "rarity") {
     { label: "Alphabetical", value: "name", default: sort === "name" },
     { label: "Most owned", value: "quantity", default: sort === "quantity" }
   ]));
-  divider(c);
+  // The five item sections fill the remaining component slots; omit the separator.
   if (!visible.length) c.addTextDisplayComponents(text("**Nothing in this category yet.**\nTry Filters, /idle mine, or your daily reward."));
   else for (const e of visible) {
     const item = items[e.item_id];
