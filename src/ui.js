@@ -338,6 +338,13 @@ function home(owner, user, p, readOnly = false) {
     .setURL(user.displayAvatarURL({ extension: "png", size: 128 }))
     .setDescription("ARVEE Idle player avatar"));
   c.addSectionComponents(s);
+  if (p.ecosystem) {
+    const member = p.ecosystem.membership;
+    const labels = p.ecosystem.cosmetics.map(entry => entry.name);
+    c.addTextDisplayComponents(text((member ? "✦ **" + escapeMarkdown(member.name) + "** · One membership, two games · Supporter nameplate" : "**ARVEE ecosystem** · Independent adventures, one Discord identity") +
+      (labels.length ? "\n✧ " + labels.map(escapeMarkdown).join(" · ") : "") +
+      "\n[Play in your browser](https://idle.arvee.world/) · [ARVEE RPG](https://arvee.world/rpg) · [Membership](https://arvee.world/profile)"));
+  }
   if (!readOnly) c.addActionRowComponents(navigation(owner));
   divider(c);
   const progress = progression.prestigeProgress(p);

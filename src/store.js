@@ -264,11 +264,13 @@ async function removeItem(db, userId, itemId, quantity) {
 function stateOf(states, id) { return states.get(String(id)); }
 function perkLevel(state, id) { return state.perks.find((row) => row.perk_id === id)?.level || 0; }
 async function profile(userId) {
+  const ecosystem = require("./ecosystem");
+  const account = await ecosystem.account(userId);
   return transact([userId], async (db, states) => {
     const player = stateOf(states, userId);
     const inventory = (await db.query("SELECT item_id, quantity FROM inventory WHERE user_id=$1 AND quantity>0 ORDER BY item_id", [userId])).rows;
     const generators = (await db.query("SELECT generator_id, quantity FROM player_generators WHERE user_id=$1 AND quantity>0 ORDER BY generator_id", [userId])).rows;
-    return { ...player, inventory, generators };
+    return { ...player, inventory, generators, ecosystem: await ecosystem.synchronize(db,userId,account) };
   });
 }
 async function buyGenerator(userId, generatorId, quantity) {

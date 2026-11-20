@@ -3,6 +3,7 @@ const { assertNodeVersion, validateDatabaseUrl, validateDiscord } = require("./c
 assertNodeVersion();
 validateDatabaseUrl();
 validateDiscord();
+require("./ecosystem").connection();
 const { Client, GatewayIntentBits, Events, MessageFlags } = require("discord.js");
 const { pool } = require("./store");
 const { respond, handleAutocomplete, handleComponent } = require("./commands");

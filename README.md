@@ -2,9 +2,11 @@
 
 **ARVEE Idle** is an independent Discord idle-RPG set in the ARVEE universe. It uses **Discord.js 14, PostgreSQL, and native Components V2** with a compact command center, operations, mining, forging, inventory, player exchange, milestones and prestige.
 
-Website: https://arvee.world/
+Browser game: https://idle.arvee.world/ · ARVEE RPG: https://arvee.world/rpg
 
-Originally forked from the MIT-licensed Coffee idle game by Daniel Tran. The old generator aliases and economy progression are retained for compatibility, but the 56 operations, consumables and interface now use ARVEE-themed names. The source repository is still named Coffee until its owner chooses to rename it on GitHub.
+The optional browser client plays the same saved character through the existing game handlers. Existing ARVEE membership applies automatically, with separate game progress and cosmetic cross-game milestones. See the [ecosystem setup and coordinated rollout](docs/UNIFIED-ECOSYSTEM.md) before enabling it.
+
+Originally forked from the MIT-licensed Coffee idle game by Daniel Tran. The old generator aliases and economy progression are retained for compatibility, but the 56 operations, consumables and interface now use ARVEE-themed names. The GitHub repository is `jay214421343/Arvee-idle-Coffee-` (the former Coffee URL redirects there).
 
 ## Fast start on macOS
 
