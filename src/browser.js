@@ -42,7 +42,8 @@ function validate(input, userId) {
   if (!["button","select"].includes(input.kind) || typeof input.customId !== "string" || input.customId.length > 100) invalid();
   const parts = input.customId.split(":");
   if (parts.length !== 5 || parts[0] !== "ai" || parts[1] !== "2" || parts[2] !== userId || !/^[a-z_]+$/.test(parts[3]) || !/^[a-zA-Z0-9_]*$/.test(parts[4])) invalid();
-  if (input.kind === "select" && (!Array.isArray(input.values) || input.values.length !== 1 || typeof input.values[0] !== "string" || !/^[A-Za-z0-9_-]{1,100}$/.test(input.values[0]))) invalid();
+  const valuePattern = parts[3] === "customize_set" ? /^[a-zA-Z0-9][a-zA-Z0-9 '\-]{0,23}$/ : /^[A-Za-z0-9_-]{1,100}$/;
+  if (input.kind === "select" && (!Array.isArray(input.values) || input.values.length !== 1 || typeof input.values[0] !== "string" || !valuePattern.test(input.values[0]))) invalid();
   return null;
 }
 async function run(user, input, handlers = { respond, handleComponent, routeTutorial }) {

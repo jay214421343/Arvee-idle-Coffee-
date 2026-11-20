@@ -30,6 +30,12 @@ test("browser dispatch uses the authenticated identity and existing gameplay han
   });
   assert.equal(result.view.components[0].content,"Mined");
 });
+test("native cosmetic presets with spaces remain playable in the browser",()=>{
+  const action={kind:"select",customId:`ai:2:${user.id}:customize_set:tag`,values:["ARVEE Veteran"]};
+  assert.doesNotThrow(()=>validate(action,user.id));
+  assert.doesNotThrow(()=>validate({...action,values:["Astral Cartographer"]},user.id));
+  assert.throws(()=>validate({...action,values:["<script>alert(1)</script>"]},user.id),{status:400});
+});
 test("receipt reservation replays results once and rejects changed or uncertain requests",async()=>{
   const rows=new Map();
   const pool={async query(sql,args){
