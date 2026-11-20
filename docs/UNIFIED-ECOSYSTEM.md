@@ -2,9 +2,10 @@
 
 Pair this branch with `codex/unified-ecosystem` in ARVEE (`jay214421343/arvee-source`).
 The authoritative rollout and security review is `docs/UNIFIED-ECOSYSTEM.md` in
-that PR. Both PRs must be reviewed together; no automatic merge or deployment.
-Its `docs/ECOSYSTEM-VALIDATION.md` records local results and outstanding release
-checks. Real PostgreSQL CI and interactive browser QA are required before release.
+that PR. Both PRs must be reviewed together. The owner subsequently authorized live
+publication; both PRs remain open and unmerged. ARVEE
+`docs/ECOSYSTEM-LIVE-RELEASE.md` records the live rollout and browser evidence.
+Real PostgreSQL CI passed all 190 tests, and public browser gameplay/mobile QA passed.
 
 Idle retains its existing dedicated PostgreSQL database, Discord application,
 gameplay rules and data. The browser uses the existing slash/component handlers
@@ -14,8 +15,9 @@ authenticates every browser action, assigns the Discord ID and checks CSRF/origi
 `src/web.js` accepts only authenticated private gateway requests on loopback port
 3092. Do not expose this service as a public web server.
 
-Run `npm run db:migrate` after backing up Idle. The additive schema creates only
-`ecosystem_cosmetics`, `browser_actions` and the receipt cleanup index. It does
+Run `npm run db:migrate` after backing up Idle. Idle's additive schema creates only
+`ecosystem_cosmetics`, `browser_actions` and the receipt cleanup index. ARVEE
+adds one browser-bound sign-in handoff table in its existing Hub database. It does
 not move or recreate player records. Run `npm run check` and `npm test`; CI runs
 the full suite against PostgreSQL 17, including browser/Discord state and replay
 checks. Integration tests require `ARVEE_IDLE_TEST_DATABASE_URL` containing
