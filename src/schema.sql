@@ -1,4 +1,5 @@
 -- ARVEE Idle PostgreSQL schema. Additive: existing inventories and balances remain intact.
+-- No membership or billing replica: ARVEE remains authoritative.
 CREATE TABLE IF NOT EXISTS players (
   user_id TEXT PRIMARY KEY CHECK (user_id ~ '^[0-9]{15,22}$'),
   balance NUMERIC NOT NULL DEFAULT 500 CHECK (balance >= 0),
@@ -77,6 +78,23 @@ CREATE TABLE IF NOT EXISTS economy_events (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS economy_events_user_idx ON economy_events(user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS ecosystem_cosmetics (
+  user_id TEXT NOT NULL REFERENCES players(user_id) ON DELETE CASCADE,
+  cosmetic_id TEXT NOT NULL CHECK (cosmetic_id IN ('realm_traveler','cycle_companion')),
+  earned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(user_id,cosmetic_id)
+);
+-- Action IDs expire after 24h; retain receipts at least 25h to cover clock skew.
+CREATE TABLE IF NOT EXISTS browser_actions (
+  user_id TEXT NOT NULL CHECK(user_id ~ '^[0-9]{15,22}$'),
+  request_id TEXT NOT NULL,
+  input_hash TEXT NOT NULL,
+  response JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(user_id,request_id)
+);
+CREATE INDEX IF NOT EXISTS browser_actions_created_idx ON browser_actions(created_at);
 
 -- Season Journey: persistent XP and one-time tier claims; migrations are additive.
 CREATE TABLE IF NOT EXISTS season_progress (

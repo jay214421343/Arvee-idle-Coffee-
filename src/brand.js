@@ -2,7 +2,7 @@
 module.exports = Object.freeze({
   name: "ARVEE Idle",
   command: "idle",
-  website: "https://arvee.world/",
+  website: "https://idle.arvee.world/",
   currency: "IC",
   currencyName: "Idle Credits",
   theme: Object.freeze({

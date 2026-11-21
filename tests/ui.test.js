@@ -85,9 +85,16 @@ test("authorized paging updates a Components V2 message without using a database
     deferUpdate: async () => { deferred = true; },
     editReply: async (result) => { payload = result; }
   };
-  assert.equal(await handleComponent(interaction), true);
-  assert.equal(deferred, true);
-  assert.equal(payload.components[0].toJSON().type, 17);
+  // Paging uses saved filters and balances; keep this UI test independent of PostgreSQL.
+  const store = require("../src/store");
+  const originalProfile = store.profile, originalPreferences = store.getPreferences;
+  store.profile = async () => sample;
+  store.getPreferences = async () => ({ shopFilter: "all", shopSort: "price" });
+  try {
+    assert.equal(await handleComponent(interaction), true);
+    assert.equal(deferred, true);
+    assert.equal(payload.components[0].toJSON().type, 17);
+  } finally { store.profile = originalProfile; store.getPreferences = originalPreferences; }
 });
 
 test("navigation dropdown opens field guide without requiring database access", async () => {
