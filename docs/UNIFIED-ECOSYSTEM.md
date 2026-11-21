@@ -55,3 +55,14 @@ as well as the existing game data; cosmetic rows cascade with player deletion.
 Rollback by stopping only the optional web process and removing public Idle
 routing. Leave the additive tables and all player data intact. Disconnect ARVEE's
 Idle bridge and revert both application releases together if necessary.
+
+## Native browser refinement
+
+ARVEE now supplies a native camp, satchel and forge UI. `src/browser-state.js`
+projects selected fields from the existing native profile: exact decimal balances,
+cooldowns, crew quotes and recipes. The private `/state` transport still takes
+only the authenticated gateway actor; mutations reuse the existing command path.
+The private `/health` route checks the DB for the network status monitor.
+No additional Idle schema or gameplay changes are required. ARVEE
+`docs/BROWSER-IDLE-AND-MEMBERSHIP.md` documents the membership storefront,
+creator attribution, Stripe discounts and paired rollout.
