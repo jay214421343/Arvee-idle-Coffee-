@@ -341,9 +341,11 @@ function home(owner, user, p, readOnly = false) {
   if (p.ecosystem) {
     const member = p.ecosystem.membership;
     const labels = p.ecosystem.cosmetics.map(entry => entry.name);
+    const platform = require("./game-benefits").benefits(p.ecosystem,p.ecosystem.cosmetics);
     c.addTextDisplayComponents(text((member ? "✦ **" + escapeMarkdown(member.name) + "** · One membership, two games · Supporter nameplate" : "**ARVEE ecosystem** · Independent adventures, one Discord identity") +
       (labels.length ? "\n✧ " + labels.map(escapeMarkdown).join(" · ") : "") +
-      "\n[Play in your browser](https://idle.arvee.world/) · [ARVEE RPG](https://arvee.world/rpg) · [Membership](https://arvee.world/profile)"));
+      (platform.sources.length ? "\n" + platform.sources.map(escapeMarkdown).join(" · ") + " · Mining & daily credits" : "") +
+      "\n[Play in your browser](https://idle.arvee.world/) · [ARVEE RPG](https://arvee.world/rpg) · [Membership](https://arvee.world/membership)"));
   }
   if (!readOnly) c.addActionRowComponents(navigation(owner));
   divider(c);

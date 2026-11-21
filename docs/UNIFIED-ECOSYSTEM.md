@@ -39,11 +39,10 @@ review.
 
 The existing ARVEE tier/expiry automatically controls Idle's supporter nameplate
 and accent. No purchase, entitlement or billing record is stored here. An ARVEE
-outage removes paid presentation temporarily but leaves free gameplay available.
+outage removes paid benefits temporarily but leaves free gameplay available.
 RPG level 25 and prestige 1 unlock permanent Idle profile decorations; Idle mining
 XP 100 and prestige 1 unlock zero-stat RPG titles. Open the Idle profile to sync.
-There are no currency transfers, paid mining multipliers or additional progression
-menus. Existing `profile_tag` values and pickaxe skins are preserved.
+Membership adds 5/6/8/10% mining and daily credits for silver/gold/diamond/inferno, resolved from ARVEE at each reward. Realm Traveler adds a permanent 2% mining/daily perk, and Idle Prospector grants 2% RPG combat XP. Active ARVEE global Gold events and community boosters add up to 25% to Idle mining/daily; the strongest applies. These platform bonuses multiply up to a 40% cap; consumables retain the existing 20x mining cap. No passive-income recalculation or shorter cooldowns. Staff manage shared boosts using ARVEE’s existing reviewed World Bonuses flow. There are no currency transfers or additional progression menus. Existing `profile_tag` values and pickaxe skins are preserved.
 
 Browser action receipts use a 24-hour request-ID window and are cleaned after at
 least 25 hours. Completed matching retries replay; pending/uncertain actions reject
@@ -66,3 +65,5 @@ The private `/health` route checks the DB for the network status monitor.
 No additional Idle schema or gameplay changes are required. ARVEE
 `docs/BROWSER-IDLE-AND-MEMBERSHIP.md` documents the membership storefront,
 creator attribution, Stripe discounts and paired rollout.
+
+Creator/discount campaigns are managed entirely on ARVEE’s /membership page, including usage limits, expiry, eligible tiers and verified paid attribution. No billing or entitlement tables are added to Idle. Apply ARVEE Hub migration 029 and restart both Idle processes alongside the gateway for gameplay changes. Details and rollback: ARVEE docs/BROWSER-IDLE-AND-MEMBERSHIP.md.

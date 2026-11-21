@@ -4,7 +4,7 @@
 
 Browser game: https://idle.arvee.world/ · ARVEE RPG: https://arvee.world/rpg
 
-The optional browser client plays the same saved character through the existing game handlers. Existing ARVEE membership applies automatically, with separate game progress and cosmetic cross-game milestones. See the [ecosystem setup and coordinated rollout](docs/UNIFIED-ECOSYSTEM.md) before enabling it.
+The optional browser client plays the same saved character through the existing game handlers. Existing ARVEE membership applies automatically, with separate game progress and cross-game cosmetics and small milestone perks. See the [ecosystem setup and coordinated rollout](docs/UNIFIED-ECOSYSTEM.md) before enabling it.
 
 Originally forked from the MIT-licensed Coffee idle game by Daniel Tran. The old generator aliases and economy progression are retained for compatibility, but the 56 operations, consumables and interface now use ARVEE-themed names. The GitHub repository is `jay214421343/Arvee-idle-Coffee-` (the former Coffee URL redirects there).
 

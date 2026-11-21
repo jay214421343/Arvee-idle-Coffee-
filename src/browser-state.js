@@ -18,6 +18,7 @@ function project(player,now=Date.now()) {
     mineDuration:miningCooldownMs(player.perks),passiveEarned:pretty(player.passiveEarned),passiveSeconds:player.passiveSeconds,
     prestigeProgress:dec(player.balance).div(PRESTIGE_REQUIREMENT).times(100).clamp(0,100).toNumber(),
     decorations:player.ecosystem?.cosmetics||[],
+    bonuses:require("./game-benefits").benefits(player.ecosystem,player.ecosystem?.cosmetics||[],now),
     generators:generators.map((entry,index)=>{
       const quantity=owned[entry.id]||0,unlocked=rebirth.unlocked(player.prestige,entry.prestigeRequired);
       const quotes={};for(const amount of [1,10]){

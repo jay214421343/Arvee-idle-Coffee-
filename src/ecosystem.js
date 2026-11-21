@@ -25,7 +25,7 @@ async function account(userId, { fetch: fetcher = globalThis.fetch, environment 
     if (!response.ok) return EMPTY;
     const data = await response.json();
     if (data.userId !== userId || data.version !== 1) return EMPTY;
-    return { available: true, membership: data.membership || null, rpg: data.rpg || null };
+    return { available: true, membership: data.membership || null, rpg: data.rpg || null, sharedBoost:data.sharedBoost||null };
   } catch { return EMPTY; } // An outage never blocks free gameplay or grants paid access.
 }
 function earnedCosmetics(data) {

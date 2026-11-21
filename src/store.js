@@ -303,6 +303,7 @@ async function buyGenerator(userId, generatorId, quantity) {
   });
 }
 async function mine(userId) {
+  const ecosystem=require("./ecosystem"),account=await ecosystem.account(userId);
   return transact([userId], async (db, states) => {
     const state = stateOf(states, userId);
     const now = Date.now();
@@ -317,13 +318,16 @@ async function mine(userId) {
       .times(dec(1).plus(dec(perkLevel(state, "miner")).times("0.10")))
       .times(petBonus).times(dec(guilds.mineMultiplier(guildTier)))
       .times(rebirth.minerMultiplier(state.rebirthPath));
+    const bridge=await ecosystem.synchronize(db,userId,account);
+    const platform=require("./game-benefits").benefits(bridge,bridge.cosmetics,now);
     const oneShot = state.mineBonus;
     const food = state.mineBoostCharges > 0 ? state.mineBoostMultiplier : dec(1);
-    const multiplier = Decimal.min(20, oneShot.times(food));
+    const multiplier = Decimal.min(20, oneShot.times(food).times(platform.multiplier));
     const baseReward = gross.floor();
     const reward = gross.times(multiplier).floor();
     const bonusReward = reward.minus(baseReward);
     const boostSources = [
+      ...platform.sources,
       ...(oneShot.gt(1) ? [state.nextMineSource || "Stored boost"] : []),
       ...(state.mineBoostCharges > 0 ? [state.mineBoostSource || "Food boost"] : [])
     ];
@@ -363,13 +367,16 @@ async function mine(userId) {
   });
 }
 async function daily(userId) {
+  const ecosystem=require("./ecosystem"),account=await ecosystem.account(userId);
   return transact([userId], async (db, states) => {
     const state = stateOf(states, userId);
     const now = Date.now();
     const remaining = activity.readiness(state.lastDaily, activity.DAILY_MS, now);
     if (!remaining.ready) return { cooldown: remaining.seconds };
     state.lastDaily = new Date(now);
-    const credits = dec(750);
+    const bridge=await ecosystem.synchronize(db,userId,account);
+    const platform=require("./game-benefits").benefits(bridge,bridge.cosmetics,now);
+    const credits = dec(750).times(platform.multiplier).floor();
     state.balance = state.balance.plus(credits);
     state.totalEarned = state.totalEarned.plus(credits);
     await addItem(db, userId, "lootbox", 3);
@@ -377,7 +384,7 @@ async function daily(userId) {
     await addItem(db, userId, "ore", 4);
     await addItem(db, userId, "silver", 2);
     await event(db, userId, "daily", credits);
-    return { received: ["750 IC", "3 Supply Caches", "1 Campfire Brew", "4 Rune Ore", "2 Moonsteel"] };
+    return { credits,boostSources:platform.sources,received: [credits.toFixed(0)+" IC", "3 Supply Caches", "1 Campfire Brew", "4 Rune Ore", "2 Moonsteel"] };
   });
 }
 async function craft(userId, itemId, quantity) {
